@@ -131,6 +131,18 @@ class AppShell extends ConsumerWidget {
     }
     return 0;
   }
+
+  /// تنقل آمن يمنع تكرار التنقل لنفس المسار ويُؤجّل التوجيه لإطار ما بعد الرسم
+  static void safeNavigate(BuildContext context, String route) {
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location == route) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        context.go(route);
+      }
+    });
+  }
 }
 
 // ── تخطيط الشاشات الكبيرة (Desktop Shell) ─────────────────────────────────
@@ -229,7 +241,7 @@ class _DesktopShell extends ConsumerWidget {
                       return Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () => context.go(item.route),
+                          onTap: () => AppShell.safeNavigate(context, item.route),
                           borderRadius: BorderRadius.circular(10),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
@@ -284,7 +296,7 @@ class _DesktopShell extends ConsumerWidget {
                     children: [
                       // زر سجل المراجعة
                       InkWell(
-                        onTap: () => context.go(AppRoutes.audit),
+                        onTap: () => AppShell.safeNavigate(context, AppRoutes.audit),
                         borderRadius: BorderRadius.circular(10),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -611,7 +623,7 @@ class _MobileShell extends ConsumerWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
-          context.go(_mobileItems[index].route);
+          AppShell.safeNavigate(context, _mobileItems[index].route);
         },
         destinations: _mobileItems
             .map((item) => NavigationDestination(

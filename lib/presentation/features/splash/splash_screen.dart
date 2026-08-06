@@ -30,8 +30,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   /// هل انتهى الانتظار الأدنى (2 ثانية لعرض الأنيميشن)؟
   bool _minDelayDone = false;
 
-  /// هل تهيئة المصادقة جاهزة؟
-  bool _authReady = false;
+  /// منع تكرار التوجيه
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -44,32 +44,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
     _minDelayDone = true;
-    _tryNavigate();
+    _checkAndNavigate();
   }
 
-  /// محاولة التوجيه تلقائياً
-  void _tryNavigate() {
-    if (!_minDelayDone || !_authReady) return;
-    if (!mounted) return;
+  /// محاولة التوجيه تلقائياً بطريقة آمنة خارج إطار الـ Build
+  void _checkAndNavigate() {
+    if (!_minDelayDone || _hasNavigated || !mounted) return;
 
-    // التوجيه لـ /dashboard والـ Router يُقرر المسار النهائي تلقائياً
-    context.go(AppRoutes.dashboard);
+    final authState = ref.read(authNotifierProvider);
+    if (authState is AuthInitial || authState is AuthLoading) return;
+
+    _hasNavigated = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.go(AppRoutes.dashboard);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // مراقبة حالة المصادقة
+    // مراقبة حالة المصادقة عند التغيير
     ref.listen<AuthState>(authNotifierProvider, (previous, current) {
       if (current is! AuthInitial && current is! AuthLoading) {
-        _authReady = true;
-        _tryNavigate();
+        _checkAndNavigate();
       }
     });
 
-    final authState = ref.watch(authNotifierProvider);
-    if (authState is! AuthInitial && authState is! AuthLoading) {
-      _authReady = true;
-    }
+    // محاولة التوجيه الآمنة في حال كانت الحالة جاهزة مسبقاً
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndNavigate();
+    });
 
     return Scaffold(
       body: Stack(
