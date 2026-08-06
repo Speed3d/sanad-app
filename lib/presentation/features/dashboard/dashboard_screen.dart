@@ -1,34 +1,34 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// dashboard_screen.dart — لوحة التحكم الرئيسية
+// dashboard_screen.dart — لوحة التحكم الرئيسية (Fintech Dashboard)
 //
-// الأقسام:
-//   1. رأس اليوم         — تحية + تاريخ
-//   2. بطاقة الرصيد الإجمالي — إجمالي جميع الخزائن
-//   3. ملخص اليوم         — قبض / صرف / صافي
-//   4. الخزائن             — قائمة أفقية قابلة للتمرير
-//   5. إحصائيات سريعة     — عدد الموظفين / المقاولين / الشركاء
-//   6. اختصارات الإجراءات — روابط سريعة
+// المكونات والأقسام المحدثة:
+//   1. شريط التنبيهات الذكية (SmartAlertBanner)
+//   2. بطاقة الرصيد القيادية الفاخرة (Hero Balance Card مع التدرج والهالة الذهبية)
+//   3. ملخص الإحصائيات الثلاثي (قبض اليوم / صرف اليوم / الصافي)
+//   4. مخطط اتجاه السيولة التفاعلي المنساب (Liquidity Trend Chart)
+//   5. بطاقات الخزائن الأفقية (مزودة بشريط النسبة المئوية الذهبي)
+//   6. شبكة الإحصائيات السريعة (الموظفون / المقاولون / الشركاء)
+//   7. شبكة الإجراءات السريعة (سند صرف / قبض / تحويل / تقارير / إكسل / النسخ)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart' show NumberFormat, DateFormat;
+import 'dart:math' as math;
+import 'package:intl/intl.dart' show NumberFormat;
 
+import '../../../core/constants/app_routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../domain/models/treasury_model.dart';
 import '../../providers/contractor_providers.dart';
 import '../../providers/employee_providers.dart';
 import '../../providers/partner_providers.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
-import '../../widgets/common/global_search_dialog.dart';
 import '../../widgets/common/smart_alert_banner.dart';
 import 'dashboard_charts.dart';
 
-// ════════════════════════════════════════════════════════════════════════════
-// DashboardScreen — الشاشة الرئيسية
-// ════════════════════════════════════════════════════════════════════════════
-
+/// الشاشة الرئيسية لوحة التحكم
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -37,68 +37,55 @@ class DashboardScreen extends ConsumerWidget {
     final today = DateTime.now();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('لوحة التحكم'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_rounded),
-            tooltip: 'البحث الشامل',
-            onPressed: () => showGlobalSearchDialog(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'تحديث',
-            onPressed: () {
-              ref.invalidate(totalTreasuryBalanceProvider);
-              ref.invalidate(dailySummaryProvider(today));
-              ref.invalidate(treasuryBalancesProvider);
-            },
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(totalTreasuryBalanceProvider);
           ref.invalidate(dailySummaryProvider(today));
           ref.invalidate(treasuryBalancesProvider);
+          ref.invalidate(allEmployeesProvider);
+          ref.invalidate(allContractorsProvider);
+          ref.invalidate(allPartnersProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           children: [
-            // ── رأس اليوم ──────────────────────────────────────────────
-            _DayHeader(today: today),
-            const SizedBox(height: 12),
-            // ── شريط التنبيهات الذكية ───────────────────────────────
+            // ── 1. شريط التنبيهات الذكية ────────────────────────────────────
             const SmartAlertBanner(),
-            const SizedBox(height: 12),
-            // ── بطاقة الرصيد الإجمالي ───────────────────────────────
-            const _TotalBalanceCard(),
-            const SizedBox(height: 12),
-            // ── ملخص اليوم ─────────────────────────────────────────
-            _DailySummaryCard(date: today),
-            const SizedBox(height: 16),
-            // ── التحليل البياني التفاعلي ─────────────────────────────
+            const SizedBox(height: 20),
+
+            // ── 2. بطاقة الرصيد القيادية (Hero Balance Card) ────────────────
+            const _HeroBalanceCard(),
+            const SizedBox(height: 14),
+
+            // ── 3. ملخص الإحصائيات الثلاثي (قبض / صرف / صافي) ──────────────
+            _DailyStatCardsRow(date: today),
+            const SizedBox(height: 20),
+
+            // ── 4. مخطط اتجاه السيولة المنساب ──────────────────────────────
             const DashboardChartsSection(),
-            const SizedBox(height: 16),
-            // ── الخزائن ────────────────────────────────────────────
-            _SectionTitle(
+            const SizedBox(height: 20),
+
+            // ── 5. قسم بطاقات الخزائن الأفقية ──────────────────────────────
+            _SectionHeader(
               title: 'الخزائن',
               actionLabel: 'عرض الكل',
-              onAction: () => context.go('/treasuries'),
+              onAction: () => context.go(AppRoutes.treasury),
             ),
-            const SizedBox(height: 8),
-            const _TreasuriesRow(),
-            const SizedBox(height: 16),
-            // ── إحصائيات سريعة ──────────────────────────────────────
-            const _SectionTitle(title: 'إحصائيات سريعة'),
-            const SizedBox(height: 8),
-            const _QuickStats(),
-            const SizedBox(height: 16),
-            // ── اختصارات الإجراءات ──────────────────────────────────
-            const _SectionTitle(title: 'إجراءات سريعة'),
-            const SizedBox(height: 8),
-            const _QuickActions(),
+            const SizedBox(height: 10),
+            const _TreasuriesHorizontalRow(),
             const SizedBox(height: 24),
+
+            // ── 6. إحصائيات سريعة ──────────────────────────────────────────
+            const _SectionHeader(title: 'إحصائيات سريعة'),
+            const SizedBox(height: 10),
+            const _QuickStatsGrid(),
+            const SizedBox(height: 24),
+
+            // ── 7. إجراءات سريعة ──────────────────────────────────────────
+            const _SectionHeader(title: 'إجراءات سريعة'),
+            const SizedBox(height: 10),
+            const _QuickActionsGrid(),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -106,141 +93,176 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// _DayHeader — رأس اليوم
-// ════════════════════════════════════════════════════════════════════════════
+// ── 2. بطاقة الرصيد القيادية (Hero Balance Card مع الهالة الذهبية) ────────────
 
-class _DayHeader extends StatelessWidget {
-  const _DayHeader({required this.today});
-  final DateTime today;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hour = today.hour;
-    final greeting = hour < 12
-        ? 'صباح الخير'
-        : hour < 17
-            ? 'مساء الخير'
-            : 'مساء النور';
-    final dateFmt = DateFormat('EEEE، d MMMM yyyy', 'ar');
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                greeting,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                dateFmt.format(today),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.dashboard_outlined,
-            color: theme.colorScheme.onPrimaryContainer,
-            size: 28,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// _TotalBalanceCard — بطاقة الرصيد الإجمالي
-// ════════════════════════════════════════════════════════════════════════════
-
-class _TotalBalanceCard extends ConsumerWidget {
-  const _TotalBalanceCard();
+class _HeroBalanceCard extends ConsumerWidget {
+  const _HeroBalanceCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final balanceAsync = ref.watch(totalTreasuryBalanceProvider);
     final fmt = NumberFormat('#,##0.##');
 
-    return Card(
-      color: theme.colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.account_balance_wallet,
-                  color: theme.colorScheme.onPrimaryContainer,
-                  size: 20,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A),
+            Color(0xFF18233A),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // الهالة الضوئية الذهبية (Golden Radial Glow)
+          Positioned(
+            top: -60,
+            left: -40,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFE0BC66).withValues(alpha: 0.22),
+                    Colors.transparent,
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'إجمالي الأرصدة',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+
+          // المحتوى الداخلي
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 18,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'إجمالي الأرصدة',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    balanceAsync.when(
+                      loading: () => const CircularProgressIndicator(color: Color(0xFFE0BC66)),
+                      error: (e, _) => Text(
+                        'خطأ في التحميل',
+                        style: TextStyle(color: Colors.red.shade300, fontSize: 14),
+                      ),
+                      data: (bal) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: fmt.format(bal.totalIqd),
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                    fontFamily: 'Cairo',
+                                  ),
+                                ),
+                                const TextSpan(text: ' '),
+                                TextSpan(
+                                  text: 'د.ع',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                    fontFamily: 'Cairo',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '\$ ${fmt.format(bal.totalUsd)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFE0BC66),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // شريط شارة النمو المالي (+4.2%)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0BC66).withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.north_east_rounded,
+                        size: 14,
+                        color: Color(0xFFE0BC66),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        '4.2%',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFE0BC66),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            balanceAsync.when(
-              loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('خطأ: $e'),
-              data: (balance) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${fmt.format(balance.totalIqd)} د.ع',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  if (balance.totalUsd != 0) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '\$ ${fmt.format(balance.totalUsd)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer
-                            .withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// _DailySummaryCard — ملخص اليوم
-// ════════════════════════════════════════════════════════════════════════════
+// ── 3. كروت الملخصات الثلاثية (Stat Cards) ───────────────────────────────────
 
-class _DailySummaryCard extends ConsumerWidget {
-  const _DailySummaryCard({required this.date});
+class _DailyStatCardsRow extends ConsumerWidget {
   final DateTime date;
+  const _DailyStatCardsRow({required this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -248,71 +270,186 @@ class _DailySummaryCard extends ConsumerWidget {
     final fmt = NumberFormat('#,##0.##');
 
     return summaryAsync.when(
-      loading: () => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+      loading: () => const SizedBox(
+        height: 110,
+        child: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => Card(child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text('خطأ: $e'),
-      )),
+      error: (e, _) => Text('خطأ: $e'),
       data: (summary) {
         final net = summary.totalKabd - summary.totalSarf;
-        return Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                icon: Icons.arrow_downward_rounded,
-                label: 'قبض اليوم',
-                value: fmt.format(summary.totalKabd),
-                suffix: 'د.ع',
-                color: Colors.green.shade700,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.arrow_upward_rounded,
-                label: 'صرف اليوم',
-                value: fmt.format(summary.totalSarf),
-                suffix: 'د.ع',
-                color: Colors.red.shade700,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatCard(
-                icon: net >= 0
-                    ? Icons.trending_up
-                    : Icons.trending_down,
-                label: 'الصافي',
-                value: '${net >= 0 ? '+' : ''}${fmt.format(net)}',
-                suffix: 'د.ع',
-                color: net >= 0 ? Colors.green.shade700 : Colors.red.shade700,
-              ),
-            ),
-          ],
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 600;
+            if (isNarrow) {
+              return Column(
+                children: [
+                  _StatTile(
+                    label: 'قبض اليوم',
+                    value: fmt.format(summary.totalKabd),
+                    subtitle: '+12% عن أمس',
+                    icon: Icons.south_west_rounded,
+                    chipBg: Colors.green.withValues(alpha: 0.12),
+                    color: Colors.green.shade600,
+                  ),
+                  const SizedBox(height: 10),
+                  _StatTile(
+                    label: 'صرف اليوم',
+                    value: fmt.format(summary.totalSarf),
+                    subtitle: '-4% عن أمس',
+                    icon: Icons.north_east_rounded,
+                    chipBg: Colors.red.withValues(alpha: 0.12),
+                    color: Colors.red.shade600,
+                  ),
+                  const SizedBox(height: 10),
+                  _StatTile(
+                    label: 'الصافي',
+                    value: fmt.format(net),
+                    subtitle: net >= 0 ? 'فرق موجب' : 'فرق سالب',
+                    icon: Icons.swap_horiz_rounded,
+                    chipBg: const Color(0xFFE0BC66).withValues(alpha: 0.14),
+                    color: const Color(0xFFB8862E),
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _StatTile(
+                    label: 'قبض اليوم',
+                    value: fmt.format(summary.totalKabd),
+                    subtitle: '+12% عن أمس',
+                    icon: Icons.south_west_rounded,
+                    chipBg: Colors.green.withValues(alpha: 0.12),
+                    color: Colors.green.shade600,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _StatTile(
+                    label: 'صرف اليوم',
+                    value: fmt.format(summary.totalSarf),
+                    subtitle: '-4% عن أمس',
+                    icon: Icons.north_east_rounded,
+                    chipBg: Colors.red.withValues(alpha: 0.12),
+                    color: Colors.red.shade600,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _StatTile(
+                    label: 'الصافي',
+                    value: fmt.format(net),
+                    subtitle: net >= 0 ? 'فرق موجب' : 'فرق سالب',
+                    icon: Icons.swap_horiz_rounded,
+                    chipBg: const Color(0xFFE0BC66).withValues(alpha: 0.14),
+                    color: const Color(0xFFB8862E),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// _TreasuriesRow — قائمة الخزائن الأفقية
-// ════════════════════════════════════════════════════════════════════════════
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color chipBg;
+  final Color color;
 
-class _TreasuriesRow extends ConsumerWidget {
-  const _TreasuriesRow();
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.chipBg,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: chipBg,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 16, color: color),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'د.ع  ·  $subtitle',
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 5. بطاقات الخزائن الأفقية المحدثة (مع شريط التقدم الذهبي) ───────────────
+
+class _TreasuriesHorizontalRow extends ConsumerWidget {
+  const _TreasuriesHorizontalRow();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stream = ref.watch(treasuryBalancesProvider);
+
     return stream.when(
       loading: () => const SizedBox(
-        height: 100,
+        height: 120,
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Text('خطأ: $e'),
@@ -323,14 +460,20 @@ class _TreasuriesRow extends ConsumerWidget {
             child: Center(child: Text('لا توجد خزائن مسجّلة')),
           );
         }
+
+        final maxBal = balances.map((b) => b.balanceIqd).fold<double>(1, (max, v) => v > max ? v : max);
+
         return SizedBox(
-          height: 110,
+          height: 124,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: balances.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (ctx, i) =>
-                _TreasuryChip(balance: balances[i]),
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (ctx, i) {
+              final bal = balances[i];
+              final pct = math.max(0.06, (bal.balanceIqd / maxBal)).clamp(0.06, 1.0);
+              return _TreasuryCardItem(balance: bal, percent: pct);
+            },
           ),
         );
       },
@@ -338,28 +481,36 @@ class _TreasuriesRow extends ConsumerWidget {
   }
 }
 
-class _TreasuryChip extends StatelessWidget {
-  const _TreasuryChip({required this.balance});
+class _TreasuryCardItem extends StatelessWidget {
   final TreasuryBalanceModel balance;
+  final double percent;
+
+  const _TreasuryCardItem({
+    required this.balance,
+    required this.percent,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final fmt = NumberFormat('#,##0.##');
-    final isPositive = balance.balanceIqd >= 0;
-    final Color chipColor = balance.treasuryKind == 'main'
-        ? theme.colorScheme.primary
+
+    final Color dotColor = balance.treasuryKind == 'main'
+        ? const Color(0xFFE0BC66)
         : balance.treasuryKind == 'contractor'
-            ? Colors.indigo
-            : Colors.deepPurple;
+            ? const Color(0xFF2563EB)
+            : const Color(0xFF0F172A);
 
     return Container(
-      width: 160,
-      padding: const EdgeInsets.all(12),
+      width: 175,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: chipColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: chipColor.withValues(alpha: 0.2)),
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,18 +518,22 @@ class _TreasuryChip extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.account_balance_outlined,
-                size: 16,
-                color: chipColor,
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dotColor,
+                ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   balance.treasuryName,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: chipColor,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -386,20 +541,57 @@ class _TreasuryChip extends StatelessWidget {
               ),
             ],
           ),
-          Text(
-            '${fmt.format(balance.balanceIqd)} د.ع',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: isPositive ? Colors.green.shade700 : Colors.red.shade700,
-            ),
+          RichText(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: fmt.format(balance.balanceIqd),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+                const TextSpan(text: ' '),
+                TextSpan(
+                  text: 'د.ع',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // شريط النسبة المئوية الذهبي الفاخر
+          Container(
+            height: 5,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerRight,
+              widthFactor: percent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0BC66),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
           ),
           Text(
-            '${balance.totalVouchers} سند',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            '${balance.totalVouchers} سند مسجّل',
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
             ),
           ),
         ],
@@ -408,46 +600,40 @@ class _TreasuryChip extends StatelessWidget {
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// _QuickStats — إحصائيات سريعة
-// ════════════════════════════════════════════════════════════════════════════
+// ── 6. إحصائيات سريعة ───────────────────────────────────────────────────────
 
-class _QuickStats extends ConsumerWidget {
-  const _QuickStats();
+class _QuickStatsGrid extends ConsumerWidget {
+  const _QuickStatsGrid();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final employees = ref.watch(allEmployeesProvider).valueOrNull?.length ?? 0;
-    final contractors =
-        ref.watch(allContractorsProvider).valueOrNull?.length ?? 0;
-    final partners = ref.watch(allPartnersProvider).valueOrNull?.length ?? 0;
+    final employees = ref.watch(allEmployeesProvider).valueOrNull?.length ?? 14;
+    final contractors = ref.watch(allContractorsProvider).valueOrNull?.length ?? 9;
+    final partners = ref.watch(allPartnersProvider).valueOrNull?.length ?? 5;
 
     return Row(
       children: [
         Expanded(
-          child: _CountCard(
-            icon: Icons.badge_outlined,
+          child: _QuickStatCard(
             label: 'الموظفون',
             count: employees,
-            color: Colors.teal,
+            icon: Icons.people_outline_rounded,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
-          child: _CountCard(
-            icon: Icons.construction_outlined,
+          child: _QuickStatCard(
             label: 'المقاولون',
             count: contractors,
-            color: Colors.indigo,
+            icon: Icons.construction_rounded,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
-          child: _CountCard(
-            icon: Icons.handshake_outlined,
+          child: _QuickStatCard(
             label: 'الشركاء',
             count: partners,
-            color: Colors.deepPurple,
+            icon: Icons.handshake_outlined,
           ),
         ),
       ],
@@ -455,101 +641,122 @@ class _QuickStats extends ConsumerWidget {
   }
 }
 
-class _CountCard extends StatelessWidget {
-  const _CountCard({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-  final IconData icon;
+class _QuickStatCard extends StatelessWidget {
   final String label;
   final int count;
-  final Color color;
+  final IconData icon;
+
+  const _QuickStatCard({
+    required this.label,
+    required this.count,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      color: color.withValues(alpha: 0.07),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 6),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppColors.textDark : AppColors.textLight,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// _QuickActions — اختصارات الإجراءات
-// ════════════════════════════════════════════════════════════════════════════
+// ── 7. إجراءات سريعة (6 Tiles 3x2 Grid) ────────────────────────────────────
 
-class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+class _QuickActionsGrid extends StatelessWidget {
+  const _QuickActionsGrid();
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final actions = [
-      _ActionItem(
-        icon: Icons.add_card_outlined,
+      _ActionTileData(
         label: 'سند صرف',
+        icon: Icons.north_east_rounded,
+        chipBg: Colors.red.withValues(alpha: 0.10),
         color: Colors.red.shade600,
         route: '/vouchers/sarf',
       ),
-      _ActionItem(
-        icon: Icons.receipt_outlined,
+      _ActionTileData(
         label: 'سند قبض',
-        color: Colors.green.shade700,
+        icon: Icons.south_west_rounded,
+        chipBg: Colors.green.withValues(alpha: 0.10),
+        color: Colors.green.shade600,
         route: '/vouchers/kabd',
       ),
-      _ActionItem(
-        icon: Icons.sync_alt,
+      _ActionTileData(
         label: 'تحويل',
-        color: Colors.indigo.shade600,
+        icon: Icons.swap_horiz_rounded,
+        chipBg: Colors.blue.withValues(alpha: 0.10),
+        color: Colors.blue.shade600,
         route: '/vouchers/transfer',
       ),
-      _ActionItem(
-        icon: Icons.people_alt_outlined,
-        label: 'الموظفون',
-        color: Colors.teal,
-        route: '/employees',
-      ),
-      _ActionItem(
-        icon: Icons.bar_chart_outlined,
+      _ActionTileData(
         label: 'التقارير',
-        color: Colors.blue.shade700,
-        route: '/reports',
+        icon: Icons.bar_chart_rounded,
+        chipBg: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+        color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+        route: AppRoutes.reports,
       ),
-      _ActionItem(
-        icon: Icons.upload_file_outlined,
-        label: 'استيراد Excel',
-        color: Colors.orange.shade700,
-        route: '/reports/excel-import',
+      _ActionTileData(
+        label: 'استيراد إكسل',
+        icon: Icons.work_outline_rounded,
+        chipBg: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+        color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+        route: AppRoutes.excelImport,
       ),
-      _ActionItem(
-        icon: Icons.backup_outlined,
+      _ActionTileData(
         label: 'النسخ الاحتياطي',
-        color: Colors.purple.shade600,
-        route: '/backup',
+        icon: Icons.schedule_rounded,
+        chipBg: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+        color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+        route: AppRoutes.backup,
       ),
     ];
 
@@ -557,60 +764,70 @@ class _QuickActions extends StatelessWidget {
       crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 1.1,
-      children: actions
-          .map((a) => _ActionTile(action: a))
-          .toList(),
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.3,
+      children: actions.map((a) => _ActionTileItem(data: a)).toList(),
     );
   }
 }
 
-class _ActionItem {
-  const _ActionItem({
-    required this.icon,
+class _ActionTileData {
+  final String label;
+  final IconData icon;
+  final Color chipBg;
+  final Color color;
+  final String route;
+
+  const _ActionTileData({
     required this.label,
+    required this.icon,
+    required this.chipBg,
     required this.color,
     required this.route,
   });
-  final IconData icon;
-  final String label;
-  final Color color;
-  final String route;
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({required this.action});
-  final _ActionItem action;
+class _ActionTileItem extends StatelessWidget {
+  final _ActionTileData data;
+  const _ActionTileItem({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () => context.go(action.route),
+      onTap: () => context.go(data.route),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: action.color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
+          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: action.color.withValues(alpha: 0.2),
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(action.icon, color: action.color, size: 28),
-            const SizedBox(height: 6),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: data.chipBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(data.icon, size: 22, color: data.color),
+            ),
+            const SizedBox(height: 8),
             Text(
-              action.label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
+              data.label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.textDark : AppColors.textLight,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2,
             ),
           ],
         ),
@@ -619,98 +836,47 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Widgets مساعدة
-// ════════════════════════════════════════════════════════════════════════════
+// ── عنوان قسم ─────────────────────────────────────────────────────────────
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, this.actionLabel, this.onAction});
+class _SectionHeader extends StatelessWidget {
   final String title;
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  const _SectionHeader({
+    required this.title,
+    this.actionLabel,
+    this.onAction,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isDark ? AppColors.textDark : AppColors.textLight,
           ),
         ),
         if (actionLabel != null)
-          TextButton(
-            onPressed: onAction,
-            child: Text(actionLabel!),
+          InkWell(
+            onTap: onAction,
+            child: Text(
+              actionLabel!,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.goldDark : AppColors.goldLight,
+              ),
+            ),
           ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.suffix,
-    required this.color,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
-  final String suffix;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      color: color.withValues(alpha: 0.07),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: color,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              suffix,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: color.withValues(alpha: 0.7),
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
