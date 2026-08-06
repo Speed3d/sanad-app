@@ -53,182 +53,105 @@ abstract final class AppTheme {
 
   // ── بناء الثيم ─────────────────────────────────────────────────────────────
 
-  /// دالة بناء الثيم الداخلية
+  /// دالة بناء الثيم الداخلية المخصصة للنظام اللوني الفاخر
   /// [brightness] — نوع الثيم: فاتح أو داكن
-  /// [seedColor]  — لون البذرة الذي يُولِّد Tonal Palette كاملة تلقائياً
+  /// [seedColor]  — لون البذرة الأساسي
   static ThemeData _buildTheme(Brightness brightness, Color seedColor) {
-    // إنشاء ColorScheme من اللون الأساسي تلقائياً (Material 3 Tonal Palette)
+    final isDark = brightness == Brightness.dark;
+
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: brightness,
+      primary: AppColors.navy,
+      secondary: isDark ? AppColors.goldDark : AppColors.goldLight,
+      surface: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+      error: isDark ? AppColors.redDark : AppColors.redLight,
+      outline: isDark ? AppColors.borderDark : AppColors.borderLight,
+      outlineVariant: isDark ? AppColors.borderDark : AppColors.borderLight,
     );
 
     // الثيم الأساسي من ColorScheme
     final base = ThemeData(
-      useMaterial3: true, // تفعيل Material 3 (مطلوب)
+      useMaterial3: true,
       colorScheme: colorScheme,
       brightness: brightness,
     );
 
-    // تطبيق الخط العربي على TextTheme الأساسية
+    // تطبيق الخط العربي (Cairo) على TextTheme الأساسية
     final arabicTextTheme = buildArabicTextTheme(base.textTheme);
+
+    final cardBg = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderCol = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final scaffoldBg = isDark ? AppColors.bgDark : AppColors.bgLight;
 
     return base.copyWith(
       textTheme: arabicTextTheme,
+      scaffoldBackgroundColor: scaffoldBg,
 
       // ── AppBar ───────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
+        backgroundColor: cardBg,
+        foregroundColor: isDark ? AppColors.textDark : AppColors.textLight,
         elevation: 0,
-        centerTitle: false, // في RTL التوسيط غير مناسب
+        centerTitle: false,
         titleTextStyle: arabicTextTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w800,
+          color: isDark ? AppColors.textDark : AppColors.textLight,
         ),
-        iconTheme: IconThemeData(color: colorScheme.onSurface),
-        actionsIconTheme: IconThemeData(color: colorScheme.onSurface),
-        scrolledUnderElevation: 2,
+        iconTheme: IconThemeData(color: isDark ? AppColors.subtextDark : AppColors.subtextLight),
+        scrolledUnderElevation: 1,
         shadowColor: colorScheme.shadow,
       ),
 
-      // ── NavigationRail (الشريط الجانبي للويب) ────────────────────────────
+      // ── NavigationRail (الشريط الجانبي) ───────────────────────────────────
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: colorScheme.surface,
-        selectedIconTheme: IconThemeData(color: colorScheme.primary),
-        unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
+        backgroundColor: isDark ? AppColors.navySidebarDark : AppColors.navySidebarLight,
+        selectedIconTheme: const IconThemeData(color: Color(0xFFF5D98B)),
+        unselectedIconTheme: const IconThemeData(color: Colors.white70),
         selectedLabelTextStyle: arabicTextTheme.labelMedium?.copyWith(
-          color: colorScheme.primary,
-          fontWeight: FontWeight.w600,
+          color: const Color(0xFFF5D98B),
+          fontWeight: FontWeight.w700,
         ),
         unselectedLabelTextStyle: arabicTextTheme.labelMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant,
+          color: Colors.white70,
         ),
-        elevation: 1,
         useIndicator: true,
-        indicatorColor: colorScheme.primaryContainer,
-      ),
-
-      // ── NavigationBar (شريط التنقل السفلي للموبايل) ──────────────────────
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: colorScheme.surface,
-        indicatorColor: colorScheme.primaryContainer,
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.onPrimaryContainer);
-          }
-          return IconThemeData(color: colorScheme.onSurfaceVariant);
-        }),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          final style = arabicTextTheme.labelSmall;
-          if (states.contains(WidgetState.selected)) {
-            return style?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            );
-          }
-          return style?.copyWith(color: colorScheme.onSurfaceVariant);
-        }),
-        elevation: 2,
+        indicatorColor: Colors.white.withValues(alpha: 0.12),
       ),
 
       // ── ElevatedButton ────────────────────────────────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          minimumSize: const Size(120, 48), // حجم مناسب للضغط باللمس
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          elevation: 0,
-          textStyle: arabicTextTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-
-      // ── OutlinedButton ────────────────────────────────────────────────────
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: colorScheme.primary,
+          backgroundColor: isDark ? AppColors.goldDark : AppColors.goldLight,
+          foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
           minimumSize: const Size(120, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
-          side: BorderSide(color: colorScheme.outline),
+          elevation: 0,
           textStyle: arabicTextTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
 
-      // ── TextButton ────────────────────────────────────────────────────────
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: colorScheme.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          textStyle: arabicTextTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-
-      // ── InputDecoration (حقول الإدخال) ────────────────────────────────────
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha:0.5),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: colorScheme.outline),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: colorScheme.outline.withValues(alpha:0.5)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: colorScheme.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: colorScheme.error, width: 2),
-        ),
-        labelStyle: arabicTextTheme.bodyMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-        hintStyle: arabicTextTheme.bodyMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant.withValues(alpha:0.7),
-        ),
-        errorStyle: arabicTextTheme.bodySmall?.copyWith(
-          color: colorScheme.error,
-        ),
-        floatingLabelStyle: arabicTextTheme.labelMedium?.copyWith(
-          color: colorScheme.primary,
-        ),
-        prefixIconColor: colorScheme.onSurfaceVariant,
-        suffixIconColor: colorScheme.onSurfaceVariant,
+      // ── FloatingActionButton ───────────────────────────────────────────────
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: isDark ? AppColors.goldDark : AppColors.goldLight,
+        foregroundColor: const Color(0xFF1A1204),
+        elevation: 6,
+        shape: const CircleBorder(),
       ),
 
       // ── Card ───────────────────────────────────────────────────────────────
-      // Flutter 3.x: CardTheme أصبح CardThemeData
       cardTheme: CardThemeData(
         elevation: 0,
-        color: colorScheme.surfaceContainerLow,
+        color: cardBg,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            color: borderCol,
             width: 1,
           ),
         ),
@@ -236,20 +159,34 @@ abstract final class AppTheme {
         clipBehavior: Clip.antiAlias,
       ),
 
+      // ── InputDecoration (حقول الإدخال) ────────────────────────────────────
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderCol),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderCol),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isDark ? AppColors.goldDark : AppColors.goldLight,
+            width: 2,
+          ),
+        ),
+      ),
+
       // ── Dialog ─────────────────────────────────────────────────────────────
-      // Flutter 3.x: DialogTheme أصبح DialogThemeData
       dialogTheme: DialogThemeData(
-        backgroundColor: colorScheme.surface,
-        elevation: 6,
+        backgroundColor: cardBg,
+        elevation: 8,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        titleTextStyle: arabicTextTheme.titleLarge?.copyWith(
-          color: colorScheme.onSurface,
-          fontWeight: FontWeight.w700,
-        ),
-        contentTextStyle: arabicTextTheme.bodyMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant,
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
 
@@ -257,60 +194,9 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        contentTextStyle: arabicTextTheme.bodyMedium?.copyWith(
-          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
-
-      // ── Divider ────────────────────────────────────────────────────────────
-      dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant,
-        thickness: 1,
-        space: 1,
-      ),
-
-      // ── ListTile ───────────────────────────────────────────────────────────
-      listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        titleTextStyle: arabicTextTheme.bodyLarge,
-        subtitleTextStyle: arabicTextTheme.bodyMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-
-      // ── Chip ──────────────────────────────────────────────────────────────
-      chipTheme: ChipThemeData(
-        labelStyle: arabicTextTheme.labelMedium,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      ),
-
-      // ── FloatingActionButton ───────────────────────────────────────────────
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-
-      // ── ProgressIndicator ─────────────────────────────────────────────────
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: colorScheme.primary,
-        linearTrackColor: colorScheme.primaryContainer,
-        circularTrackColor: colorScheme.primaryContainer,
-      ),
-
-      // ── Scaffold ───────────────────────────────────────────────────────────
-      scaffoldBackgroundColor: colorScheme.surface,
     );
   }
 }

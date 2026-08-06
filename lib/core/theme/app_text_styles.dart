@@ -12,11 +12,11 @@
 
 import 'package:flutter/material.dart';
 
-/// اسم خط العربية المُعرَّف في pubspec.yaml
-const String _kArabicFont = 'Tajawal';
+/// اسم خط العربية المعرّف للواجهات والتصميم المالي الفاخر
+const String _kArabicFont = 'Cairo';
 
 /// اسم خط اللاتينية/الأرقام المُعرَّف في pubspec.yaml
-const String _kLatinFont = 'Inter';
+const String _kLatinFont = 'Cairo';
 
 /// أنماط نصوص مخصصة للتطبيق
 abstract final class AppTextStyles {

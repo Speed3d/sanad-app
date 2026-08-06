@@ -1,68 +1,109 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// app_colors.dart — ألوان التطبيق الثابتة
+// app_colors.dart — ألوان نظام إدارة المبيعات والخزينة (Fintech Theme)
 //
-// هذا الملف يحتوي على جميع الألوان المستخدمة في التطبيق.
-// الألوان الرئيسية: أخضر داكن (الأساسي) + ذهبي (الثانوي)
-// ملاحظة: لا تستخدم هذه الألوان مباشرة في الـ Widgets —
-//          استخدم Theme.of(context).colorScheme بدلاً من ذلك.
+// هذا الملف يُعَرّف جميع ألوان النظام اللوني الفاخر (Midnight Navy & Luxury Gold)
+// المقتبس من النموذج المعتمد: Sales Management Redesign.dc.html
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 
-/// ألوان ثابتة تستخدم كـ Seed للـ ColorScheme
+/// الألوان الثابتة والمتغيرات اللونية الخاصة بالنظام اللوني الفاخر
 abstract final class AppColors {
-  // ── الألوان الأساسية (Seed Colors) ──────────────────────────────────────
+  // ── الألوان الرئيسية والأساسية ──────────────────────────────────────────
 
-  /// اللون الأساسي: أزرق ملكي فاخر (Royal Midnight Navy) — طابع التطبيقات المالية الحديثة (Fintech)
+  /// اللون الأزرق الملكي الداكن (Royal Midnight Navy) — الأساسي للمؤسسات المالية
+  static const Color navy = Color(0xFF0F172A);
+
+  /// اللون النيلي للسايدبار والتصاميم الفرعية (Midnight Navy Sidebar)
+  static const Color navySidebarLight = Color(0xFF16213B);
+  static const Color navySidebarDark = Color(0xFF18233A);
+
+  /// اللون الذهبي الفاخر في الوضع الفاتح (Luxury Gold - Light)
+  static const Color goldLight = Color(0xFFB8862E);
+
+  /// اللون الذهبي الساطع في الوضع الداكن (Luxury Gold - Dark)
+  static const Color goldDark = Color(0xFFE0BC66);
+
+  /// اللون الأساسي لـ ColorScheme
   static const Color primarySeed = Color(0xFF0F172A);
 
-  /// اللون الثانوي: سايان كهربائي (Electric Cyan) — للعناصر البارزة والأيقونات والتحديدات
-  static const Color secondarySeed = Color(0xFF0284C7);
+  /// اللون الثانوي لـ ColorScheme
+  static const Color secondarySeed = Color(0xFFB8862E);
 
-  /// لون الخطأ: أحمر قياسي Material
-  static const Color errorSeed = Color(0xFFB00020);
+  // ── ألوان الوضع الفاتح (Light Mode Tokens) ──────────────────────────────
 
-  // ── ألوان سندات القبض والصرف ─────────────────────────────────────────────
+  /// خلفية التطبيق العامة في الوضع الفاتح
+  static const Color bgLight = Color(0xFFF5F6FA);
 
-  /// لون سند القبض (إيداع) — أخضر
-  static const Color receiptColor = Color(0xFF2E7D32);
+  /// أسطح البطاقات والكروت في الوضع الفاتح
+  static const Color surfaceLight = Color(0xFFFFFFFF);
 
-  /// لون سند الصرف (سحب) — أحمر
-  static const Color paymentColor = Color(0xFFC62828);
+  /// الأسطح الثانوية والتقسيمات في الوضع الفاتح
+  static const Color surface2Light = Color(0xFFF0F1F5);
 
-  /// لون التحويل بين الخزينتين — أزرق
-  static const Color transferColor = Color(0xFF1565C0);
+  /// النص الرئيسي في الوضع الفاتح
+  static const Color textLight = Color(0xFF0F172A);
 
-  // ── ألوان الحالات ─────────────────────────────────────────────────────────
+  /// النص الفرعي والمستندات في الوضع الفاتح
+  static const Color subtextLight = Color(0xFF64748B);
 
-  /// حالة: نشط / مكتمل
-  static const Color statusActive = Color(0xFF388E3C);
+  /// حدود البطاقات وعناصر الواجهة في الوضع الفاتح
+  static const Color borderLight = Color(0xFFE4E6EC);
 
-  /// حالة: معلق / جزئي
-  static const Color statusPending = Color(0xFFF57C00);
+  // ── ألوان الوضع الداكن (Dark Mode Tokens) ───────────────────────────────
 
-  /// حالة: مغلق / غير نشط
-  static const Color statusClosed = Color(0xFF757575);
+  /// خلفية التطبيق العامة في الوضع الداكن (Deep Midnight Space)
+  static const Color bgDark = Color(0xFF0B1220);
 
-  /// حالة: مشكلة / مرفوض
-  static const Color statusError = Color(0xFFD32F2F);
+  /// أسطح البطاقات والكروت في الوضع الداكن
+  static const Color surfaceDark = Color(0xFF131B2C);
 
-  // ── ألوان الإشعارات ────────────────────────────────────────────────────────
+  /// الأسطح الثانوية في الوضع الداكن
+  static const Color surface2Dark = Color(0xFF1B2740);
 
-  /// لون الإشعارات المعلوماتية
-  static const Color infoColor = Color(0xFF0277BD);
+  /// النص الرئيسي في الوضع الداكن
+  static const Color textDark = Color(0xFFE7EAF2);
 
-  /// لون رسائل النجاح
-  static const Color successColor = Color(0xFF2E7D32);
+  /// النص الفرعي في الوضع الداكن
+  static const Color subtextDark = Color(0xFF94A0B8);
 
-  /// لون رسائل التحذير
-  static const Color warningColor = Color(0xFFE65100);
+  /// حدود البطاقات في الوضع الداكن
+  static const Color borderDark = Color(0xFF232F48);
 
-  // ── ألوان النص الخاصة ─────────────────────────────────────────────────────
+  // ── ألوان العمليات المالية والحالات ─────────────────────────────────────
 
-  /// نص الأرقام الموجبة (الأموال الواردة)
-  static const Color positiveAmount = Color(0xFF1B5E20);
+  /// لون سند القبض والمبالغ الموجبة (الفاتح)
+  static const Color greenLight = Color(0xFF16A34A);
 
-  /// نص الأرقام السالبة (الأموال الصادرة)
-  static const Color negativeAmount = Color(0xFFB71C1C);
+  /// لون سند القبض والمبالغ الموجبة (الداكن)
+  static const Color greenDark = Color(0xFF34D399);
+
+  /// لون سند الصرف والمبالغ السالبة (الفاتح)
+  static const Color redLight = Color(0xFFDC2626);
+
+  /// لون سند الصرف والمبالغ السالبة (الداكن)
+  static const Color redDark = Color(0xFFF87171);
+
+  /// لون عمليات التحويل بين الخزائن والمقاولين (الفاتح)
+  static const Color blueLight = Color(0xFF2563EB);
+
+  /// لون عمليات التحويل بين الخزائن والمقاولين (الداكن)
+  static const Color blueDark = Color(0xFF60A5FA);
+
+  // ── الألوان الثابتة للتوافقية والمعالجة ──────────────────────────────────
+
+  /// لون سند القبض (إيداع)
+  static const Color receiptColor = Color(0xFF16A34A);
+
+  /// لون سند الصرف (سحب)
+  static const Color paymentColor = Color(0xFFDC2626);
+
+  /// لون التحويل بين الخزائن
+  static const Color transferColor = Color(0xFF2563EB);
+
+  /// لون الأرقام الموجبة
+  static const Color positiveAmount = Color(0xFF16A34A);
+
+  /// لون الأرقام السالبة
+  static const Color negativeAmount = Color(0xFFDC2626);
 }
