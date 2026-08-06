@@ -394,7 +394,7 @@ class _VoucherTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final combined = [
+    final combined = <VoucherModel>[
       ...sarfAsync.valueOrNull ?? [],
       ...kabdAsync.valueOrNull ?? [],
     ]..sort((a, b) => b.voucherDate.compareTo(a.voucherDate));
