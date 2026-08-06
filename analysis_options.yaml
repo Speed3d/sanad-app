@@ -1,28 +1,57 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
+# ─────────────────────────────────────────────────────────────────────────────
+# analysis_options.yaml — إعدادات المحلل الثابت (Static Analyzer)
 #
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# الغرض: تشديد الفحص لأن هذا تطبيق مالي — أي نوع ضمني (dynamic) أو تحويل
+# غير آمن قد يُخفي خطأً يمس الأموال.
+#
+# سبب التشديد (درس مستفاد من تدقيق 2026-08-06):
+#   الدالة _handleFailedAttempt في auth_provider.dart كانت تستقبل
+#   `required dynamic userRepo` — وهذا عطّل فحص الأنواع تماماً على
+#   الاستدعاء المصاب بثغرة قفل الحساب. strict-inference يمنع تكرار ذلك.
+#
+# للتشغيل:  flutter analyze
+# ─────────────────────────────────────────────────────────────────────────────
 
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
-linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
-  rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+analyzer:
+  # ── قواعد النوع الصارمة ──────────────────────────────────────────────────
+  language:
+    # يمنع التحويل الضمني من dynamic إلى نوع محدد (مصدر شائع لأخطاء وقت التشغيل)
+    strict-casts: true
+    # يمنع استخدام الأنواع العامة بلا معاملات (مثل List بدل List<String>)
+    strict-raw-types: true
+    # يمنع استنتاج النوع كـ dynamic بصمت — يجب التصريح بالنوع
+    strict-inference: true
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+  # ── استثناء الملفات المُولَّدة تلقائياً من التحليل ────────────────────────
+  # هذه الملفات يولّدها build_runner ولا نتحكم في أسلوبها
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "lib/l10n/generated/**"
+
+  # ── رفع خطورة بعض التحذيرات إلى أخطاء ───────────────────────────────────
+  errors:
+    # استخدام BuildContext بعد await بلا فحص mounted — سبب تعطّل شائع
+    use_build_context_synchronously: error
+    # نتيجة Future مُهمَلة (await منسي) — خطير جداً في العمليات المالية
+    unawaited_futures: error
+    # استيراد غير مستخدم — يبقي الكود نظيفاً
+    unused_import: warning
+    # متغير محلي غير مستخدم
+    unused_local_variable: warning
+
+linter:
+  rules:
+    # ── قواعد أمان العمليات غير المتزامنة ─────────────────────────────────
+    # يفرض التعامل مع كل Future (إما await أو unawaited صراحةً)
+    unawaited_futures: true
+    # يمنع استخدام BuildContext عبر فجوة async بلا حماية
+    use_build_context_synchronously: true
+
+    # ── قواعد جودة عامة ───────────────────────────────────────────────────
+    # يمنع print() في كود الإنتاج — يجب استخدام سجل مناسب
+    avoid_print: true
+    # يفرض التصريح بنوع إرجاع كل دالة
+    always_declare_return_types: true

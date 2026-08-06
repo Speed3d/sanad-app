@@ -140,7 +140,7 @@ class AuthNotifier extends _$AuthNotifier {
       if (dbUser == null) {
         // تأخير مصطنع لمنع Timing Attack
         // (المهاجم لا يستطيع معرفة إذا كان المستخدم موجوداً من السرعة)
-        await Future.delayed(const Duration(milliseconds: 800));
+        await Future<void>.delayed(const Duration(milliseconds: 800));
         state = const AuthError(
           message: 'اسم المستخدم أو كلمة المرور غير صحيحة',
         );

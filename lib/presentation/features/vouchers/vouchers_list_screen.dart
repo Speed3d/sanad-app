@@ -55,7 +55,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
   void _showAddSheet() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
       shape: const RoundedRectangleBorder(

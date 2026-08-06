@@ -41,7 +41,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   /// انتظار 2000ms كحد أدنى لعرض المؤثرات الحركية
   Future<void> _startMinDelay() async {
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future<void>.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
     _minDelayDone = true;
     _checkAndNavigate();

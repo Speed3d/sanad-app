@@ -23,7 +23,11 @@ void main() {
     // التحقق من أن شاشة البداية تظهر (Splash Screen)
     expect(find.byType(MaterialApp), findsOneWidget);
 
-    // تصفية أجهزة التوقيت والأنيميشن المعلقة
-    await tester.pump(const Duration(milliseconds: 500));
+    // ── تصفية المؤقتات المعلّقة ──────────────────────────────────────────
+    // شاشة البداية تُنشئ مؤقتاً مدته 2000ms في initState (_startMinDelay).
+    // لو لم ننتظر انقضاءه يفشل الاختبار برسالة "Pending timers".
+    // ننتظر أكثر من مدة المؤقت لضمان إطلاقه ثم نترك الأنيميشن يستقر.
+    await tester.pump(const Duration(milliseconds: 2100));
+    await tester.pump();
   });
 }

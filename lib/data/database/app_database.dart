@@ -137,8 +137,20 @@ class AppDatabase extends _$AppDatabase {
     },
 
     /// يُنفَّذ عند ترقية الإصدار (schemaVersion تغيّر)
+    ///
+    /// ⚠️ قاعدة إلزامية (درس مستفاد من تدقيق 2026-08-06):
+    ///   كل ما يُنشَأ في onCreate يجب أن يُنشَأ في onUpgrade أيضاً.
+    ///   لو أضفنا جدولاً جديداً ونسينا إنشاءه هنا، فإن المستخدم الذي
+    ///   يُرقّي نسخته القديمة يحصل على قاعدة بيانات ناقصة، ويتعطل
+    ///   التطبيق برسالة "no such table" عند فتح الشاشة المعنية فقط —
+    ///   وهو أصعب أنواع الأعطال في التشخيص.
     onUpgrade: (Migrator m, int from, int to) async {
-      // ── الترقية إلى الإصدار 2 (دعم نظام السلف) ─────────────────────────
+      // ── 1. إنشاء أي جدول جديد لم يكن موجوداً في النسخة القديمة ────────
+      // createAll تُصدر CREATE TABLE IF NOT EXISTS فهي آمنة وقابلة للتكرار،
+      // ولا تمسّ الجداول الموجودة ولا بياناتها إطلاقاً.
+      await m.createAll();
+
+      // ── 2. الترقية إلى الإصدار 2 (دعم نظام السلف) ──────────────────────
       if (from < 2) {
         // إضافة الحقول الجديدة لجدول السندات دون المساس بالبيانات القديمة
         await m.addColumn(vouchers, vouchers.projectName);
@@ -147,7 +159,13 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(vouchers, vouchers.advanceNumber);
       }
 
-      // إعادة بناء الـ VIEW عند كل ترقية (لضمان تحديثه)
+      // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────
+      // كلها CREATE INDEX IF NOT EXISTS — آمنة للتكرار.
+      // بدون هذا السطر تبقى قواعد البيانات المُرقّاة بلا فهارس إلى الأبد
+      // فتتباطأ الاستعلامات تدريجياً مع نمو البيانات.
+      await _createIndexes();
+
+      // ── 4. إعادة بناء الـ VIEW عند كل ترقية (لضمان تحديثه) ────────────
       await customStatement(kDropTreasuryBalancesView);
       await customStatement(kCreateTreasuryBalancesView);
     },

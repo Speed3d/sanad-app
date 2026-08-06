@@ -96,7 +96,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   // ── حوار إضافة موظف ─────────────────────────────────────────────────────
 
   Future<void> _showCreateDialog() async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _EmployeeFormDialog(
         title: 'إضافة موظف جديد',
@@ -120,7 +120,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   // ── ورقة التفاصيل ────────────────────────────────────────────────────────
 
   void _showDetail(EmployeeModel emp) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -606,7 +606,7 @@ class _EmployeeDetailSheetState
   // ── حوار تعديل الموظف ────────────────────────────────────────────────────
 
   Future<void> _showEditDialog() async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _EmployeeFormDialog(
         title: 'تعديل بيانات ${emp.fullName}',
@@ -691,7 +691,7 @@ class _EmployeeDetailSheetState
       return;
     }
     if (!mounted) return;
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _PaySalaryDialog(
         employee: emp,
@@ -730,7 +730,7 @@ class _EmployeeDetailSheetState
       return;
     }
     if (!mounted) return;
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _GrantAdvanceDialog(
         employee: emp,
@@ -1251,7 +1251,7 @@ class _AdvanceCard extends ConsumerWidget {
       );
       return;
     }
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _RepayAdvanceDialog(
         advance: advance,

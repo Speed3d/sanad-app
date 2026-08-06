@@ -155,7 +155,7 @@ class UsersTab extends ConsumerWidget {
       BuildContext context, WidgetRef ref, UserModel user) async {
     String selectedRole = user.role;
 
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
@@ -260,7 +260,7 @@ class UsersTab extends ConsumerWidget {
 
   Future<void> _showAddUserDialog(
       BuildContext context, WidgetRef ref) async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _AddUserDialog(ref: ref),
