@@ -1,18 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// splash_screen.dart — شاشة البداية
+// splash_screen.dart — شاشة البداية والتحميل (Fintech Splash Screen)
 //
-// تظهر هذه الشاشة عند كل تشغيل للتطبيق.
-// تعمل بالتوازي مع تهيئة AuthNotifier:
-//   - تعرض الأنيميشن (2 ثانية على الأقل)
-//   - تنتظر حالة المصادقة (AuthNotifier.build())
-//   - ثم تُعيد التوجيه للمسار الصحيح
-//
-// آلية التوجيه:
-//   GoRouter.redirect() يتحكم بالتوجيه الفعلي بناءً على AuthState
-//   الـ Splash فقط تُطلق التوجيه — القرار عند الـ Router
-//
-// لذلك: بعد انتهاء الانتظار، نتوجه لـ /dashboard
-//   إذا كان المستخدم غير مصادَق → GoRouter يُعيد التوجيه لـ /login أو /first-run
+// تعليقات توضيحية بالعربية:
+// هذه الشاشة تظهر عند تشغيل التطبيق بأعلى درجات التناسق والجمالية مع الهوية المرئية (Fintech Theme):
+//   - خلفية تدرج كحلي دافئ عميق (Deep Midnight Navy Gradient)
+//   - شعار التطبيق مؤطر باللون الذهبي المشرق مع هالة ضوئية
+//   - خط القاهرة العربي الفاخر مع مؤشر التحميل الذهبي المنساب
+//   - تضمن الانتظار الأدنى 2 ثانية لعرض المؤثرات الحركية، ثم التوجيه للمسار المناسب
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -24,7 +18,7 @@ import '../../../core/constants/app_routes.dart';
 import '../../../domain/models/auth_state.dart';
 import '../../providers/auth_provider.dart';
 
-/// شاشة البداية (Splash Screen)
+/// شاشة البداية للـ Fintech Theme
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -33,7 +27,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
-  /// هل انتهى الانتظار الأدنى (لعرض الأنيميشن كاملاً)؟
+  /// هل انتهى الانتظار الأدنى (2 ثانية لعرض الأنيميشن)؟
   bool _minDelayDone = false;
 
   /// هل تهيئة المصادقة جاهزة؟
@@ -42,12 +36,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // بدء الانتظار الأدنى (2 ثانية لعرض الأنيميشن)
     _startMinDelay();
-    // مراقبة حالة المصادقة — سيُستدعى من ref.listen في build()
   }
 
-  /// انتظار 2 ثانية كحد أدنى لعرض الأنيميشن كاملاً
+  /// انتظار 2000ms كحد أدنى لعرض المؤثرات الحركية
   Future<void> _startMinDelay() async {
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
@@ -55,132 +47,176 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _tryNavigate();
   }
 
-  /// محاولة التوجيه — تُنجَّح فقط عندما يكون الشرطان محققَّين:
-  ///   1. انتهى الانتظار الأدنى
-  ///   2. تهيئة المصادقة جاهزة
+  /// محاولة التوجيه تلقائياً
   void _tryNavigate() {
     if (!_minDelayDone || !_authReady) return;
     if (!mounted) return;
 
-    // نتوجه لـ /dashboard — GoRouter.redirect سيُقرر المسار الفعلي
-    // بناءً على AuthState الحالية:
-    //   AuthAuthenticated → /dashboard (مسموح)
-    //   AuthUnauthenticated(isFirstRun: true) → /first-run
-    //   AuthUnauthenticated() → /login
+    // التوجيه لـ /dashboard والـ Router يُقرر المسار النهائي تلقائياً
     context.go(AppRoutes.dashboard);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // مراقبة حالة المصادقة
     ref.listen<AuthState>(authNotifierProvider, (previous, current) {
-      // الحالة جاهزة عندما تخرج من Initial/Loading
       if (current is! AuthInitial && current is! AuthLoading) {
         _authReady = true;
         _tryNavigate();
       }
     });
 
-    // التحقق الأولي — قد تكون الحالة جاهزة بالفعل
     final authState = ref.watch(authNotifierProvider);
     if (authState is! AuthInitial && authState is! AuthLoading) {
       _authReady = true;
     }
 
     return Scaffold(
-      // خلفية بلون primaryContainer — يُعطي طابع التطبيق
-      backgroundColor: theme.colorScheme.primaryContainer,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ── أيقونة التطبيق ────────────────────────────────────────────
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
+      body: Stack(
+        children: [
+          // ── 1. خلفية التدرج الكحلي الداكن العميق ─────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0B1220),
+                  Color(0xFF0F172A),
+                  Color(0xFF18233A),
                 ],
               ),
-              child: Icon(
-                Icons.account_balance,
-                size: 52,
-                color: theme.colorScheme.onPrimary,
+            ),
+          ),
+
+          // ── 2. الهالة الضوئية الذهبية خلف الشعار ────────────────────────────
+          Center(
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFE0BC66).withValues(alpha: 0.16),
+                    Colors.transparent,
+                  ],
+                ),
               ),
-            )
-                .animate()
-                .scale(
-                  begin: const Offset(0.5, 0.5),
-                  end: const Offset(1.0, 1.0),
-                  duration: 600.ms,
-                  curve: Curves.elasticOut,
+            ),
+          ),
+
+          // ── 3. المحتوى الرئيسي والشعار والأنيميشن ────────────────────────────
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // الشعار الفاخر المؤطر بالذهب
+                Container(
+                  width: 108,
+                  height: 108,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF18233A),
+                        Color(0xFF131B2C),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFE0BC66),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE0BC66).withValues(alpha: 0.25),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.account_balance_wallet_rounded,
+                      size: 54,
+                      color: Color(0xFFE0BC66),
+                    ),
+                  ),
                 )
-                .fadeIn(duration: 400.ms),
+                    .animate()
+                    .scale(
+                      begin: const Offset(0.6, 0.6),
+                      end: const Offset(1.0, 1.0),
+                      duration: 700.ms,
+                      curve: Curves.elasticOut,
+                    )
+                    .fadeIn(duration: 400.ms),
 
-            const SizedBox(height: 32),
+                const SizedBox(height: 36),
 
-            // ── اسم التطبيق ───────────────────────────────────────────────
-            Text(
-              'نظام إدارة المبيعات',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.w700,
-              ),
-            )
-                .animate()
-                .slideY(
-                  begin: 0.3,
-                  end: 0,
-                  delay: 300.ms,
-                  duration: 500.ms,
-                  curve: Curves.easeOut,
+                // اسم التطبيق بالخط العربي الفاخر
+                const Text(
+                  'نظام لإدارة المبيعات والخزينة',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    fontFamily: 'Cairo',
+                    letterSpacing: -0.3,
+                  ),
                 )
-                .fadeIn(delay: 300.ms, duration: 500.ms),
+                    .animate()
+                    .slideY(
+                      begin: 0.3,
+                      end: 0,
+                      delay: 300.ms,
+                      duration: 500.ms,
+                      curve: Curves.easeOut,
+                    )
+                    .fadeIn(delay: 300.ms, duration: 500.ms),
 
-            const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-            Text(
-              'إدارة حسابات ذكية وسريعة',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color:
-                    theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
-              ),
-            ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+                // الوصف الإضافي الذهبي
+                const Text(
+                  'نظام مالي وإداري ذكي ومُتقَن · Sanad App',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFE0BC66),
+                    fontFamily: 'Cairo',
+                  ),
+                ).animate().fadeIn(delay: 550.ms, duration: 500.ms),
 
-            const SizedBox(height: 60),
+                const SizedBox(height: 64),
 
-            // ── مؤشر التحميل ─────────────────────────────────────────────
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color:
-                    theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.6),
-              ),
-            ).animate().fadeIn(delay: 800.ms, duration: 400.ms),
+                // مؤشر التحميل الذهبي
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.8,
+                    color: Color(0xFFE0BC66),
+                  ),
+                ).animate().fadeIn(delay: 750.ms, duration: 400.ms),
 
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            // ── نص التحميل ────────────────────────────────────────────────
-            Text(
-              'جاري التحميل...',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color:
-                    theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.5),
-              ),
-            ).animate().fadeIn(delay: 900.ms, duration: 400.ms),
-          ],
-        ),
+                // نص التهيئة
+                Text(
+                  'جاري تهيئة النظام السريع...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontFamily: 'Cairo',
+                  ),
+                ).animate().fadeIn(delay: 850.ms, duration: 400.ms),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

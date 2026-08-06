@@ -1,26 +1,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// login_screen.dart — شاشة تسجيل الدخول (مكتملة)
+// login_screen.dart — شاشة تسجيل الدخول الفاخرة (Fintech Login Screen)
 //
-// تتعامل مع:
-//   - التحقق من المدخلات (validation)
-//   - استدعاء AuthNotifier.login()
-//   - عرض حالات الخطأ والقفل
-//   - GoRouter.redirect يُعيد التوجيه لـ /dashboard عند النجاح
-//
-// حالات المصادقة المعروضة:
-//   AuthError  → رسالة خطأ حمراء بالأسفل
-//   AuthLocked → رسالة قفل مع عدّاد الوقت المتبقي
-//   AuthLoading → زر معطَّل + دوار تحميل
+// تعليقات توضيحية بالعربية:
+// هذه الشاشة تتيح للمستخدمين تسجيل الدخول بأعلى درجات التناسق والجمالية مع الهوية المرئية (Fintech Theme):
+//   - رأس كحلي فاخر مع شعار ذهبي وهيئة احترافية متوازنة
+//   - دعم تفاعلي لحالات التحميل والأخطاء والقفل التلقائي
+//   - حقول إدخال موحدة بنفس الأنماط والرموز المستعلمة في أرجاء النظام
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../domain/models/auth_state.dart';
 import '../../providers/auth_provider.dart';
 
-/// شاشة تسجيل الدخول
+/// شاشة تسجيل الدخول الفاخرة
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -29,14 +25,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  /// مفتاح الـ Form للتحقق من المدخلات
   final _formKey = GlobalKey<FormState>();
-
-  /// Controllers الحقول
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-
-  /// حالة إخفاء كلمة المرور
   bool _obscurePassword = true;
 
   @override
@@ -46,12 +37,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// محاولة تسجيل الدخول
   Future<void> _tryLogin() async {
-    // التحقق من صحة المدخلات
     if (!_formKey.currentState!.validate()) return;
-
-    // استدعاء AuthNotifier — الـ GoRouter سيتولى التوجيه عند النجاح
     await ref.read(authNotifierProvider.notifier).login(
           _usernameCtrl.text.trim(),
           _passwordCtrl.text,
@@ -61,136 +48,191 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
     final isDesktop = size.width >= 768;
 
-    // قراءة حالة المصادقة الحالية
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState is AuthLoading;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: isDesktop ? 420 : double.infinity,
+              maxWidth: isDesktop ? 440 : double.infinity,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── الأيقونة والعنوان ────────────────────────────────────
-                Icon(
-                  Icons.account_balance,
-                  size: 64,
-                  color: theme.colorScheme.primary,
-                ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
-
-                const SizedBox(height: 16),
-
-                Text(
-                  'نظام إدارة المبيعات',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                // ── 1. رأس تسجيل الدخول الفاخر ──────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0F172A),
+                        Color(0xFF18233A),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 200.ms),
-
-                Text(
-                  'تسجيل الدخول',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 300.ms),
-
-                const SizedBox(height: 40),
-
-                // ── نموذج الدخول ─────────────────────────────────────────
-                Form(
-                  key: _formKey,
                   child: Column(
                     children: [
-                      // حقل اسم المستخدم
-                      TextFormField(
-                        controller: _usernameCtrl,
-                        textDirection: TextDirection.ltr,
-                        enabled: !isLoading,
-                        decoration: const InputDecoration(
-                          labelText: 'اسم المستخدم',
-                          prefixIcon: Icon(Icons.person_outline),
-                          hintText: 'أدخل اسم المستخدم',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'اسم المستخدم مطلوب';
-                          }
-                          if (value.trim().length < 3) {
-                            return 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل';
-                          }
-                          return null;
-                        },
-                        textInputAction: TextInputAction.next,
-                      ).animate().slideX(
-                            begin: -0.1,
-                            end: 0,
-                            delay: 300.ms,
-                            duration: 400.ms,
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0BC66).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: const Color(0xFFE0BC66),
+                            width: 1.2,
                           ),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 32,
+                          color: Color(0xFFE0BC66),
+                        ),
+                      ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
 
                       const SizedBox(height: 16),
 
-                      // حقل كلمة المرور
-                      TextFormField(
-                        controller: _passwordCtrl,
-                        textDirection: TextDirection.ltr,
-                        obscureText: _obscurePassword,
-                        enabled: !isLoading,
-                        decoration: InputDecoration(
-                          labelText: 'كلمة المرور',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          hintText: 'أدخل كلمة المرور',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                          ),
+                      const Text(
+                        'نظام إدارة المبيعات والخزينة',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontFamily: 'Cairo',
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'كلمة المرور مطلوبة';
-                          }
-                          return null;
-                        },
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => isLoading ? null : _tryLogin(),
-                      ).animate().slideX(
-                            begin: 0.1,
-                            end: 0,
-                            delay: 400.ms,
-                            duration: 400.ms,
+                        textAlign: TextAlign.center,
+                      ).animate().fadeIn(delay: 200.ms),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        'تسجيل الدخول للنظام',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontFamily: 'Cairo',
+                        ),
+                        textAlign: TextAlign.center,
+                      ).animate().fadeIn(delay: 300.ms),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── 2. بطاقة نموذج تسجيل الدخول ───────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    ),
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // اسم المستخدم
+                        TextFormField(
+                          controller: _usernameCtrl,
+                          textDirection: TextDirection.ltr,
+                          enabled: !isLoading,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: isDark ? AppColors.textDark : AppColors.textLight,
                           ),
+                          decoration: InputDecoration(
+                            labelText: 'اسم المستخدم',
+                            prefixIcon: const Icon(Icons.person_outline, size: 20),
+                            hintText: 'admin',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'اسم المستخدم مطلوب';
+                            }
+                            if (value.trim().length < 3) {
+                              return 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل';
+                            }
+                            return null;
+                          },
+                          textInputAction: TextInputAction.next,
+                        ),
 
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
-                      // ── رسالة الخطأ أو القفل ─────────────────────────
-                      _buildStatusMessage(authState, theme),
+                        // كلمة المرور
+                        TextFormField(
+                          controller: _passwordCtrl,
+                          textDirection: TextDirection.ltr,
+                          obscureText: _obscurePassword,
+                          enabled: !isLoading,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: isDark ? AppColors.textDark : AppColors.textLight,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'كلمة المرور',
+                            prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                            hintText: '••••••••',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                size: 20,
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'كلمة المرور مطلوبة';
+                            }
+                            return null;
+                          },
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => isLoading ? null : _tryLogin(),
+                        ),
 
-                      const SizedBox(height: 8),
+                        const SizedBox(height: 20),
 
-                      // ── زر الدخول ───────────────────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton(
+                        // رسالة الحالة
+                        _buildStatusMessage(authState),
+
+                        const SizedBox(height: 8),
+
+                        // زر تسجيل الدخول
+                        ElevatedButton(
                           onPressed: isLoading ? null : _tryLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+                            foregroundColor: isDark ? AppColors.navy : Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
                           child: isLoading
                               ? const SizedBox(
                                   width: 20,
@@ -201,12 +243,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 )
                               : const Text(
-                                  'دخول',
-                                  style: TextStyle(fontSize: 16),
+                                  'دخول النظام',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Cairo',
+                                  ),
                                 ),
                         ),
-                      ).animate().fadeIn(delay: 500.ms),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -217,29 +263,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// بناء رسالة الحالة (خطأ / قفل / فارغة)
-  Widget _buildStatusMessage(AuthState authState, ThemeData theme) {
-    // ── رسالة الخطأ ─────────────────────────────────────────────────────
+  Widget _buildStatusMessage(AuthState authState) {
     if (authState is AuthError) {
       return Container(
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer,
+          color: Colors.red.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red.shade400),
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.error_outline,
-              color: theme.colorScheme.onErrorContainer,
-              size: 20,
-            ),
+            Icon(Icons.error_outline_rounded, color: Colors.red.shade400, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 authState.message,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.shade400,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -248,27 +292,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ).animate().shakeX(duration: 400.ms);
     }
 
-    // ── رسالة القفل ─────────────────────────────────────────────────────
     if (authState is AuthLocked) {
       return Container(
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer,
+          color: Colors.red.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red.shade400),
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.lock_clock,
-              color: theme.colorScheme.onErrorContainer,
-              size: 20,
-            ),
+            Icon(Icons.lock_clock_outlined, color: Colors.red.shade400, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'الحساب مقفول. حاول بعد ${authState.minutesLeft} دقيقة',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
+                'الحساب مقفول موقتاً. حاول بعد ${authState.minutesLeft} دقيقة',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.shade400,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -277,7 +320,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     }
 
-    // لا رسالة — إخفاء المساحة
     return const SizedBox.shrink();
   }
 }
