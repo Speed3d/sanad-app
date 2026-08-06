@@ -456,9 +456,6 @@ class _SummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // احتساب الإجماليات
     double totalIqd = 0;
     double totalUsd = 0;
     int activeCount = 0;
@@ -469,108 +466,119 @@ class _SummaryBar extends StatelessWidget {
       if (b.isActive) activeCount++;
     }
 
-    final fmtIqd = NumberFormat('#,###', 'en_US');
-    final fmtUsd = NumberFormat('#,##0.00', 'en_US');
+    final fmtIqd = NumberFormat('#,##0.##');
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.secondaryContainer,
+            Color(0xFF0F172A),
+            Color(0xFF18233A),
           ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
         ),
-        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
-          // الرصيد الإجمالي بالدينار
           Expanded(
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'إجمالي الرصيد',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer
-                        .withValues(alpha: 0.7),
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 16,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'إجمالي رصيد الخزائن',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${fmtIqd.format(totalIqd)} د.ع',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: totalIqd >= 0
-                        ? theme.colorScheme.onPrimaryContainer
-                        : theme.colorScheme.error,
+                const SizedBox(height: 8),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: fmtIqd.format(totalIqd),
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                      const TextSpan(text: ' '),
+                      TextSpan(
+                        text: 'د.ع',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (totalUsd != 0) ...[
                   const SizedBox(height: 2),
                   Text(
-                    '${fmtUsd.format(totalUsd)} \$',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer
-                          .withValues(alpha: 0.8),
+                    '\$ ${fmtIqd.format(totalUsd)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFE0BC66),
                     ),
                   ),
                 ],
               ],
             ),
           ),
-
-          // الفاصل
           Container(
             width: 1,
-            height: 48,
-            color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.2),
+            height: 46,
+            color: Colors.white.withValues(alpha: 0.15),
           ),
-
-          // عدد الخزائن
-          Expanded(
-            flex: 2,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$activeCount',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
+          const SizedBox(width: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                '$activeCount',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFE0BC66),
                 ),
-                Text(
-                  'خزينة نشطة',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer
-                        .withValues(alpha: 0.7),
-                  ),
+              ),
+              Text(
+                'خزينة نشطة',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.75),
                 ),
-                if (balances.length > activeCount) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    '${balances.length - activeCount} معطَّلة',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.error.withValues(alpha: 0.8),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
