@@ -113,11 +113,16 @@ class UserRepository implements IUserRepository {
   }
 
   @override
-  Future<void> recordFailedLogin(int id, {DateTime? lockUntil}) {
-    return _db.usersDao.updateFailedAttempts(
+  Future<({int attempts, DateTime? lockedUntil})> recordFailedLogin(
+    int id, {
+    required int maxAttempts,
+    required Duration lockDuration,
+  }) {
+    // الزيادة والقفل يحدثان ذرياً داخل قاعدة البيانات — لا حساب في Dart
+    return _db.usersDao.registerFailedLogin(
       id,
-      attempts: 0, // سيتم حسابه في طبقة أعلى
-      lockUntil: lockUntil,
+      maxAttempts: maxAttempts,
+      lockDuration: lockDuration,
     );
   }
 

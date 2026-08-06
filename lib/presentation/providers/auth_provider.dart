@@ -31,6 +31,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/services/auth_service.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/user_model.dart';
+import '../../domain/repositories/i_user_repository.dart';
 import 'database_provider.dart';
 import 'repository_providers.dart';
 
@@ -174,12 +175,8 @@ class AuthNotifier extends _$AuthNotifier {
       );
 
       if (!isValid) {
-        // كلمة المرور خاطئة — زيادة عداد المحاولات
-        await _handleFailedAttempt(
-          userId: dbUser.id,
-          currentAttempts: dbUser.failedLoginAttempts,
-          userRepo: userRepo,
-        );
+        // كلمة المرور خاطئة — زيادة عداد المحاولات (ذرياً داخل قاعدة البيانات)
+        await _handleFailedAttempt(userId: dbUser.id, userRepo: userRepo);
         return;
       }
 
@@ -206,22 +203,29 @@ class AuthNotifier extends _$AuthNotifier {
   // ══════════════════════════════════════════════════════════════════════════
 
   /// معالجة محاولة دخول فاشلة: زيادة العداد أو القفل
+  ///
+  /// الزيادة والقفل يتمّان ذرياً داخل قاعدة البيانات (registerFailedLogin)،
+  /// وهذه الدالة تكتفي بترجمة النتيجة إلى حالة واجهة.
+  ///
+  /// ⚠️ ملاحظة مهمة: نوع [userRepo] مُصرَّح به صراحةً (IUserRepository).
+  /// كان سابقاً `dynamic` — وهذا عطّل فحص الأنواع تماماً وأخفى الثغرة
+  /// التي جعلت العدّاد يُصفَّر في كل محاولة فيبقى القفل معطّلاً للأبد.
   Future<void> _handleFailedAttempt({
     required int userId,
-    required int currentAttempts,
-    required dynamic userRepo,
+    required IUserRepository userRepo,
   }) async {
-    final newAttempts = currentAttempts + 1;
+    final result = await userRepo.recordFailedLogin(
+      userId,
+      maxAttempts: _kMaxFailedAttempts,
+      lockDuration: _kLockDuration,
+    );
 
-    if (newAttempts >= _kMaxFailedAttempts) {
-      // تجاوز الحد → قفل الحساب
-      final lockUntil = DateTime.now().add(_kLockDuration);
-      await userRepo.recordFailedLogin(userId, lockUntil: lockUntil);
-      state = AuthLocked(lockedUntil: lockUntil);
+    if (result.lockedUntil != null) {
+      // بلغ الحد الأقصى → الحساب مقفول الآن
+      state = AuthLocked(lockedUntil: result.lockedUntil!);
     } else {
-      // لا يزال هناك محاولات
-      await userRepo.recordFailedLogin(userId);
-      final remaining = _kMaxFailedAttempts - newAttempts;
+      // لا يزال هناك محاولات متبقية
+      final remaining = _kMaxFailedAttempts - result.attempts;
       state = AuthError(
         message: 'كلمة المرور غير صحيحة.\nالمحاولات المتبقية: $remaining',
       );

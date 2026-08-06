@@ -24,7 +24,7 @@ final authServiceProvider = Provider<AuthService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthServiceRef = ProviderRef<AuthService>;
-String _$authNotifierHash() => r'82145a2f2b1b9e39b0ab4c297d40bdd486592e15';
+String _$authNotifierHash() => r'fc61a9ac57eb758cc83ed7980e7e534af0b7739c';
 
 /// Notifier إدارة حالة المصادقة الكاملة
 ///
