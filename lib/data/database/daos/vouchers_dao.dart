@@ -272,9 +272,18 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     return into(vouchers).insert(voucher);
   }
 
-  /// تحديث سند موجود
-  Future<bool> updateVoucher(VouchersCompanion voucher) {
-    return update(vouchers).replace(voucher);
+  /// تحديث سند موجود — تحديث جزئي يمسّ الحقول الحاضرة في الـ Companion فقط
+  ///
+  /// ⚠️ لماذا write وليس replace؟ (إصلاح ثغرة تدقيق 2026-08-06)
+  ///   replace يُعيد أي حقل غائب من الـ Companion إلى قيمته الافتراضية.
+  ///   فتعديل سند كان يُعيد is_deleted إلى false (يُحيي سنداً محذوفاً فيدخل
+  ///   حساب الأرصدة!)، ويمسح notes، ويُعيد created_at إلى الآن — تدمير
+  ///   الأثر المحاسبي. write يتجاهل الحقول الغائبة فلا يمسّها إطلاقاً.
+  Future<bool> updateVoucher(VouchersCompanion voucher) async {
+    final count = await (update(vouchers)
+          ..where((v) => v.id.equals(voucher.id.value)))
+        .write(voucher);
+    return count > 0;
   }
 
   /// حذف ناعم — السند لا يُحذَف فعلياً لأسباب محاسبية

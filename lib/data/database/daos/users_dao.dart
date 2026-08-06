@@ -77,9 +77,18 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     return into(users).insert(user);
   }
 
-  /// تحديث بيانات مستخدم
-  Future<bool> updateUser(UsersCompanion user) {
-    return update(users).replace(user);
+  /// تحديث بيانات مستخدم — تحديث جزئي للحقول الحاضرة فقط
+  ///
+  /// ⚠️ لماذا write وليس replace؟ (إصلاح ثغرة تدقيق 2026-08-06)
+  ///   replace كان يرمي استثناءً في كل استدعاء! لأنه يستدعي
+  ///   validateIntegrity(isInserting: true) فيشترط حضور password_hash
+  ///   (غير موجود في UserModel)، فيفشل تغيير الدور دائماً بينما تعرض
+  ///   الواجهة نجاحاً كاذباً. write لا يُجري فحص الإدراج، ولا يُعيد
+  ///   is_deleted/created_at/failed_login_attempts إلى قيمها الافتراضية.
+  Future<bool> updateUser(UsersCompanion user) async {
+    final count = await (update(users)..where((u) => u.id.equals(user.id.value)))
+        .write(user);
+    return count > 0;
   }
 
   /// حذف ناعم (Soft Delete) — لا يُحذف من DB لأسباب الـ Audit

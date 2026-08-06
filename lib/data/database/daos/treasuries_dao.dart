@@ -196,9 +196,15 @@ class TreasuriesDao extends DatabaseAccessor<AppDatabase>
     return into(treasuries).insert(treasury);
   }
 
-  /// تحديث بيانات خزينة
-  Future<bool> updateTreasury(TreasuriesCompanion treasury) {
-    return update(treasuries).replace(treasury);
+  /// تحديث بيانات خزينة — تحديث جزئي للحقول الحاضرة فقط
+  ///
+  /// write بدل replace: يمنع إعادة is_deleted/created_at/notes إلى قيمها
+  /// الافتراضية (تعديل خزينة محذوفة كان يُحييها). راجع تدقيق 2026-08-06.
+  Future<bool> updateTreasury(TreasuriesCompanion treasury) async {
+    final count = await (update(treasuries)
+          ..where((t) => t.id.equals(treasury.id.value)))
+        .write(treasury);
+    return count > 0;
   }
 
   /// حذف ناعم للخزينة

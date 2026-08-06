@@ -110,9 +110,14 @@ class ContractorsDao extends DatabaseAccessor<AppDatabase>
     return into(contractors).insert(contractor);
   }
 
-  /// تحديث بيانات مقاول
-  Future<bool> updateContractor(ContractorsCompanion contractor) {
-    return update(contractors).replace(contractor);
+  /// تحديث بيانات مقاول — تحديث جزئي للحقول الحاضرة فقط
+  ///
+  /// write بدل replace: يمنع إعادة is_deleted/created_at إلى قيمها الافتراضية.
+  Future<bool> updateContractor(ContractorsCompanion contractor) async {
+    final count = await (update(contractors)
+          ..where((c) => c.id.equals(contractor.id.value)))
+        .write(contractor);
+    return count > 0;
   }
 
   /// ربط مقاول بخزينة

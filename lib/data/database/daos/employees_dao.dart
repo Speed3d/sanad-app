@@ -117,9 +117,15 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
     return into(employees).insert(employee);
   }
 
-  /// تحديث بيانات موظف
-  Future<bool> updateEmployee(EmployeesCompanion employee) {
-    return update(employees).replace(employee);
+  /// تحديث بيانات موظف — تحديث جزئي للحقول الحاضرة فقط
+  ///
+  /// write بدل replace: يمنع إعادة is_active/is_deleted/created_at إلى قيمها
+  /// الافتراضية (تعديل موظف معطَّل كان يُعيد تفعيله). راجع تدقيق 2026-08-06.
+  Future<bool> updateEmployee(EmployeesCompanion employee) async {
+    final count = await (update(employees)
+          ..where((e) => e.id.equals(employee.id.value)))
+        .write(employee);
+    return count > 0;
   }
 
   /// حذف ناعم للموظف — لا يُحذَف فعلياً لحفظ سجل الرواتب والسلف
@@ -210,8 +216,13 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// تحديث بيانات السلفة (مثلاً: تحديث `totalRepaid` و`status`)
-  Future<bool> updateAdvance(CashAdvancesCompanion advance) {
-    return update(cashAdvances).replace(advance);
+  ///
+  /// write بدل replace: يمنع إعادة is_deleted/created_at إلى قيمها الافتراضية.
+  Future<bool> updateAdvance(CashAdvancesCompanion advance) async {
+    final count = await (update(cashAdvances)
+          ..where((a) => a.id.equals(advance.id.value)))
+        .write(advance);
+    return count > 0;
   }
 
   /// تحديث إجمالي المسدَّد وحالة السلفة بعد كل قسط
@@ -360,8 +371,13 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// تحديث بيانات دفعة راتب (للتصحيح قبل الإقفال المالي)
-  Future<bool> updateSalaryPayment(SalaryPaymentsCompanion payment) {
-    return update(salaryPayments).replace(payment);
+  ///
+  /// write بدل replace: يمنع إعادة is_deleted/created_at إلى قيمها الافتراضية.
+  Future<bool> updateSalaryPayment(SalaryPaymentsCompanion payment) async {
+    final count = await (update(salaryPayments)
+          ..where((s) => s.id.equals(payment.id.value)))
+        .write(payment);
+    return count > 0;
   }
 
   /// حذف ناعم لدفعة راتب
