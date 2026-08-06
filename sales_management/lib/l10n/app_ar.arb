@@ -1,0 +1,300 @@
+{
+  "@@locale": "ar",
+  "@@last_modified": "2026-05-10",
+
+  "appTitle": "نظام إدارة المبيعات",
+  "@appTitle": { "description": "اسم التطبيق الظاهر في عنوان الشاشة" },
+
+  "appTagline": "إدارة حسابات ذكية وسريعة",
+  "@appTagline": { "description": "شعار فرعي للتطبيق" },
+
+  "loading": "جارٍ التحميل...",
+  "@loading": { "description": "نص التحميل العام" },
+
+  "save": "حفظ",
+  "@save": { "description": "زر الحفظ" },
+
+  "cancel": "إلغاء",
+  "@cancel": { "description": "زر الإلغاء" },
+
+  "delete": "حذف",
+  "@delete": { "description": "زر الحذف" },
+
+  "edit": "تعديل",
+  "@edit": { "description": "زر التعديل" },
+
+  "add": "إضافة",
+  "@add": { "description": "زر الإضافة" },
+
+  "search": "بحث",
+  "@search": { "description": "زر/حقل البحث" },
+
+  "filter": "تصفية",
+  "@filter": { "description": "زر التصفية" },
+
+  "print": "طباعة",
+  "@print": { "description": "زر الطباعة" },
+
+  "export": "تصدير",
+  "@export": { "description": "زر التصدير" },
+
+  "import": "استيراد",
+  "@import": { "description": "زر الاستيراد" },
+
+  "confirm": "تأكيد",
+  "@confirm": { "description": "زر التأكيد" },
+
+  "yes": "نعم",
+  "@yes": { "description": "إجابة نعم" },
+
+  "no": "لا",
+  "@no": { "description": "إجابة لا" },
+
+  "close": "إغلاق",
+  "@close": { "description": "زر الإغلاق" },
+
+  "back": "رجوع",
+  "@back": { "description": "زر الرجوع" },
+
+  "next": "التالي",
+  "@next": { "description": "زر التالي" },
+
+  "previous": "السابق",
+  "@previous": { "description": "زر السابق" },
+
+  "finish": "إنهاء",
+  "@finish": { "description": "زر الإنهاء" },
+
+  "refresh": "تحديث",
+  "@refresh": { "description": "زر التحديث" },
+
+  "retry": "إعادة المحاولة",
+  "@retry": { "description": "زر إعادة المحاولة عند الخطأ" },
+
+  "success": "تمت العملية بنجاح",
+  "@success": { "description": "رسالة النجاح العامة" },
+
+  "error": "حدث خطأ",
+  "@error": { "description": "رسالة الخطأ العامة" },
+
+  "warning": "تحذير",
+  "@warning": { "description": "كلمة تحذير" },
+
+  "noData": "لا توجد بيانات",
+  "@noData": { "description": "رسالة عدم وجود بيانات" },
+
+  "requiredField": "هذا الحقل مطلوب",
+  "@requiredField": { "description": "رسالة حقل مطلوب" },
+
+  "invalidInput": "مدخل غير صحيح",
+  "@invalidInput": { "description": "رسالة مدخل غير صحيح" },
+
+  "confirmDelete": "هل أنت متأكد من الحذف؟",
+  "@confirmDelete": { "description": "رسالة تأكيد الحذف" },
+
+  "deleteWarning": "لا يمكن التراجع عن هذه العملية.",
+  "@deleteWarning": { "description": "تحذير الحذف النهائي" },
+
+  "loginTitle": "تسجيل الدخول",
+  "@loginTitle": { "description": "عنوان شاشة تسجيل الدخول" },
+
+  "username": "اسم المستخدم",
+  "@username": { "description": "حقل اسم المستخدم" },
+
+  "password": "كلمة المرور",
+  "@password": { "description": "حقل كلمة المرور" },
+
+  "loginButton": "دخول",
+  "@loginButton": { "description": "زر تسجيل الدخول" },
+
+  "loginError": "اسم المستخدم أو كلمة المرور غير صحيحة",
+  "@loginError": { "description": "رسالة خطأ تسجيل الدخول" },
+
+  "accountLocked": "الحساب مقفل. حاول بعد {minutes} دقيقة",
+  "@accountLocked": {
+    "description": "رسالة قفل الحساب بعد 5 محاولات فاشلة",
+    "placeholders": {
+      "minutes": { "type": "int", "example": "15" }
+    }
+  },
+
+  "logout": "تسجيل الخروج",
+  "@logout": { "description": "زر تسجيل الخروج" },
+
+  "logoutConfirm": "هل تريد تسجيل الخروج؟",
+  "@logoutConfirm": { "description": "تأكيد تسجيل الخروج" },
+
+  "dashboard": "لوحة التحكم",
+  "@dashboard": { "description": "عنوان لوحة التحكم" },
+
+  "settings": "الإعدادات",
+  "@settings": { "description": "عنوان الإعدادات" },
+
+  "treasury": "الخزينة",
+  "@treasury": { "description": "اسم قسم الخزينة" },
+
+  "treasuries": "الخزائن",
+  "@treasuries": { "description": "اسم قسم الخزائن (الجمع)" },
+
+  "voucherSarf": "سند الصرف",
+  "@voucherSarf": { "description": "اسم سند الصرف" },
+
+  "voucherKabd": "سند القبض",
+  "@voucherKabd": { "description": "اسم سند القبض" },
+
+  "vouchers": "السندات",
+  "@vouchers": { "description": "اسم قسم السندات" },
+
+  "employees": "الموظفون",
+  "@employees": { "description": "اسم قسم الموظفين" },
+
+  "employee": "موظف",
+  "@employee": { "description": "كلمة موظف مفرد" },
+
+  "loans": "السلف",
+  "@loans": { "description": "اسم قسم السلف" },
+
+  "salaries": "الرواتب",
+  "@salaries": { "description": "اسم قسم الرواتب" },
+
+  "contractors": "المقاولون",
+  "@contractors": { "description": "اسم قسم المقاولين" },
+
+  "partners": "الشركاء",
+  "@partners": { "description": "اسم قسم الشركاء" },
+
+  "reports": "التقارير",
+  "@reports": { "description": "اسم قسم التقارير" },
+
+  "accountStatement": "كشف حساب",
+  "@accountStatement": { "description": "عنوان كشف الحساب" },
+
+  "backup": "النسخ الاحتياطي",
+  "@backup": { "description": "اسم قسم النسخ الاحتياطي" },
+
+  "fiscalYear": "السنة المالية",
+  "@fiscalYear": { "description": "اسم قسم السنة المالية" },
+
+  "auditLog": "سجل المراجعة",
+  "@auditLog": { "description": "اسم قسم سجل المراجعة" },
+
+  "currencyIQD": "دينار عراقي",
+  "@currencyIQD": { "description": "اسم العملة العراقية" },
+
+  "currencyUSD": "دولار أمريكي",
+  "@currencyUSD": { "description": "اسم الدولار الأمريكي" },
+
+  "amount": "المبلغ",
+  "@amount": { "description": "حقل المبلغ" },
+
+  "date": "التاريخ",
+  "@date": { "description": "حقل التاريخ" },
+
+  "notes": "ملاحظات",
+  "@notes": { "description": "حقل الملاحظات" },
+
+  "reason": "السبب",
+  "@reason": { "description": "حقل السبب" },
+
+  "name": "الاسم",
+  "@name": { "description": "حقل الاسم" },
+
+  "phone": "الهاتف",
+  "@phone": { "description": "حقل الهاتف" },
+
+  "address": "العنوان",
+  "@address": { "description": "حقل العنوان" },
+
+  "balance": "الرصيد",
+  "@balance": { "description": "عرض الرصيد" },
+
+  "totalBalance": "إجمالي الرصيد",
+  "@totalBalance": { "description": "إجمالي رصيد جميع الخزائن" },
+
+  "voucherNumber": "رقم السند",
+  "@voucherNumber": { "description": "حقل رقم السند" },
+
+  "language": "اللغة",
+  "@language": { "description": "إعداد اللغة" },
+
+  "languageArabic": "العربية",
+  "@languageArabic": { "description": "اللغة العربية" },
+
+  "languageEnglish": "الإنجليزية",
+  "@languageEnglish": { "description": "اللغة الإنجليزية" },
+
+  "theme": "المظهر",
+  "@theme": { "description": "إعداد المظهر" },
+
+  "themeLight": "فاتح",
+  "@themeLight": { "description": "المظهر الفاتح" },
+
+  "themeDark": "داكن",
+  "@themeDark": { "description": "المظهر الداكن" },
+
+  "themeSystem": "تلقائي (النظام)",
+  "@themeSystem": { "description": "المظهر حسب إعداد النظام" },
+
+  "users": "المستخدمون",
+  "@users": { "description": "عنوان إدارة المستخدمين" },
+
+  "permissions": "الصلاحيات",
+  "@permissions": { "description": "إدارة الصلاحيات" },
+
+  "roleSuperAdmin": "مدير النظام",
+  "@roleSuperAdmin": { "description": "اسم دور مدير النظام" },
+
+  "roleAdmin": "مدير",
+  "@roleAdmin": { "description": "اسم دور المدير" },
+
+  "roleUser": "مستخدم",
+  "@roleUser": { "description": "اسم دور المستخدم العادي" },
+
+  "firstRunTitle": "مرحباً بك في نظام إدارة المبيعات",
+  "@firstRunTitle": { "description": "عنوان شاشة الإعداد الأول" },
+
+  "firstRunSubtitle": "أولى خطوة: إنشاء حساب مدير النظام",
+  "@firstRunSubtitle": { "description": "شرح شاشة الإعداد الأول" },
+
+  "createAccount": "إنشاء الحساب",
+  "@createAccount": { "description": "زر إنشاء الحساب" },
+
+  "companyName": "اسم الشركة",
+  "@companyName": { "description": "حقل اسم الشركة" },
+
+  "companyNameHint": "أدخل اسم شركتك",
+  "@companyNameHint": { "description": "تلميح حقل اسم الشركة" },
+
+  "pageNotFound": "الصفحة غير موجودة",
+  "@pageNotFound": { "description": "عنوان صفحة 404" },
+
+  "goHome": "الذهاب للرئيسية",
+  "@goHome": { "description": "زر العودة للصفحة الرئيسية" },
+
+  "permissionDenied": "ليس لديك صلاحية للوصول لهذه الصفحة",
+  "@permissionDenied": { "description": "رسالة رفض الصلاحية" },
+
+  "voucherCount": "{count} سند",
+  "@voucherCount": {
+    "description": "عدد السندات",
+    "placeholders": {
+      "count": { "type": "int", "example": "10" }
+    }
+  },
+
+  "balanceIQD": "الرصيد بالدينار: {amount}",
+  "@balanceIQD": {
+    "description": "عرض الرصيد بالدينار",
+    "placeholders": {
+      "amount": { "type": "String", "example": "1,500,000" }
+    }
+  },
+
+  "balanceUSD": "الرصيد بالدولار: {amount}",
+  "@balanceUSD": {
+    "description": "عرض الرصيد بالدولار",
+    "placeholders": {
+      "amount": { "type": "String", "example": "1,000" }
+    }
+  }
+}

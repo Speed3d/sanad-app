@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# l10n.yaml — إعدادات توليد ملفات الترجمة
+#
+# يُستخدم مع: flutter gen-l10n
+# يقرأ ملفات ARB من lib/l10n/ ويولّد كلاس AppLocalizations
+# ─────────────────────────────────────────────────────────────────────────────
+
+# مسار ملفات ARB (العربية والإنجليزية)
+arb-dir: lib/l10n
+
+# اسم ملف ARB الافتراضي (العربية هي اللغة الرئيسية)
+template-arb-file: app_ar.arb
+
+# اسم الكلاس المولَّد
+output-class: AppLocalizations
+
+# مسار ملفات الـ Dart المولَّدة
+output-dir: lib/l10n/generated
+
+# اسم ملف الـ Dart الرئيسي المولَّد
+output-localization-file: app_localizations.dart
+
+# تفعيل Nullable Getters للترجمات غير الموجودة
+nullable-getter: false

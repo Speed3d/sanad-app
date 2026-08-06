@@ -1,0 +1,209 @@
+name: sales_management
+# ─────────────────────────────────────────────────────────────────────────────
+# نظام إدارة المبيعات والخزينة
+# تطبيق Flutter لـ Web + Android + iOS
+# مبني على: Drift (SQLite) + Riverpod + go_router + Material 3
+# ─────────────────────────────────────────────────────────────────────────────
+description: نظام إدارة المبيعات والخزينة — Flutter Web + Mobile
+
+publish_to: 'none' # لا يُنشر على pub.dev — مشروع خاص
+
+# الإصدار: Major.Minor.Patch+BuildNumber
+version: 1.0.0+1
+
+environment:
+  # الحد الأدنى من إصدار Dart المطلوب
+  sdk: ">=3.5.0 <4.0.0"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# التبعيات الرئيسية (dependencies)
+# ─────────────────────────────────────────────────────────────────────────────
+dependencies:
+  flutter:
+    sdk: flutter
+  # مطلوب لدعم الترجمة العربية والإنجليزية
+  flutter_localizations:
+    sdk: flutter
+
+  # ── قاعدة البيانات المحلية (SQLite) ──────────────────────────────────────
+  # Drift: ORM آمن النوع — يدعم Migrations, Reactive Queries, Views
+  drift: ^2.23.0
+  # مكتبة SQLite الأصلية لـ Android/iOS/Desktop
+  sqlite3_flutter_libs: ^0.5.28
+  # تكامل Drift مع Flutter — يحدد مسار قاعدة البيانات تلقائياً
+  drift_flutter: ^0.2.4
+  # SQLite3 لـ Web عبر WASM
+  sqlite3: ^2.7.5
+
+  # ── إدارة الحالة (State Management) ─────────────────────────────────────
+  # Riverpod 2.x: إدارة الحالة مع دعم Async وCode Generation
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # ── التنقل بين الشاشات (Routing) ─────────────────────────────────────────
+  # go_router: التوجيه الإعلاني مع Shell Routes وProtected Routes
+  go_router: ^14.8.1
+
+  # ── نماذج البيانات (Data Models) ─────────────────────────────────────────
+  # freezed_annotation: كلاسات Immutable مولّدة تلقائياً
+  freezed_annotation: ^2.4.4
+  # json_annotation: تحويل JSON تلقائي للنماذج
+  json_annotation: ^4.9.0
+
+  # ── المصادقة والأمان (Auth & Security) ───────────────────────────────────
+  # bcrypt: تشفير كلمات المرور — آمن ضد Brute Force
+  bcrypt: ^1.1.3
+  # تخزين آمن للـ Token في Keychain/Keystore
+  flutter_secure_storage: ^9.2.4
+  # pointycastle: AES-256-GCM + PBKDF2 للنسخ الاحتياطية المشفرة
+  pointycastle: ^3.9.1
+  # خوارزميات SHA, HMAC للتحقق من سلامة البيانات
+  crypto: ^3.0.6
+
+  # ── Excel (القراءة والكتابة) ──────────────────────────────────────────────
+  # excel 4.x: قراءة وكتابة Excel بدون Office — مدعوم على Web/Mobile
+  excel: ^4.0.6
+
+  # ── الملفات والمسارات ─────────────────────────────────────────────────────
+  # فتح مربع اختيار الملفات على Web + Android + iOS
+  file_picker: ^8.3.7
+  # الحصول على مسارات النظام (Documents, Cache, Temp)
+  path_provider: ^2.1.5
+  # عمليات المسارات (join, basename, extension)
+  path: ^1.9.1
+
+  # ── الـ UI والتصميم ───────────────────────────────────────────────────────
+  # أنيميشن سلس وسهل الاستخدام بدون كود معقد
+  flutter_animate: ^4.5.0
+  # تأثير التحميل (Skeleton/Shimmer) بينما يتم تحميل البيانات
+  shimmer: ^3.0.0
+  # تحميل وتخزين الصور من الشبكة مع Cache
+  cached_network_image: ^3.4.1
+  # التقاط أو اختيار الصور (لوجو الشركة مثلاً)
+  image_picker: ^1.1.2
+  # معالجة الصور: تحجيم وضغط
+  # يجب ^4.3.0 للتوافق مع archive ^3.x (المطلوبة من excel)
+  image: ^4.3.0
+  # مطلوب لـ flutter_localizations (التاريخ والأرقام والعملات)
+  intl: ^0.20.2
+  # مسافات مرنة بين الـ Widgets بديلاً عن SizedBox
+  gap: ^3.0.1
+
+  # ── مكونات UI متقدمة ──────────────────────────────────────────────────────
+  # جداول بيانات مع Sticky Headers وتمرير أفقي وعمودي
+  data_table_2: ^2.5.12
+  # رسوم بيانية للـ Dashboard (خطية، دائرية، شريطية)
+  fl_chart: ^0.70.2
+
+  # ── الطباعة وإنشاء PDF ────────────────────────────────────────────────────
+  # طباعة PDF ومعاينة قبل الطباعة
+  printing: ^5.13.2
+  # إنشاء ملفات PDF برمجياً (سندات القبض والصرف)
+  pdf: ^3.11.2
+
+  # ── الضغط (Compression) ──────────────────────────────────────────────────
+  # ضغط وفك ضغط ZIP/gzip — للـ Audit Log والنسخ الاحتياطية
+  # ملاحظة: يجب أن يبقى ^3.x لأن excel 4.x تتطلب archive ^3.6.1
+  archive: ^3.6.1
+
+  # ── الاتصال بالشبكة ───────────────────────────────────────────────────────
+  # مراقبة حالة الاتصال بالإنترنت (مطلوب للمزامنة السحابية)
+  connectivity_plus: ^6.1.4
+  # طلبات HTTP (للمزامنة السحابية المستقبلية)
+  http: ^1.2.2
+
+  # ── التخزين البسيط ────────────────────────────────────────────────────────
+  # تخزين الإعدادات البسيطة: اللغة، الثيم، آخر مستخدم
+  shared_preferences: ^2.3.5
+
+  # ── المساعدات ─────────────────────────────────────────────────────────────
+  # توليد معرفات UUID فريدة (للـ Audit Log)
+  uuid: ^4.5.1
+  # طباعة سجلات منظمة في وضع التطوير (Debug/Info/Warning/Error)
+  logger: ^2.5.0
+  # معرفة المنصة الحالية بشكل موحد (Web/Android/iOS/Desktop)
+  universal_platform: ^1.1.0
+
+  # ── Google Drive (المرحلة الثانية من النسخ الاحتياطي) ────────────────────
+  # Google Drive API للنسخ الاحتياطي السحابي
+  googleapis: ^14.0.0
+  # تسجيل الدخول بـ Google (OAuth2)
+  google_sign_in: ^6.2.2
+
+  # ── صلاحيات النظام ────────────────────────────────────────────────────────
+  # إدارة صلاحيات Android/iOS (التخزين، الكاميرا)
+  permission_handler: ^11.4.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# تبعيات التطوير فقط (dev_dependencies) — لا تُضمَّن في الإنتاج
+# ─────────────────────────────────────────────────────────────────────────────
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  # ── Code Generation (توليد الكود التلقائي) ───────────────────────────────
+  # تشغيل Code Generation (dart run build_runner build)
+  build_runner: ^2.4.13
+  # Code Generation لـ Drift (الجداول، الـ DAOs، الـ Migrations)
+  drift_dev: ^2.23.0
+  # Code Generation لـ Riverpod Providers
+  riverpod_generator: ^2.6.3
+  # Code Generation لنماذج Immutable (Freezed classes)
+  freezed: ^2.5.7
+  # Code Generation لتحويل JSON (fromJson/toJson)
+  json_serializable: ^6.9.0
+
+  # ── جودة الكود ────────────────────────────────────────────────────────────
+  # قواعد Linting الرسمية من Flutter
+  flutter_lints: ^5.0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# الأصول (Assets) — الملفات المضمنة في التطبيق
+# ─────────────────────────────────────────────────────────────────────────────
+flutter:
+  uses-material-design: true
+
+  # تفعيل توليد ملفات الترجمة تلقائياً من lib/l10n/*.arb
+  # (مطلوب لأن المشروع يستخدم l10n.yaml + AppLocalizations المولَّد)
+  generate: true
+
+  assets:
+    # الخطوط المحلية (لا تحتاج إنترنت — مخزنة في التطبيق نفسه)
+    - assets/fonts/
+    # الصور والأيقونات الثابتة
+    - assets/images/
+    # ملفات WASM لـ SQLite على الويب
+    - assets/sqlite/
+
+  # ── تعريف الخطوط ──────────────────────────────────────────────────────────
+  fonts:
+    # Tajawal: خط عربي حديث وجميل — مرخص تحت OFL
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Tajawal-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Tajawal-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Tajawal-ExtraBold.ttf
+          weight: 800
+
+    # Inter: خط لاتيني Variable (يغطي جميع الأوزان 100-900 في ملف واحد)
+    # مرخص تحت OFL — يستخدم للأرقام والنصوص الإنجليزية
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 300
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 700

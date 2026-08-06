@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# build.yaml — إعدادات Code Generation
+# يُستخدم مع: dart run build_runner build --delete-conflicting-outputs
+#
+# ما يفعله هذا الملف:
+#   1. يخبر Drift بمكان ملفات قاعدة البيانات
+#   2. يضبط Riverpod Generator
+#   3. يضبط Freezed
+#   4. يحسّن أداء التوليد بتقليل الملفات المُعالَجة
+# ─────────────────────────────────────────────────────────────────────────────
+
+targets:
+  $default:
+    builders:
+
+      # ── Drift: Code Generation لقاعدة البيانات ──────────────────────────
+      drift_dev:
+        options:
+          # اسم الكلاس الرئيسي لقاعدة البيانات
+          store_date_time_values_as_text: true
+
+      drift_dev|preparing_builder:
+        options:
+          # البحث عن ملفات قاعدة البيانات في هذه المسارات فقط
+          store_date_time_values_as_text: true
+
+      # ── Riverpod: تحديد مسارات ملفات الـ Providers ──────────────────────
+      riverpod_generator:
+        generate_for:
+          include:
+            # توليد الكود للـ Providers في جميع مجلدات التطبيق
+            - lib/core/router/**
+            - lib/presentation/providers/**
+            - lib/data/repositories/**
+            - lib/domain/usecases/**
+
+      # ── Freezed: تحديد مسارات نماذج البيانات ─────────────────────────────
+      freezed:
+        generate_for:
+          include:
+            - lib/domain/models/**
+            - lib/data/database/**
+
+      # ── json_serializable: تحديد المسارات ────────────────────────────────
+      json_serializable:
+        generate_for:
+          include:
+            - lib/domain/models/**
