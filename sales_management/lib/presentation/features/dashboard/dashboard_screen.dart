@@ -22,6 +22,7 @@ import '../../providers/partner_providers.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
 import '../../widgets/common/global_search_dialog.dart';
+import '../../widgets/common/smart_alert_banner.dart';
 import 'dashboard_charts.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -66,7 +67,10 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             // ── رأس اليوم ──────────────────────────────────────────────
             _DayHeader(today: today),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            // ── شريط التنبيهات الذكية ───────────────────────────────
+            const SmartAlertBanner(),
+            const SizedBox(height: 12),
             // ── بطاقة الرصيد الإجمالي ───────────────────────────────
             const _TotalBalanceCard(),
             const SizedBox(height: 12),

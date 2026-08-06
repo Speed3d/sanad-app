@@ -90,6 +90,11 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
         .watchSingleOrNull();
   }
 
+  /// جلب جميع السندات غير المحذوفة (Future)
+  Future<List<Voucher>> getAllVouchers() {
+    return (select(vouchers)..where((v) => v.isDeleted.equals(false))).get();
+  }
+
   /// جلب سند بالمعرّف (Future)
   Future<Voucher?> getVoucherById(int id) {
     return (select(vouchers)..where((v) => v.id.equals(id)))
