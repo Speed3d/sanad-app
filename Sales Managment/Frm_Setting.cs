@@ -19,6 +19,7 @@ namespace Sales_Managment
             InitializeComponent();
         }
         Database db = new Database();
+
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
 
@@ -28,6 +29,7 @@ namespace Sales_Managment
         {
 
         }
+
         //call to show orderdata in DB
         private void showOrderData()
         {
@@ -57,7 +59,9 @@ namespace Sales_Managment
 
             }
         }
+
         string printerName = "";
+
         //call to show printers name in combo
         private void showPrinters()
         {
@@ -72,6 +76,7 @@ namespace Sales_Managment
             else
                 cbxPrinter.Text = Properties.Settings.Default.PrinterName;
         }
+
         private void Frm_Setting_Load(object sender, EventArgs e)
         {
             try
@@ -106,7 +111,9 @@ namespace Sales_Managment
 
             MessageBox.Show("تم الحفظ بنجاح", "تاكيد",MessageBoxButtons.OK,MessageBoxIcon.Information);
         }
+
         string imagePath = "";
+
         private void btnChoose_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -125,6 +132,7 @@ namespace Sales_Managment
             pictureLogo.Image = null;
             imagePath = "";
         }
+
         //function to convert image to byte and save it in DB
         private void saveImage(string stmt ,string paramaterName,string message)
         {
@@ -150,7 +158,9 @@ namespace Sales_Managment
                 MessageBox.Show(message, "تاكيد", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
+
         DataTable tbl = new DataTable();
+
         private void btnSaveOrder_Click(object sender, EventArgs e)
         {
             if(imagePath == "")
@@ -227,6 +237,7 @@ namespace Sales_Managment
             MessageBox.Show("تم حفظ البيانات بنجاح", "تاكيد", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
         }
+
         //call to show General setting
         private void showGeneralSetting()
         {

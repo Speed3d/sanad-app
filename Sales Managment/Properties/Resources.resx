@@ -118,52 +118,115 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="supppp1" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\supppp1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="pexels-photo" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\pexels-photo.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="reprtbuy" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\reprtbuy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="itemssss" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\itemssss.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="carttt" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\carttt.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="backbuy" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\backbuy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="reprtbuy" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\reprtbuy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="monyy" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\monyy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="supppp" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\supppp.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="customer_rules" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\customer_rules.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="download" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\download.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="teacher" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\teacher.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="pexels-photo1" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\pexels-photo1.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="images (1)" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\images (1).jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="deletelist2_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\deletelist2_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="mmmmmmm" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\mmmmmmm.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="custttttt" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\custttttt.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="carttt" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\carttt.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="close_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\close_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="addnewdatasource_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\addnewdatasource_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="download01" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\download01.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="recurrence_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\recurrence_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="editdatasource_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\editdatasource_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="employee_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\employee_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="bocontact_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\bocontact_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="supppp1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\supppp1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="add_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\add_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="report_16x16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\report_16x16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="images (1)" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\images (1).jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="report_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\report_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="employee_32x321" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\employee_32x321.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="backbuy" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\backbuy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="customer_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\customer_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="pexels-photo1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\pexels-photo1.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="editdatasource_16x16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\editdatasource_16x16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="addnewdatasource_16x16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\addnewdatasource_16x16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="download" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\download.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="custttttt" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\custttttt.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="pexels-photo" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\pexels-photo.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="currency_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\currency_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="monyy" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\monyy.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="employee_16x16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\employee_16x16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="currency_32x321" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\currency_32x321.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="supppp" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\supppp.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="teacher" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\teacher.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="customer_rules" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\customer_rules.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="addfile_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\addfile_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="currency_16x16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\currency_16x16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="customer_16x16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\customer_16x16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="addfooter_32x32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\addfooter_32x32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

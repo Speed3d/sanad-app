@@ -193,16 +193,16 @@ namespace Sales_Managment
             cbxMainUnit.DisplayMember = "Unit_Name";
             cbxMainUnit.ValueMember = "Unit_ID";
 
-            cbxUnitSale.DataSource = db.readData("select * from Unit", "");
-            cbxUnitSale.DisplayMember = "Unit_Name";
-            cbxUnitSale.ValueMember = "Unit_ID";
+            //cbxUnitSale.DataSource = db.readData("select * from Unit", "");
+            //cbxUnitSale.DisplayMember = "Unit_Name";
+            //cbxUnitSale.ValueMember = "Unit_ID";
 
-            cbxUnitBuy.DataSource = db.readData("select * from Unit", "");
-            cbxUnitBuy.DisplayMember = "Unit_Name";
-            cbxUnitBuy.ValueMember = "Unit_ID";
-            cbxUnit.DataSource = db.readData("select * from Unit", "");
-            cbxUnit.DisplayMember = "Unit_Name";
-            cbxUnit.ValueMember = "Unit_ID";
+            //cbxUnitBuy.DataSource = db.readData("select * from Unit", "");
+            //cbxUnitBuy.DisplayMember = "Unit_Name";
+            //cbxUnitBuy.ValueMember = "Unit_ID";
+            //cbxUnit.DataSource = db.readData("select * from Unit", "");
+            //cbxUnit.DisplayMember = "Unit_Name";
+            //cbxUnit.ValueMember = "Unit_ID";
         }
         private void Frm_Products_Load(object sender, EventArgs e)
         {
@@ -278,43 +278,43 @@ namespace Sales_Managment
                 return false;
             }
 
-            if (NudSalePrice.Value <= 0)
-            {
-                MessageBox.Show("لا يمكن ان يكون سعر البيع اقل من 1");
-                return false; ;
-            }
-            if (NudMAxDiscount.Value >= NudSalePrice.Value)
-            {
-                MessageBox.Show("لا يمكن ان يكون الخصم المسموح اكبر من سعر البيع");
-                return false; ;
-            }
+            //if (NudSalePrice.Value <= 0)
+            //{
+            //    MessageBox.Show("لا يمكن ان يكون سعر البيع اقل من 1");
+            //    return false; ;
+            //}
+            //if (NudMAxDiscount.Value >= NudSalePrice.Value)
+            //{
+            //    MessageBox.Show("لا يمكن ان يكون الخصم المسموح اكبر من سعر البيع");
+            //    return false; ;
+            //}
 
-            if (NudMinQty.Value > NudAllQty.Value)
-            {
-                MessageBox.Show("لا يمكن ان يكون حد الطلب اكبر من الكميه الموجوده");
-                return false; ;
-            }
-            if (NudGomlaPrice.Value > Convert.ToDecimal(txtSalePriceTax.Text))
-            {
-                MessageBox.Show("لا يمكن ان يكون سعر الجمله اكبر من سعر التجزئه");
-                return false; ;
-            }
+            //if (NudMinQty.Value > NudAllQty.Value)
+            //{
+            //    MessageBox.Show("لا يمكن ان يكون حد الطلب اكبر من الكميه الموجوده");
+            //    return false; ;
+            //}
+            //if (NudGomlaPrice.Value > Convert.ToDecimal(txtSalePriceTax.Text))
+            //{
+            //    MessageBox.Show("لا يمكن ان يكون سعر الجمله اكبر من سعر التجزئه");
+            //    return false; ;
+            //}
 
-            if (cbxMainUnit.Items.Count <= 0)
-            {
-                MessageBox.Show("من فضلك ادخل الوحدات اولا");
-                return false; ;
-            }
-            if (cbxGroup.Items.Count <= 0)
-            {
-                MessageBox.Show("من فضلك ادخل التصنيفات اولا");
-                return false; ;
-            }
-            if (DgvStore.Rows.Count <= 0)
-            {
-                MessageBox.Show("لا يمكن اضافه المنتج قبل اضافه كمية له على الاقل");
-                return false; ;
-            }
+            //if (cbxMainUnit.Items.Count <= 0)
+            //{
+            //    MessageBox.Show("من فضلك ادخل الوحدات اولا");
+            //    return false; ;
+            //}
+            //if (cbxGroup.Items.Count <= 0)
+            //{
+            //    MessageBox.Show("من فضلك ادخل التصنيفات اولا");
+            //    return false; ;
+            //}
+            //if (DgvStore.Rows.Count <= 0)
+            //{
+            //    MessageBox.Show("لا يمكن اضافه المنتج قبل اضافه كمية له على الاقل");
+            //    return false; ;
+            //}
 
             return true;
         }

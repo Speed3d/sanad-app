@@ -30,7 +30,6 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_SanadSarf));
             this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.btnDeleteAll = new DevExpress.XtraEditors.SimpleButton();
             this.btnDelete = new DevExpress.XtraEditors.SimpleButton();
             this.btnNew = new DevExpress.XtraEditors.SimpleButton();
             this.btnAdd = new DevExpress.XtraEditors.SimpleButton();
@@ -40,6 +39,15 @@
             this.btnFirst = new DevExpress.XtraEditors.SimpleButton();
             this.btnLast = new DevExpress.XtraEditors.SimpleButton();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.rbtnCloseSafe = new System.Windows.Forms.RadioButton();
+            this.rbtnNon_Advance = new System.Windows.Forms.RadioButton();
+            this.label11 = new System.Windows.Forms.Label();
+            this.label9 = new System.Windows.Forms.Label();
+            this.txt_CloseSafe = new System.Windows.Forms.TextBox();
+            this.label8 = new System.Windows.Forms.Label();
+            this.TxNumber = new System.Windows.Forms.TextBox();
+            this.label7 = new System.Windows.Forms.Label();
+            this.cbxAddType = new System.Windows.Forms.ComboBox();
             this.label6 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.txtTo = new System.Windows.Forms.TextBox();
@@ -54,6 +62,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
             this.cbxStock = new System.Windows.Forms.ComboBox();
+            this.btnEdit = new DevExpress.XtraEditors.SimpleButton();
             this.groupBox3.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -62,38 +71,25 @@
             // 
             // groupBox3
             // 
-            this.groupBox3.Controls.Add(this.btnDeleteAll);
+            this.groupBox3.Controls.Add(this.btnEdit);
             this.groupBox3.Controls.Add(this.btnDelete);
             this.groupBox3.Controls.Add(this.btnNew);
             this.groupBox3.Controls.Add(this.btnAdd);
             this.groupBox3.ForeColor = System.Drawing.Color.Blue;
-            this.groupBox3.Location = new System.Drawing.Point(105, 300);
+            this.groupBox3.Location = new System.Drawing.Point(15, 355);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(578, 89);
+            this.groupBox3.Size = new System.Drawing.Size(815, 97);
             this.groupBox3.TabIndex = 30;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "العمليات المتاحة";
             // 
-            // btnDeleteAll
-            // 
-            this.btnDeleteAll.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnDeleteAll.Appearance.Options.UseFont = true;
-            this.btnDeleteAll.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnDeleteAll.ImageOptions.Image")));
-            this.btnDeleteAll.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnDeleteAll.Location = new System.Drawing.Point(6, 35);
-            this.btnDeleteAll.Name = "btnDeleteAll";
-            this.btnDeleteAll.Size = new System.Drawing.Size(139, 46);
-            this.btnDeleteAll.TabIndex = 4;
-            this.btnDeleteAll.Text = "مسح الكل";
-            this.btnDeleteAll.Click += new System.EventHandler(this.btnDeleteAll_Click);
-            // 
             // btnDelete
             // 
-            this.btnDelete.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnDelete.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnDelete.Appearance.Options.UseFont = true;
             this.btnDelete.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnDelete.ImageOptions.Image")));
             this.btnDelete.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnDelete.Location = new System.Drawing.Point(159, 35);
+            this.btnDelete.Location = new System.Drawing.Point(244, 32);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(115, 46);
             this.btnDelete.TabIndex = 3;
@@ -102,11 +98,11 @@
             // 
             // btnNew
             // 
-            this.btnNew.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnNew.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnNew.Appearance.Options.UseFont = true;
             this.btnNew.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnNew.ImageOptions.Image")));
             this.btnNew.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnNew.Location = new System.Drawing.Point(279, 35);
+            this.btnNew.Location = new System.Drawing.Point(435, 32);
             this.btnNew.Name = "btnNew";
             this.btnNew.Size = new System.Drawing.Size(115, 46);
             this.btnNew.TabIndex = 1;
@@ -115,11 +111,11 @@
             // 
             // btnAdd
             // 
-            this.btnAdd.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnAdd.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnAdd.Appearance.Options.UseFont = true;
             this.btnAdd.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnAdd.ImageOptions.Image")));
             this.btnAdd.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnAdd.Location = new System.Drawing.Point(408, 35);
+            this.btnAdd.Location = new System.Drawing.Point(629, 32);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(147, 46);
             this.btnAdd.TabIndex = 0;
@@ -133,7 +129,7 @@
             this.groupBox2.Controls.Add(this.btnFirst);
             this.groupBox2.Controls.Add(this.btnLast);
             this.groupBox2.ForeColor = System.Drawing.Color.Blue;
-            this.groupBox2.Location = new System.Drawing.Point(315, 226);
+            this.groupBox2.Location = new System.Drawing.Point(315, 281);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(368, 68);
             this.groupBox2.TabIndex = 29;
@@ -142,7 +138,7 @@
             // 
             // btnNext
             // 
-            this.btnNext.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnNext.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnNext.Appearance.Options.UseFont = true;
             this.btnNext.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnNext.ImageOptions.Image")));
             this.btnNext.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.TopCenter;
@@ -154,7 +150,7 @@
             // 
             // btnPrev
             // 
-            this.btnPrev.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnPrev.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnPrev.Appearance.Options.UseFont = true;
             this.btnPrev.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnPrev.ImageOptions.Image")));
             this.btnPrev.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.TopCenter;
@@ -166,7 +162,7 @@
             // 
             // btnFirst
             // 
-            this.btnFirst.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnFirst.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnFirst.Appearance.Options.UseFont = true;
             this.btnFirst.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnFirst.ImageOptions.Image")));
             this.btnFirst.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.TopCenter;
@@ -178,7 +174,7 @@
             // 
             // btnLast
             // 
-            this.btnLast.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnLast.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnLast.Appearance.Options.UseFont = true;
             this.btnLast.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnLast.ImageOptions.Image")));
             this.btnLast.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.TopCenter;
@@ -190,6 +186,15 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.rbtnCloseSafe);
+            this.groupBox1.Controls.Add(this.rbtnNon_Advance);
+            this.groupBox1.Controls.Add(this.label11);
+            this.groupBox1.Controls.Add(this.label9);
+            this.groupBox1.Controls.Add(this.txt_CloseSafe);
+            this.groupBox1.Controls.Add(this.label8);
+            this.groupBox1.Controls.Add(this.TxNumber);
+            this.groupBox1.Controls.Add(this.label7);
+            this.groupBox1.Controls.Add(this.cbxAddType);
             this.groupBox1.Controls.Add(this.label6);
             this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Controls.Add(this.txtTo);
@@ -205,18 +210,109 @@
             this.groupBox1.ForeColor = System.Drawing.Color.Blue;
             this.groupBox1.Location = new System.Drawing.Point(12, 12);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(711, 197);
+            this.groupBox1.Size = new System.Drawing.Size(818, 263);
             this.groupBox1.TabIndex = 28;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "بيانات العملية";
+            // 
+            // rbtnCloseSafe
+            // 
+            this.rbtnCloseSafe.AutoSize = true;
+            this.rbtnCloseSafe.Checked = true;
+            this.rbtnCloseSafe.ForeColor = System.Drawing.Color.Blue;
+            this.rbtnCloseSafe.Location = new System.Drawing.Point(137, 36);
+            this.rbtnCloseSafe.Name = "rbtnCloseSafe";
+            this.rbtnCloseSafe.Size = new System.Drawing.Size(93, 28);
+            this.rbtnCloseSafe.TabIndex = 56;
+            this.rbtnCloseSafe.TabStop = true;
+            this.rbtnCloseSafe.Text = "غلق قاصة";
+            this.rbtnCloseSafe.UseVisualStyleBackColor = true;
+            // 
+            // rbtnNon_Advance
+            // 
+            this.rbtnNon_Advance.AutoSize = true;
+            this.rbtnNon_Advance.ForeColor = System.Drawing.Color.Blue;
+            this.rbtnNon_Advance.Location = new System.Drawing.Point(14, 36);
+            this.rbtnNon_Advance.Name = "rbtnNon_Advance";
+            this.rbtnNon_Advance.Size = new System.Drawing.Size(96, 28);
+            this.rbtnNon_Advance.TabIndex = 55;
+            this.rbtnNon_Advance.Text = "صرف عام";
+            this.rbtnNon_Advance.UseVisualStyleBackColor = true;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label11.ForeColor = System.Drawing.Color.Red;
+            this.label11.Location = new System.Drawing.Point(69, 11);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(82, 24);
+            this.label11.TabIndex = 54;
+            this.label11.Text = "اختر الخزنة";
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.ForeColor = System.Drawing.Color.Red;
+            this.label9.Location = new System.Drawing.Point(220, 84);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(82, 24);
+            this.label9.TabIndex = 38;
+            this.label9.Text = "غلق قاصة :";
+            // 
+            // txt_CloseSafe
+            // 
+            this.txt_CloseSafe.Location = new System.Drawing.Point(15, 77);
+            this.txt_CloseSafe.Name = "txt_CloseSafe";
+            this.txt_CloseSafe.Size = new System.Drawing.Size(199, 29);
+            this.txt_CloseSafe.TabIndex = 37;
+            this.txt_CloseSafe.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.ForeColor = System.Drawing.Color.Red;
+            this.label8.Location = new System.Drawing.Point(725, 227);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(87, 24);
+            this.label8.TabIndex = 36;
+            this.label8.Text = "رقم الوصل :";
+            // 
+            // TxNumber
+            // 
+            this.TxNumber.Location = new System.Drawing.Point(554, 221);
+            this.TxNumber.Name = "TxNumber";
+            this.TxNumber.Size = new System.Drawing.Size(160, 29);
+            this.TxNumber.TabIndex = 35;
+            this.TxNumber.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.ForeColor = System.Drawing.Color.Red;
+            this.label7.Location = new System.Drawing.Point(725, 179);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(74, 24);
+            this.label7.TabIndex = 34;
+            this.label7.Text = "الاصناف :";
+            // 
+            // cbxAddType
+            // 
+            this.cbxAddType.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
+            this.cbxAddType.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
+            this.cbxAddType.FormattingEnabled = true;
+            this.cbxAddType.Location = new System.Drawing.Point(554, 171);
+            this.cbxAddType.Name = "cbxAddType";
+            this.cbxAddType.Size = new System.Drawing.Size(160, 32);
+            this.cbxAddType.TabIndex = 33;
             // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.ForeColor = System.Drawing.Color.Red;
-            this.label6.Location = new System.Drawing.Point(569, 92);
+            this.label6.Location = new System.Drawing.Point(425, 83);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(142, 28);
+            this.label6.Size = new System.Drawing.Size(141, 24);
             this.label6.TabIndex = 11;
             this.label6.Text = "المسؤل عن الصرف :";
             // 
@@ -224,25 +320,25 @@
             // 
             this.label5.AutoSize = true;
             this.label5.ForeColor = System.Drawing.Color.Red;
-            this.label5.Location = new System.Drawing.Point(262, 88);
+            this.label5.Location = new System.Drawing.Point(425, 36);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(70, 28);
+            this.label5.Size = new System.Drawing.Size(77, 24);
             this.label5.TabIndex = 10;
             this.label5.Text = "صرف لــ :";
             // 
             // txtTo
             // 
-            this.txtTo.Location = new System.Drawing.Point(14, 85);
+            this.txtTo.Location = new System.Drawing.Point(251, 30);
             this.txtTo.Name = "txtTo";
-            this.txtTo.Size = new System.Drawing.Size(242, 36);
+            this.txtTo.Size = new System.Drawing.Size(164, 29);
             this.txtTo.TabIndex = 9;
             this.txtTo.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // txtName
             // 
-            this.txtName.Location = new System.Drawing.Point(362, 86);
+            this.txtName.Location = new System.Drawing.Point(307, 77);
             this.txtName.Name = "txtName";
-            this.txtName.Size = new System.Drawing.Size(195, 36);
+            this.txtName.Size = new System.Drawing.Size(108, 29);
             this.txtName.TabIndex = 8;
             this.txtName.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -250,41 +346,42 @@
             // 
             this.label4.AutoSize = true;
             this.label4.ForeColor = System.Drawing.Color.Red;
-            this.label4.Location = new System.Drawing.Point(262, 34);
+            this.label4.Location = new System.Drawing.Point(722, 83);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(100, 28);
+            this.label4.Size = new System.Drawing.Size(106, 24);
             this.label4.TabIndex = 7;
             this.label4.Text = "تاريخ الصرف :";
             // 
             // DtpDate
             // 
             this.DtpDate.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-            this.DtpDate.Location = new System.Drawing.Point(14, 34);
+            this.DtpDate.Location = new System.Drawing.Point(554, 78);
             this.DtpDate.Name = "DtpDate";
-            this.DtpDate.Size = new System.Drawing.Size(242, 36);
+            this.DtpDate.Size = new System.Drawing.Size(160, 29);
             this.DtpDate.TabIndex = 6;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
             this.label3.ForeColor = System.Drawing.Color.Red;
-            this.label3.Location = new System.Drawing.Point(569, 143);
+            this.label3.Location = new System.Drawing.Point(725, 134);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(59, 28);
+            this.label3.Size = new System.Drawing.Size(65, 24);
             this.label3.TabIndex = 5;
-            this.label3.Text = "المبلغ :";
+            this.label3.Text = "المبلـــغ :";
             // 
             // NudPrice
             // 
-            this.NudPrice.DecimalPlaces = 2;
-            this.NudPrice.Location = new System.Drawing.Point(362, 141);
+            this.NudPrice.DecimalPlaces = 1;
+            this.NudPrice.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.NudPrice.Location = new System.Drawing.Point(554, 127);
             this.NudPrice.Maximum = new decimal(new int[] {
             1215752192,
             23,
             0,
             0});
             this.NudPrice.Name = "NudPrice";
-            this.NudPrice.Size = new System.Drawing.Size(195, 36);
+            this.NudPrice.Size = new System.Drawing.Size(160, 29);
             this.NudPrice.TabIndex = 4;
             this.NudPrice.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.NudPrice.Value = new decimal(new int[] {
@@ -295,10 +392,10 @@
             // 
             // txtReason
             // 
-            this.txtReason.Location = new System.Drawing.Point(14, 134);
+            this.txtReason.Location = new System.Drawing.Point(14, 128);
             this.txtReason.Multiline = true;
             this.txtReason.Name = "txtReason";
-            this.txtReason.Size = new System.Drawing.Size(242, 46);
+            this.txtReason.Size = new System.Drawing.Size(401, 123);
             this.txtReason.TabIndex = 3;
             this.txtReason.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -306,18 +403,18 @@
             // 
             this.label2.AutoSize = true;
             this.label2.ForeColor = System.Drawing.Color.Red;
-            this.label2.Location = new System.Drawing.Point(262, 134);
+            this.label2.Location = new System.Drawing.Point(425, 221);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(62, 28);
+            this.label2.Size = new System.Drawing.Size(65, 24);
             this.label2.TabIndex = 2;
-            this.label2.Text = "السبب :";
+            this.label2.Text = "الســبب :";
             // 
             // txtID
             // 
-            this.txtID.Location = new System.Drawing.Point(362, 31);
+            this.txtID.Location = new System.Drawing.Point(554, 27);
             this.txtID.Name = "txtID";
             this.txtID.ReadOnly = true;
-            this.txtID.Size = new System.Drawing.Size(195, 36);
+            this.txtID.Size = new System.Drawing.Size(160, 29);
             this.txtID.TabIndex = 1;
             this.txtID.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -325,9 +422,9 @@
             // 
             this.label1.AutoSize = true;
             this.label1.ForeColor = System.Drawing.Color.Red;
-            this.label1.Location = new System.Drawing.Point(569, 39);
+            this.label1.Location = new System.Drawing.Point(722, 33);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(98, 28);
+            this.label1.Size = new System.Drawing.Size(83, 24);
             this.label1.TabIndex = 0;
             this.label1.Text = "رقم العملية :";
             // 
@@ -335,9 +432,9 @@
             // 
             this.label10.AutoSize = true;
             this.label10.ForeColor = System.Drawing.Color.Red;
-            this.label10.Location = new System.Drawing.Point(12, 255);
+            this.label10.Location = new System.Drawing.Point(12, 310);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(88, 28);
+            this.label10.Size = new System.Drawing.Size(92, 24);
             this.label10.TabIndex = 32;
             this.label10.Text = "اختر الخزنة :";
             // 
@@ -346,22 +443,35 @@
             this.cbxStock.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.cbxStock.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
             this.cbxStock.FormattingEnabled = true;
-            this.cbxStock.Location = new System.Drawing.Point(100, 245);
+            this.cbxStock.Location = new System.Drawing.Point(105, 310);
             this.cbxStock.Name = "cbxStock";
-            this.cbxStock.Size = new System.Drawing.Size(195, 36);
+            this.cbxStock.Size = new System.Drawing.Size(195, 32);
             this.cbxStock.TabIndex = 31;
+            // 
+            // btnEdit
+            // 
+            this.btnEdit.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnEdit.Appearance.Options.UseFont = true;
+            this.btnEdit.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("simpleButton1.ImageOptions.Image")));
+            this.btnEdit.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
+            this.btnEdit.Location = new System.Drawing.Point(32, 32);
+            this.btnEdit.Name = "btnEdit";
+            this.btnEdit.Size = new System.Drawing.Size(158, 46);
+            this.btnEdit.TabIndex = 5;
+            this.btnEdit.Text = "تعديل";
+            this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
             // 
             // Frm_SanadSarf
             // 
             this.Appearance.Options.UseFont = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.ClientSize = new System.Drawing.Size(735, 396);
+            this.ClientSize = new System.Drawing.Size(842, 464);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.cbxStock);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
-            this.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Margin = new System.Windows.Forms.Padding(6);
             this.MaximizeBox = false;
@@ -384,7 +494,6 @@
         #endregion
 
         private System.Windows.Forms.GroupBox groupBox3;
-        private DevExpress.XtraEditors.SimpleButton btnDeleteAll;
         private DevExpress.XtraEditors.SimpleButton btnDelete;
         private DevExpress.XtraEditors.SimpleButton btnNew;
         private DevExpress.XtraEditors.SimpleButton btnAdd;
@@ -408,5 +517,15 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.ComboBox cbxStock;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.ComboBox cbxAddType;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.TextBox TxNumber;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.TextBox txt_CloseSafe;
+        private System.Windows.Forms.RadioButton rbtnCloseSafe;
+        private System.Windows.Forms.RadioButton rbtnNon_Advance;
+        private System.Windows.Forms.Label label11;
+        private DevExpress.XtraEditors.SimpleButton btnEdit;
     }
 }

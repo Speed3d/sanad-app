@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
@@ -10,8 +10,26 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Sales_Managment</RootNamespace>
     <AssemblyName>Sales Managment</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ProductName>Pro Senan</ProductName>
+    <PublisherName>senan</PublisherName>
+    <ApplicationRevision>5</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -22,6 +40,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <CodeAnalysisIgnoreGeneratedCode>false</CodeAnalysisIgnoreGeneratedCode>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -31,6 +51,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -40,6 +61,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\x64\Release\</OutputPath>
@@ -49,46 +71,49 @@
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CrystalDecisions.CrystalReports.Engine, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
     <Reference Include="CrystalDecisions.ReportSource, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
     <Reference Include="CrystalDecisions.Shared, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
     <Reference Include="CrystalDecisions.Windows.Forms, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
-    <Reference Include="DevExpress.BonusSkins.v18.1" />
-    <Reference Include="DevExpress.CodeParser.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.Data.v18.1" />
-    <Reference Include="DevExpress.DataAccess.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.DataAccess.v18.1.UI, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.Office.v18.1.Core, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.PivotGrid.v18.1.Core, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.Printing.v18.1.Core" />
-    <Reference Include="DevExpress.RichEdit.v18.1.Core, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.Utils.v18.1" />
-    <Reference Include="DevExpress.Utils.v18.1.UI, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraBars.v18.1" />
-    <Reference Include="DevExpress.Sparkline.v18.1.Core" />
-    <Reference Include="DevExpress.XtraCharts.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraCharts.v18.1.Extensions, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraCharts.v18.1.Wizard, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraEditors.v18.1" />
-    <Reference Include="DevExpress.XtraGauges.v18.1.Core, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraGrid.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraLayout.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraNavBar.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraPivotGrid.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraPrinting.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
-    <Reference Include="DevExpress.XtraReports.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraReports.v18.1.Extensions, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
-    <Reference Include="DevExpress.XtraRichEdit.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraTreeList.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
-    <Reference Include="DevExpress.XtraVerticalGrid.v18.1, Version=18.1.5.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.BonusSkins.v20.2" />
+    <Reference Include="DevExpress.CodeParser.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Data.v20.2" />
+    <Reference Include="DevExpress.DataAccess.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.DataAccess.v20.2.UI, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Images.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Office.v20.2.Core, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.PivotGrid.v20.2.Core, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Printing.v20.2.Core" />
+    <Reference Include="DevExpress.RichEdit.v20.2.Core, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Data.Desktop.v20.2" />
+    <Reference Include="DevExpress.Utils.v20.2" />
+    <Reference Include="DevExpress.Utils.v20.2.UI, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Sparkline.v20.2.Core" />
+    <Reference Include="DevExpress.Charts.v20.2.Core, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraBars.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraCharts.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraCharts.v20.2.Extensions, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraCharts.v20.2.Wizard, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraEditors.v20.2" />
+    <Reference Include="DevExpress.XtraGauges.v20.2.Core, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraGrid.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraLayout.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraNavBar.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraPivotGrid.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraPrinting.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraReports.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraReports.v20.2.Extensions, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraRichEdit.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraTreeList.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraVerticalGrid.v20.2, Version=20.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
     <Reference Include="FlashControlV71, Version=1.0.3187.32366, Culture=neutral, PublicKeyToken=692fbea5521e1304" />
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SqlServer.ConnectionInfoExtended, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SqlServer.Dmf, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SqlServer.Dmf.Common, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
-    <Reference Include="Microsoft.SqlServer.ForEachSMOEnumerator, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SqlServer.Management.SmoMetadataProvider, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SqlServer.Smo, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.SqlServer.SmoExtended, Version=14.100.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL" />
@@ -112,6 +137,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddStock_Personalcs.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AddStock_Personalcs.Designer.cs">
+      <DependentUpon>AddStock_Personalcs.cs</DependentUpon>
+    </Compile>
     <Compile Include="Database.cs" />
     <Compile Include="DataSet1.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -124,11 +155,53 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="Frmmmmm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frmmmmm.Designer.cs">
+      <DependentUpon>Frmmmmm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_AddMoney_S_Contractors.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_AddMoney_S_Contractors.Designer.cs">
+      <DependentUpon>Frm_AddMoney_S_Contractors.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_AddMoney_S_Personal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_AddMoney_S_Personal.Designer.cs">
+      <DependentUpon>Frm_AddMoney_S_Personal.cs</DependentUpon>
+    </Compile>
     <Compile Include="Frm_AddStock.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Frm_AddStock.Designer.cs">
       <DependentUpon>Frm_AddStock.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_AddStock_Contractors.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_AddStock_Contractors.Designer.cs">
+      <DependentUpon>Frm_AddStock_Contractors.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_AddType.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_AddType.Designer.cs">
+      <DependentUpon>Frm_AddType.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Add_Contractors.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Add_Contractors.Designer.cs">
+      <DependentUpon>Frm_Add_Contractors.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Add_Personal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Add_Personal.Designer.cs">
+      <DependentUpon>Frm_Add_Personal.cs</DependentUpon>
     </Compile>
     <Compile Include="Frm_BankAddMoney.cs">
       <SubType>Form</SubType>
@@ -262,6 +335,12 @@
     <Compile Include="Frm_Login.Designer.cs">
       <DependentUpon>Frm_Login.cs</DependentUpon>
     </Compile>
+    <Compile Include="Frm_Me.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Me.Designer.cs">
+      <DependentUpon>Frm_Me.cs</DependentUpon>
+    </Compile>
     <Compile Include="Frm_PayBuy.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -291,6 +370,12 @@
     </Compile>
     <Compile Include="Frm_PrintBarcode.Designer.cs">
       <DependentUpon>Frm_PrintBarcode.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Print_2.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Print_2.Designer.cs">
+      <DependentUpon>Frm_Print_2.cs</DependentUpon>
     </Compile>
     <Compile Include="Frm_ProductGroup.cs">
       <SubType>Form</SubType>
@@ -364,17 +449,53 @@
     <Compile Include="Frm_SanadKabd.Designer.cs">
       <DependentUpon>Frm_SanadKabd.cs</DependentUpon>
     </Compile>
-    <Compile Include="Frm_SanadReport.cs">
+    <Compile Include="Frm_SanadKabd_Personal.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Frm_SanadReport.Designer.cs">
-      <DependentUpon>Frm_SanadReport.cs</DependentUpon>
+    <Compile Include="Frm_SanadKabd_Personal.Designer.cs">
+      <DependentUpon>Frm_SanadKabd_Personal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_SanadSarfReport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_SanadSarfReport.Designer.cs">
+      <DependentUpon>Frm_SanadSarfReport.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_SanadKabdReport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_SanadKabdReport.Designer.cs">
+      <DependentUpon>Frm_SanadKabdReport.cs</DependentUpon>
     </Compile>
     <Compile Include="Frm_SanadSarf.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Frm_SanadSarf.Designer.cs">
       <DependentUpon>Frm_SanadSarf.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Contractors.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Contractors.Designer.cs">
+      <DependentUpon>Frm_Sanad_Pull_Contractors.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Contractors_Report.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Contractors_Report.Designer.cs">
+      <DependentUpon>Frm_Sanad_Pull_Contractors_Report.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Personal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Personal.Designer.cs">
+      <DependentUpon>Frm_Sanad_Pull_Personal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Perso_Report.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm_Sanad_Pull_Perso_Report.Designer.cs">
+      <DependentUpon>Frm_Sanad_Pull_Perso_Report.cs</DependentUpon>
     </Compile>
     <Compile Include="Frm_Setting.cs">
       <SubType>Form</SubType>
@@ -384,9 +505,11 @@
     </Compile>
     <Compile Include="Frm_StockAddMoney.cs">
       <SubType>Form</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
     <Compile Include="Frm_StockAddMoney.Designer.cs">
       <DependentUpon>Frm_StockAddMoney.cs</DependentUpon>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
     <Compile Include="Frm_StockAddMoneyReport.cs">
       <SubType>Form</SubType>
@@ -552,11 +675,35 @@
       <DependentUpon>RptSanadKabd.rpt</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="RptSanadKabdReport.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>RptSanadKabdReport.rpt</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="RptSanadSarf.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>RptSanadSarf.rpt</DependentUpon>
       <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="RptSanad_ContractorsReport.cs">
+      <DependentUpon>RptSanad_ContractorsReport.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="RptSanad_PersonalReport.cs">
+      <DependentUpon>RptSanad_PersonalReport.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="RptSanadSarfReport.cs">
+      <DependentUpon>RptSanadSarfReport.rpt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <SubType>Component</SubType>
+      <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="RptSupplierMonry.cs">
       <AutoGen>True</AutoGen>
@@ -582,11 +729,32 @@
     <Compile Include="Splash.Designer.cs">
       <DependentUpon>Splash.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="AddStock_Personalcs.resx">
+      <DependentUpon>AddStock_Personalcs.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Frm_AddMoney_S_Contractors.resx">
+      <DependentUpon>Frm_AddMoney_S_Contractors.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_AddMoney_S_Personal.resx">
+      <DependentUpon>Frm_AddMoney_S_Personal.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Frm_AddStock.resx">
       <DependentUpon>Frm_AddStock.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_AddStock_Contractors.resx">
+      <DependentUpon>Frm_AddStock_Contractors.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_AddType.resx">
+      <DependentUpon>Frm_AddType.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Add_Contractors.resx">
+      <DependentUpon>Frm_Add_Contractors.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Add_Personal.resx">
+      <DependentUpon>Frm_Add_Personal.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_BankAddMoney.resx">
       <DependentUpon>Frm_BankAddMoney.cs</DependentUpon>
@@ -654,6 +822,9 @@
     <EmbeddedResource Include="Frm_Login.resx">
       <DependentUpon>Frm_Login.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Me.resx">
+      <DependentUpon>Frm_Me.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Frm_PayBuy.resx">
       <DependentUpon>Frm_PayBuy.cs</DependentUpon>
     </EmbeddedResource>
@@ -668,6 +839,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_PrintBarcode.resx">
       <DependentUpon>Frm_PrintBarcode.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Print_2.resx">
+      <DependentUpon>Frm_Print_2.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_ProductGroup.resx">
       <DependentUpon>Frm_ProductGroup.cs</DependentUpon>
@@ -705,17 +879,36 @@
     <EmbeddedResource Include="Frm_SanadKabd.resx">
       <DependentUpon>Frm_SanadKabd.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Frm_SanadReport.resx">
-      <DependentUpon>Frm_SanadReport.cs</DependentUpon>
+    <EmbeddedResource Include="Frm_SanadKabd_Personal.resx">
+      <DependentUpon>Frm_SanadKabd_Personal.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_SanadSarfReport.resx">
+      <DependentUpon>Frm_SanadSarfReport.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_SanadKabdReport.resx">
+      <DependentUpon>Frm_SanadKabdReport.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_SanadSarf.resx">
       <DependentUpon>Frm_SanadSarf.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Sanad_Pull_Contractors.resx">
+      <DependentUpon>Frm_Sanad_Pull_Contractors.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Sanad_Pull_Contractors_Report.resx">
+      <DependentUpon>Frm_Sanad_Pull_Contractors_Report.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Sanad_Pull_Personal.resx">
+      <DependentUpon>Frm_Sanad_Pull_Personal.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Frm_Sanad_Pull_Perso_Report.resx">
+      <DependentUpon>Frm_Sanad_Pull_Perso_Report.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_Setting.resx">
       <DependentUpon>Frm_Setting.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_StockAddMoney.resx">
       <DependentUpon>Frm_StockAddMoney.cs</DependentUpon>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Frm_StockAddMoneyReport.resx">
       <DependentUpon>Frm_StockAddMoneyReport.cs</DependentUpon>
@@ -819,9 +1012,25 @@
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>RptSanadKabd.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="RptSanadKabdReport.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>RptSanadKabdReport.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="RptSanadSarf.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
       <LastGenOutput>RptSanadSarf.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RptSanad_ContractorsReport.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>RptSanad_ContractorsReport.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RptSanad_PersonalReport.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>RptSanad_PersonalReport.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RptSanadSarfReport.rpt">
+      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
+      <LastGenOutput>RptSanadSarfReport.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="RptSupplierMonry.rpt">
       <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
@@ -907,6 +1116,79 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\teacher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\download01.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\close_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\customer_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\customer_16x16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\bocontact_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\employee_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\employee_32x321.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\employee_16x16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\currency_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\currency_32x321.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\currency_16x16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\report_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\report_16x16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\addnewdatasource_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\addnewdatasource_16x16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\editdatasource_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\editdatasource_16x16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\addfile_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\recurrence_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\deletelist2_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\add_32x32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\addfooter_32x32.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

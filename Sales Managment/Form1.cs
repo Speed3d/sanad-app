@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using Microsoft.SqlServer.Management.Smo;
+using Microsoft.Win32;
 
 namespace Sales_Managment
 {
@@ -17,15 +18,25 @@ namespace Sales_Managment
             InitializeComponent();
         }
         int USER_ID = 0;
+
+        //تحميل الصفحة
         private void Form1_Load(object sender, EventArgs e)
         {
+            // لم يتحقق يحتاج التعديل
+            // شرط حتى يثبت الثيم عند الفتح كل مرة
+            RegistryKey SkinName = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\WINREGISTRY");
+            if (SkinName != null)
+            {
+             //   DevExpress.LookAndFeel.UserLookAndFeel.Default.SkinName = SkinName.GetValue("SkinName").ToString();
+            }
+
             try
             {
-
                 USER_ID = Convert.ToInt32(db.readData("select * from Users where User_Name=N'" + Properties.Settings.Default.USERNAME + "'", "").Rows[0][0]);
 
             }
             catch (Exception) { }
+
 
             barStaticItem3.Caption = "التاريخ |" + DateTime.Now.ToShortDateString();
             barStaticItem4.Caption = "اسم المستخدم |" + Properties.Settings.Default.USERNAME;
@@ -37,7 +48,7 @@ namespace Sales_Managment
             tblSearch = db.readData("select " + filed + " from " + table + " where User_ID=" + USER_ID + "", "");
             if (Convert.ToDecimal(tblSearch.Rows[0][0]) == 0)
             {
-                MessageBox.Show("انتا لا تملك صلاحيه الدخول لهذه الشاشة", "تاكيد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("انت لا تملك صلاحيه الدخول لهذه الشاشة", "تاكيد", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
@@ -456,6 +467,7 @@ namespace Sales_Managment
             }
         }
         Database db = new Database();
+        // كود اخذ نسخة احتياطية
         private void barButtonItem27_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
 
@@ -481,12 +493,13 @@ namespace Sales_Managment
                 }
             //}
         }
-
+        // كود استعادة نسخة احتياطية
         private void barButtonItem28_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
             //bool check = checkUser("ReturnBackUp", "User_BackUp");
             //if (check == true)
             //{
+             //   Server server = new Server(@"DESKTOP-MUNJ5T0");
                 Server server = new Server(@"DESKTOP-160PK05");
 
                 Microsoft.SqlServer.Management.Smo.Database db = server.Databases["Sales_System"];
@@ -626,12 +639,10 @@ namespace Sales_Managment
 
         private void barButtonItem62_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            bool check = checkUser("TaxesReport", "User_Deserved");
-            if (check == true)
-            {
-                Frm_TaxesReport frm = new Frm_TaxesReport();
-                frm.ShowDialog();
-            }
+            //ExcelImporter frm = new ExcelImporter();
+            Frm_ExcelImporter frm = new Frm_ExcelImporter();
+            frm.ShowDialog();
+
         }
 
         private void barButtonItem21_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -748,6 +759,101 @@ namespace Sales_Managment
                 Frm_SanadSarfReport frm = new Frm_SanadSarfReport();
                 frm.ShowDialog();
             }
+        }
+
+        private void barButtonItem64_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            {
+                Frm_AddType frm = new Frm_AddType();
+                frm.ShowDialog();
+            }
+        }
+
+        private void barButtonItem66_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Sanad_Pull_Personal frm = new Frm_Sanad_Pull_Personal();
+            frm.ShowDialog();
+        }
+
+        private void barButtonItem65_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Add_Personal frm = new Frm_Add_Personal();
+            frm.ShowDialog();
+        }
+
+        private void barButtonItem67_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Sanad_Pull_Perso_Report frm = new Frm_Sanad_Pull_Perso_Report();
+            frm.ShowDialog();
+        }
+
+        private void barButtonItem68_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            AddStock_Personalcs frm = new AddStock_Personalcs();
+            frm.ShowDialog();
+
+        }
+
+        //عند اغلاق البرنامج يقوم بحفظ الثيم الذي اخترناه
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            RegistryKey SkinName = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\WINREGISTRY");
+            SkinName.SetValue("SkinName", DevExpress.LookAndFeel.UserLookAndFeel.DefaultSkinName.ToString());
+            SkinName.Close();
+        }
+
+        private void barButtonItem69_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Me frm = new Frm_Me();
+            frm.ShowDialog();
+
+        }
+
+        private void barButtonItem75_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_AddMoney_S_Personal frm = new Frm_AddMoney_S_Personal();
+            frm.ShowDialog();
+
+        }
+
+        private void barButtonItem70_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Add_Contractors frm = new Frm_Add_Contractors();
+            frm.ShowDialog();
+
+        }
+
+        private void barButtonItem71_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Sanad_Pull_Contractors frm = new Frm_Sanad_Pull_Contractors();
+            frm.ShowDialog();
+
+        }
+
+        private void barButtonItem72_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_Sanad_Pull_Contractors_Report frm = new Frm_Sanad_Pull_Contractors_Report();
+            frm.ShowDialog();
+
+        }
+
+        private void barButtonItem73_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_AddStock_Contractors frm = new Frm_AddStock_Contractors();
+            frm.ShowDialog();
+        }
+
+        private void barButtonItem74_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_AddMoney_S_Contractors frm = new Frm_AddMoney_S_Contractors();
+            frm.ShowDialog();
+
+        }
+
+        private void barButtonItem77_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            Frm_ExcelIMporterTo frm = new Frm_ExcelIMporterTo();
+            frm.ShowDialog();
         }
     }
 }

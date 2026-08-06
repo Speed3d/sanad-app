@@ -11,14 +11,18 @@ namespace Sales_Managment
     {
         //الاتصال بقاعدة البيانات
 
-        //اسم الحاسبة الخاصة بي
-       // SqlConnection conn = new SqlConnection(@"Data Source=DESKTOP-56B5KGI;Initial Catalog=Sales_System;Integrated Security=True");
+        //اسم حاسبة البيت
+        // SqlConnection conn = new SqlConnection(@"Data Source=DESKTOP-EN9QU19;Initial Catalog=Sales_System;Integrated Security=True");
 
-        // اسم الحاسبة الخاصي بي في الشركة
+         //SqlConnection conn = new SqlConnection(@"Data Source=.\SQLEXPRESS;Initial Catalog=Sales_System;Integrated Security=True");
+
+
+        // حاسبة الشركة
         SqlConnection conn = new SqlConnection(@"Data Source=DESKTOP-160PK05;Initial Catalog=Sales_System;Integrated Security=True");
+
+
         SqlCommand cmd = new SqlCommand();
         
-
         // select دالة ال 
         public DataTable readData(string stmt ,string message)
         {

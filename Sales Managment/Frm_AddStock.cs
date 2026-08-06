@@ -16,6 +16,7 @@ namespace Sales_Managment
         {
             InitializeComponent();
         }
+
         Database db = new Database();
         DataTable tbl = new DataTable();
         private void AutoNumber()
@@ -101,18 +102,18 @@ namespace Sales_Managment
 
         private void btnDelete_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("هل انتا متاكد من مسح البيانات", "تاكيد", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (MessageBox.Show("هل انت متاكد من مسح البيانات", "تاكيد", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                db.readData("delete from Stock_Data where Stock_ID=" + txtID.Text + "", "تم مسح البيانات بنجاح");
+                db.readData("delete from Stock_Data where Stock_ID=" + txtID.Text + "", "تم المسح  بنجاح");
                 AutoNumber();
             }
         }
 
         private void btnDeleteAll_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("هل انتا متاكد من مسح البيانات", "تاكيد", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (MessageBox.Show("هل انت متاكد من مسح البيانات", "تاكيد", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                db.readData("delete from Stock_Data ", "تم مسح البيانات بنجاح");
+                db.readData("delete from Stock_Data ", "تم المسح بنجاح");
                 AutoNumber();
             }
         }
@@ -134,7 +135,6 @@ namespace Sales_Managment
             }
             else
             {
-
 
                 row--;
                 Show();

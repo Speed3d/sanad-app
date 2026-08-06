@@ -45,8 +45,8 @@
             // 
             this.txtUserName.Location = new System.Drawing.Point(30, 78);
             this.txtUserName.Name = "txtUserName";
-            this.txtUserName.Size = new System.Drawing.Size(242, 36);
-            this.txtUserName.TabIndex = 4;
+            this.txtUserName.Size = new System.Drawing.Size(242, 29);
+            this.txtUserName.TabIndex = 0;
             this.txtUserName.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtUserName.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtUserName_KeyPress);
             // 
@@ -56,7 +56,7 @@
             this.label5.ForeColor = System.Drawing.Color.Red;
             this.label5.Location = new System.Drawing.Point(56, 47);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(146, 28);
+            this.label5.Size = new System.Drawing.Size(122, 24);
             this.label5.TabIndex = 9;
             this.label5.Text = "ادخل اسم المستخدم";
             // 
@@ -66,7 +66,7 @@
             this.rbtnManager.Checked = true;
             this.rbtnManager.Location = new System.Drawing.Point(30, 12);
             this.rbtnManager.Name = "rbtnManager";
-            this.rbtnManager.Size = new System.Drawing.Size(59, 32);
+            this.rbtnManager.Size = new System.Drawing.Size(58, 28);
             this.rbtnManager.TabIndex = 10;
             this.rbtnManager.TabStop = true;
             this.rbtnManager.Text = "مدير";
@@ -77,7 +77,7 @@
             this.rbtnEmp.AutoSize = true;
             this.rbtnEmp.Location = new System.Drawing.Point(184, 12);
             this.rbtnEmp.Name = "rbtnEmp";
-            this.rbtnEmp.Size = new System.Drawing.Size(74, 32);
+            this.rbtnEmp.Size = new System.Drawing.Size(72, 28);
             this.rbtnEmp.TabIndex = 11;
             this.rbtnEmp.Text = "موظف";
             this.rbtnEmp.UseVisualStyleBackColor = true;
@@ -88,7 +88,7 @@
             this.label1.ForeColor = System.Drawing.Color.Red;
             this.label1.Location = new System.Drawing.Point(75, 118);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(113, 28);
+            this.label1.Size = new System.Drawing.Size(102, 24);
             this.label1.TabIndex = 13;
             this.label1.Text = "ادخل كلمة السر";
             // 
@@ -97,34 +97,34 @@
             this.txtPassword.Location = new System.Drawing.Point(30, 149);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.PasswordChar = '*';
-            this.txtPassword.Size = new System.Drawing.Size(242, 36);
-            this.txtPassword.TabIndex = 12;
+            this.txtPassword.Size = new System.Drawing.Size(242, 29);
+            this.txtPassword.TabIndex = 1;
             this.txtPassword.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtPassword.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtPassword_KeyPress);
             // 
             // btnLogin
             // 
-            this.btnLogin.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnLogin.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnLogin.Appearance.Options.UseFont = true;
             this.btnLogin.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnLogin.ImageOptions.Image")));
             this.btnLogin.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
             this.btnLogin.Location = new System.Drawing.Point(30, 191);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Size = new System.Drawing.Size(242, 46);
-            this.btnLogin.TabIndex = 14;
+            this.btnLogin.TabIndex = 2;
             this.btnLogin.Text = "دخول";
             this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
             // 
             // btnExit
             // 
-            this.btnExit.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnExit.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnExit.Appearance.Options.UseFont = true;
             this.btnExit.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnExit.ImageOptions.Image")));
             this.btnExit.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
             this.btnExit.Location = new System.Drawing.Point(278, 191);
             this.btnExit.Name = "btnExit";
             this.btnExit.Size = new System.Drawing.Size(253, 46);
-            this.btnExit.TabIndex = 15;
+            this.btnExit.TabIndex = 3;
             this.btnExit.Text = "خروج";
             this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
             // 
@@ -153,7 +153,7 @@
             this.Controls.Add(this.rbtnManager);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.txtUserName);
-            this.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Margin = new System.Windows.Forms.Padding(6);
             this.Name = "Frm_Login";

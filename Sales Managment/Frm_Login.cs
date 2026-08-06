@@ -23,7 +23,7 @@ namespace Sales_Managment
             {
                 t = new Thread(new ThreadStart(StartSplash));
                 t.Start();
-                Thread.Sleep(5000);
+                Thread.Sleep(3000);
                 t.Abort();
             }
             catch (Exception) { }
@@ -49,11 +49,15 @@ namespace Sales_Managment
         // تجييك قاعدة البيانات
         private bool checkDatabase()
         {
-            //الاتصال بقاعدة البيانات الخاصة بي
-           // SqlConnection conn = new SqlConnection(@"Data Source =DESKTOP-56B5KGI; Initial Catalog = Sales_System; Integrated Security = True");
+            //الاتصال بقاعدة البيانات  حاسبة البيت
+            // SqlConnection conn = new SqlConnection(@"Data Source=LAPTOP-SPEED3D\SQLEXPRESS01;Initial Catalog=Sales_System;Integrated Security=True");
+             //SqlConnection conn = new SqlConnection(@"Data Source=.\SQLEXPRESS;Initial Catalog=Sales_System;Integrated Security=True");
 
-            //الاتصال بقاعدة البيانات الخاصة بي في الشركة
-            SqlConnection conn = new SqlConnection(@"Data Source =DESKTOP-160PK05; Initial Catalog = Sales_System; Integrated Security = True");
+
+            //الاتصال بقاعدة البيانات  حاسبة الشركة
+              SqlConnection conn = new SqlConnection(@"Data Source=DESKTOP-160PK05;Initial Catalog=Sales_System;Integrated Security=True");
+
+
             SqlCommand cmd = new SqlCommand("", conn);
 
             SqlDataReader rdr;
@@ -96,13 +100,12 @@ namespace Sales_Managment
                     var fileContent = File.ReadAllText(Application.StartupPath + @"\sqlscript.sql");
                     var sqlqueries = fileContent.Split(new[] { "GO" }, StringSplitOptions.RemoveEmptyEntries);
 
-                    //الاتصال بقاعدة البيانات الخاصة بي
+                    //انشاء بقاعدة البيانات  حاسبة البيت
+                    //var con = new SqlConnection(@"Data Source=.\SQLEXPRESS;Initial Catalog=Sales_System;Integrated Security=True");
 
-                   // var con = new SqlConnection(@"Data Source=DESKTOP-56B5KGI;Initial Catalog=Sales_System;Integrated Security=True");
 
-                    //الاتصال بقاعدة البيانات الخاصة بي في الشركة
-
-                    var con = new SqlConnection(@"Data Source=DESKTOP-160PK05;Initial Catalog=Sales_System;Integrated Security=True");
+                    //انشاء بقاعدة البيانات  حاسبة الشركة
+                     var con = new SqlConnection(@"Data Source=DESKTOP-160PK05;Initial Catalog=Sales_System;Integrated Security=True");
 
                     var cmd = new SqlCommand("query", con);
                     con.Open();

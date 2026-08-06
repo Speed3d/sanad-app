@@ -29,27 +29,29 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Frm_SanadKabdReport));
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle9 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle10 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             this.btnDelete = new DevExpress.XtraEditors.SimpleButton();
             this.label3 = new System.Windows.Forms.Label();
             this.txtTotal = new System.Windows.Forms.TextBox();
             this.DgvSearch = new System.Windows.Forms.DataGridView();
             this.label2 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btnSearchNum = new DevExpress.XtraEditors.SimpleButton();
             this.label1 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.txtSearch = new System.Windows.Forms.TextBox();
+            this.btnSearch = new DevExpress.XtraEditors.SimpleButton();
             this.DtpTo = new System.Windows.Forms.DateTimePicker();
             this.DtpFrom = new System.Windows.Forms.DateTimePicker();
-            this.btnSearch = new DevExpress.XtraEditors.SimpleButton();
             this.cbxStock = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
             this.rbtnAllStock = new System.Windows.Forms.RadioButton();
             this.rbtnOneStock = new System.Windows.Forms.RadioButton();
             this.btnPrintAll = new DevExpress.XtraEditors.SimpleButton();
-            this.btnPtintSelect = new DevExpress.XtraEditors.SimpleButton();
+            this.btnPtintSelectStok = new DevExpress.XtraEditors.SimpleButton();
+            this.btnPrintNum = new DevExpress.XtraEditors.SimpleButton();
             ((System.ComponentModel.ISupportInitialize)(this.DgvSearch)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -60,11 +62,11 @@
             this.btnDelete.Appearance.Options.UseFont = true;
             this.btnDelete.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnDelete.ImageOptions.Image")));
             this.btnDelete.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnDelete.Location = new System.Drawing.Point(292, 443);
+            this.btnDelete.Location = new System.Drawing.Point(435, 442);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(144, 50);
             this.btnDelete.TabIndex = 49;
-            this.btnDelete.Text = "مسح التقرير المحدد";
+            this.btnDelete.Text = "مسح\r\n التقرير المحدد";
             this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
             // 
             // label3
@@ -72,7 +74,7 @@
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label3.ForeColor = System.Drawing.Color.Red;
-            this.label3.Location = new System.Drawing.Point(441, 464);
+            this.label3.Location = new System.Drawing.Point(582, 467);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(265, 25);
             this.label3.TabIndex = 45;
@@ -80,10 +82,10 @@
             // 
             // txtTotal
             // 
-            this.txtTotal.Location = new System.Drawing.Point(713, 457);
+            this.txtTotal.Location = new System.Drawing.Point(622, 432);
             this.txtTotal.Name = "txtTotal";
             this.txtTotal.ReadOnly = true;
-            this.txtTotal.Size = new System.Drawing.Size(125, 32);
+            this.txtTotal.Size = new System.Drawing.Size(182, 32);
             this.txtTotal.TabIndex = 48;
             this.txtTotal.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -91,36 +93,37 @@
             // 
             this.DgvSearch.AllowUserToAddRows = false;
             this.DgvSearch.AllowUserToDeleteRows = false;
+            this.DgvSearch.AllowUserToOrderColumns = true;
             this.DgvSearch.AllowUserToResizeColumns = false;
             this.DgvSearch.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.DgvSearch.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells;
             this.DgvSearch.BackgroundColor = System.Drawing.Color.White;
             this.DgvSearch.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle9.BackColor = System.Drawing.Color.Beige;
-            dataGridViewCellStyle9.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle9.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(32)))), ((int)(((byte)(31)))), ((int)(((byte)(53)))));
-            dataGridViewCellStyle9.SelectionBackColor = System.Drawing.Color.Yellow;
-            dataGridViewCellStyle9.SelectionForeColor = System.Drawing.Color.Blue;
-            dataGridViewCellStyle9.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.DgvSearch.DefaultCellStyle = dataGridViewCellStyle9;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.Beige;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(244)))), ((int)(((byte)(244)))));
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.Color.Yellow;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.Color.Blue;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.DgvSearch.DefaultCellStyle = dataGridViewCellStyle1;
             this.DgvSearch.Location = new System.Drawing.Point(14, 150);
             this.DgvSearch.Name = "DgvSearch";
             this.DgvSearch.ReadOnly = true;
-            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle10.BackColor = System.Drawing.Color.White;
-            dataGridViewCellStyle10.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle10.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle10.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle10.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle10.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.DgvSearch.RowHeadersDefaultCellStyle = dataGridViewCellStyle10;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.White;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.DgvSearch.RowHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.DgvSearch.RowTemplate.DefaultCellStyle.BackColor = System.Drawing.Color.White;
             this.DgvSearch.RowTemplate.DefaultCellStyle.ForeColor = System.Drawing.Color.Blue;
             this.DgvSearch.RowTemplate.DefaultCellStyle.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
             this.DgvSearch.RowTemplate.DefaultCellStyle.SelectionForeColor = System.Drawing.Color.Blue;
             this.DgvSearch.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.DgvSearch.Size = new System.Drawing.Size(824, 287);
+            this.DgvSearch.Size = new System.Drawing.Size(824, 276);
             this.DgvSearch.TabIndex = 47;
             // 
             // label2
@@ -136,6 +139,7 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.btnSearchNum);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.label4);
             this.groupBox1.Controls.Add(this.label6);
@@ -143,18 +147,31 @@
             this.groupBox1.Controls.Add(this.btnSearch);
             this.groupBox1.Controls.Add(this.DtpTo);
             this.groupBox1.Controls.Add(this.DtpFrom);
-            this.groupBox1.Location = new System.Drawing.Point(230, 31);
+            this.groupBox1.Location = new System.Drawing.Point(214, 31);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(608, 113);
+            this.groupBox1.Size = new System.Drawing.Size(624, 113);
             this.groupBox1.TabIndex = 44;
             this.groupBox1.TabStop = false;
             this.groupBox1.Enter += new System.EventHandler(this.groupBox1_Enter);
+            // 
+            // btnSearchNum
+            // 
+            this.btnSearchNum.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSearchNum.Appearance.Options.UseFont = true;
+            this.btnSearchNum.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnSearchNum.ImageOptions.Image")));
+            this.btnSearchNum.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
+            this.btnSearchNum.Location = new System.Drawing.Point(6, 16);
+            this.btnSearchNum.Name = "btnSearchNum";
+            this.btnSearchNum.Size = new System.Drawing.Size(136, 38);
+            this.btnSearchNum.TabIndex = 63;
+            this.btnSearchNum.Text = "البحث عن رقم";
+            this.btnSearchNum.Click += new System.EventHandler(this.btnSearchNum_Click);
             // 
             // label1
             // 
             this.label1.AutoSize = true;
             this.label1.ForeColor = System.Drawing.Color.Red;
-            this.label1.Location = new System.Drawing.Point(554, 70);
+            this.label1.Location = new System.Drawing.Point(573, 70);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(48, 25);
             this.label1.TabIndex = 10;
@@ -164,7 +181,7 @@
             // 
             this.label4.AutoSize = true;
             this.label4.ForeColor = System.Drawing.Color.Red;
-            this.label4.Location = new System.Drawing.Point(554, 24);
+            this.label4.Location = new System.Drawing.Point(573, 24);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(45, 25);
             this.label4.TabIndex = 9;
@@ -173,11 +190,11 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Font = new System.Drawing.Font("Droid Arabic Kufi", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label6.Font = new System.Drawing.Font("Droid Arabic Kufi", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label6.ForeColor = System.Drawing.Color.Red;
-            this.label6.Location = new System.Drawing.Point(77, 25);
+            this.label6.Location = new System.Drawing.Point(153, 28);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(316, 27);
+            this.label6.Size = new System.Drawing.Size(268, 22);
             this.label6.TabIndex = 58;
             this.label6.Text = "اكتب الاسم او جزء من الاسم الذي تريد بحثه عنه : ";
             // 
@@ -185,25 +202,9 @@
             // 
             this.txtSearch.Location = new System.Drawing.Point(148, 67);
             this.txtSearch.Name = "txtSearch";
-            this.txtSearch.Size = new System.Drawing.Size(240, 32);
+            this.txtSearch.Size = new System.Drawing.Size(269, 32);
             this.txtSearch.TabIndex = 59;
             this.txtSearch.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // DtpTo
-            // 
-            this.DtpTo.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-            this.DtpTo.Location = new System.Drawing.Point(414, 67);
-            this.DtpTo.Name = "DtpTo";
-            this.DtpTo.Size = new System.Drawing.Size(129, 32);
-            this.DtpTo.TabIndex = 8;
-            // 
-            // DtpFrom
-            // 
-            this.DtpFrom.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-            this.DtpFrom.Location = new System.Drawing.Point(414, 24);
-            this.DtpFrom.Name = "DtpFrom";
-            this.DtpFrom.Size = new System.Drawing.Size(129, 32);
-            this.DtpFrom.TabIndex = 7;
             // 
             // btnSearch
             // 
@@ -211,12 +212,28 @@
             this.btnSearch.Appearance.Options.UseFont = true;
             this.btnSearch.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnSearch.ImageOptions.Image")));
             this.btnSearch.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnSearch.Location = new System.Drawing.Point(6, 62);
+            this.btnSearch.Location = new System.Drawing.Point(6, 64);
             this.btnSearch.Name = "btnSearch";
-            this.btnSearch.Size = new System.Drawing.Size(136, 40);
+            this.btnSearch.Size = new System.Drawing.Size(136, 35);
             this.btnSearch.TabIndex = 40;
             this.btnSearch.Text = "اضغط للبحث";
             this.btnSearch.Click += new System.EventHandler(this.btnSearch_Click);
+            // 
+            // DtpTo
+            // 
+            this.DtpTo.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.DtpTo.Location = new System.Drawing.Point(433, 67);
+            this.DtpTo.Name = "DtpTo";
+            this.DtpTo.Size = new System.Drawing.Size(129, 32);
+            this.DtpTo.TabIndex = 8;
+            // 
+            // DtpFrom
+            // 
+            this.DtpFrom.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.DtpFrom.Location = new System.Drawing.Point(433, 24);
+            this.DtpFrom.Name = "DtpFrom";
+            this.DtpFrom.Size = new System.Drawing.Size(129, 32);
+            this.DtpFrom.TabIndex = 7;
             // 
             // cbxStock
             // 
@@ -225,7 +242,7 @@
             this.cbxStock.FormattingEnabled = true;
             this.cbxStock.Location = new System.Drawing.Point(15, 93);
             this.cbxStock.Name = "cbxStock";
-            this.cbxStock.Size = new System.Drawing.Size(210, 33);
+            this.cbxStock.Size = new System.Drawing.Size(193, 33);
             this.cbxStock.TabIndex = 50;
             this.cbxStock.SelectionChangeCommitted += new System.EventHandler(this.cbxStock_SelectionChangeCommitted);
             // 
@@ -276,26 +293,40 @@
             this.btnPrintAll.Text = "طباعة الكل";
             this.btnPrintAll.Click += new System.EventHandler(this.btnPrintAll_Click);
             // 
-            // btnPtintSelect
+            // btnPtintSelectStok
             // 
-            this.btnPtintSelect.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnPtintSelect.Appearance.Options.UseFont = true;
-            this.btnPtintSelect.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnPtintSelect.ImageOptions.Image")));
-            this.btnPtintSelect.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
-            this.btnPtintSelect.Location = new System.Drawing.Point(136, 443);
-            this.btnPtintSelect.Name = "btnPtintSelect";
-            this.btnPtintSelect.Size = new System.Drawing.Size(150, 50);
-            this.btnPtintSelect.TabIndex = 61;
-            this.btnPtintSelect.Text = "طباعة الخزنة المحددة\r\n";
-            this.btnPtintSelect.Click += new System.EventHandler(this.btnPtintSelect_Click);
+            this.btnPtintSelectStok.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnPtintSelectStok.Appearance.Options.UseFont = true;
+            this.btnPtintSelectStok.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnPtintSelectStok.ImageOptions.Image")));
+            this.btnPtintSelectStok.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
+            this.btnPtintSelectStok.Location = new System.Drawing.Point(136, 443);
+            this.btnPtintSelectStok.Name = "btnPtintSelectStok";
+            this.btnPtintSelectStok.Size = new System.Drawing.Size(150, 50);
+            this.btnPtintSelectStok.TabIndex = 61;
+            this.btnPtintSelectStok.Text = "طباعة\r\n خزنة محددة\r\n";
+            this.btnPtintSelectStok.Click += new System.EventHandler(this.btnPtintSelectStok_Click);
+            // 
+            // btnPrintNum
+            // 
+            this.btnPrintNum.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnPrintNum.Appearance.Options.UseFont = true;
+            this.btnPrintNum.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnPrintNum.ImageOptions.Image")));
+            this.btnPrintNum.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
+            this.btnPrintNum.Location = new System.Drawing.Point(292, 442);
+            this.btnPrintNum.Name = "btnPrintNum";
+            this.btnPrintNum.Size = new System.Drawing.Size(137, 51);
+            this.btnPrintNum.TabIndex = 64;
+            this.btnPrintNum.Text = "طباعة رقم محدد";
+            this.btnPrintNum.Click += new System.EventHandler(this.btnPrintNum_Click);
             // 
             // Frm_SanadKabdReport
             // 
             this.Appearance.Options.UseFont = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(856, 501);
+            this.Controls.Add(this.btnPrintNum);
             this.Controls.Add(this.btnPrintAll);
-            this.Controls.Add(this.btnPtintSelect);
+            this.Controls.Add(this.btnPtintSelectStok);
             this.Controls.Add(this.rbtnAllStock);
             this.Controls.Add(this.rbtnOneStock);
             this.Controls.Add(this.label10);
@@ -308,14 +339,13 @@
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.LookAndFeel.UseDefaultLookAndFeel = false;
             this.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.MaximizeBox = false;
             this.Name = "Frm_SanadKabdReport";
             this.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.RightToLeftLayout = true;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "تقرير سندات القبض والصرف";
+            this.Text = "تقرير سندات القبض ";
             this.Load += new System.EventHandler(this.Frm_SanadReport_Load);
             ((System.ComponentModel.ISupportInitialize)(this.DgvSearch)).EndInit();
             this.groupBox1.ResumeLayout(false);
@@ -345,6 +375,8 @@
         private System.Windows.Forms.TextBox txtSearch;
         private System.Windows.Forms.Label label6;
         private DevExpress.XtraEditors.SimpleButton btnPrintAll;
-        private DevExpress.XtraEditors.SimpleButton btnPtintSelect;
+        private DevExpress.XtraEditors.SimpleButton btnPtintSelectStok;
+        private DevExpress.XtraEditors.SimpleButton btnSearchNum;
+        private DevExpress.XtraEditors.SimpleButton btnPrintNum;
     }
 }

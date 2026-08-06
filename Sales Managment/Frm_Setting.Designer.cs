@@ -97,17 +97,17 @@
             this.tabPage1.Controls.Add(this.btnSavePrinter);
             this.tabPage1.Controls.Add(this.label5);
             this.tabPage1.Controls.Add(this.cbxPrinter);
-            this.tabPage1.Location = new System.Drawing.Point(4, 37);
+            this.tabPage1.Location = new System.Drawing.Point(4, 27);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(839, 330);
+            this.tabPage1.Size = new System.Drawing.Size(839, 340);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "اعدادت الطابعات";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
             // btnSavePrinter
             // 
-            this.btnSavePrinter.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSavePrinter.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSavePrinter.Appearance.Options.UseFont = true;
             this.btnSavePrinter.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnSavePrinter.ImageOptions.Image")));
             this.btnSavePrinter.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
@@ -124,7 +124,7 @@
             this.label5.ForeColor = System.Drawing.Color.Red;
             this.label5.Location = new System.Drawing.Point(275, 63);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(351, 28);
+            this.label5.Size = new System.Drawing.Size(262, 18);
             this.label5.TabIndex = 11;
             this.label5.Text = "اختر طابعة لكى تكون هى الطابعة الرئيسية للبرنامج";
             // 
@@ -135,7 +135,7 @@
             this.cbxPrinter.FormattingEnabled = true;
             this.cbxPrinter.Location = new System.Drawing.Point(243, 94);
             this.cbxPrinter.Name = "cbxPrinter";
-            this.cbxPrinter.Size = new System.Drawing.Size(398, 36);
+            this.cbxPrinter.Size = new System.Drawing.Size(398, 26);
             this.cbxPrinter.TabIndex = 10;
             // 
             // tabPage2
@@ -155,17 +155,17 @@
             this.tabPage2.Controls.Add(this.btnChoose);
             this.tabPage2.Controls.Add(this.label1);
             this.tabPage2.Controls.Add(this.pictureLogo);
-            this.tabPage2.Location = new System.Drawing.Point(4, 37);
+            this.tabPage2.Location = new System.Drawing.Point(4, 27);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(839, 330);
+            this.tabPage2.Size = new System.Drawing.Size(839, 340);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "اعدادت الفاتورة";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
             // btnSaveOrder
             // 
-            this.btnSaveOrder.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSaveOrder.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSaveOrder.Appearance.Options.UseFont = true;
             this.btnSaveOrder.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnSaveOrder.ImageOptions.Image")));
             this.btnSaveOrder.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
@@ -182,7 +182,7 @@
             this.label7.ForeColor = System.Drawing.Color.Red;
             this.label7.Location = new System.Drawing.Point(232, 142);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(70, 28);
+            this.label7.Size = new System.Drawing.Size(52, 18);
             this.label7.TabIndex = 22;
             this.label7.Text = "موبايل 2";
             this.label7.Click += new System.EventHandler(this.label7_Click);
@@ -191,7 +191,7 @@
             // 
             this.txtPhone2.Location = new System.Drawing.Point(19, 138);
             this.txtPhone2.Name = "txtPhone2";
-            this.txtPhone2.Size = new System.Drawing.Size(207, 36);
+            this.txtPhone2.Size = new System.Drawing.Size(207, 24);
             this.txtPhone2.TabIndex = 21;
             this.txtPhone2.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -201,7 +201,7 @@
             this.label4.ForeColor = System.Drawing.Color.Red;
             this.label4.Location = new System.Drawing.Point(232, 75);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(70, 28);
+            this.label4.Size = new System.Drawing.Size(52, 18);
             this.label4.TabIndex = 20;
             this.label4.Text = "موبايل 1";
             // 
@@ -209,7 +209,7 @@
             // 
             this.txtPhone1.Location = new System.Drawing.Point(19, 75);
             this.txtPhone1.Name = "txtPhone1";
-            this.txtPhone1.Size = new System.Drawing.Size(207, 36);
+            this.txtPhone1.Size = new System.Drawing.Size(207, 24);
             this.txtPhone1.TabIndex = 19;
             this.txtPhone1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -219,7 +219,7 @@
             this.label6.ForeColor = System.Drawing.Color.Red;
             this.label6.Location = new System.Drawing.Point(232, 20);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(215, 28);
+            this.label6.Size = new System.Drawing.Size(161, 18);
             this.label6.TabIndex = 18;
             this.label6.Text = "معلومات في الاسفل *اختياري*";
             // 
@@ -227,7 +227,7 @@
             // 
             this.txtDescription.Location = new System.Drawing.Point(19, 20);
             this.txtDescription.Name = "txtDescription";
-            this.txtDescription.Size = new System.Drawing.Size(207, 36);
+            this.txtDescription.Size = new System.Drawing.Size(207, 24);
             this.txtDescription.TabIndex = 17;
             this.txtDescription.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -237,7 +237,7 @@
             this.label3.ForeColor = System.Drawing.Color.Red;
             this.label3.Location = new System.Drawing.Point(723, 246);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(108, 28);
+            this.label3.Size = new System.Drawing.Size(85, 18);
             this.label3.TabIndex = 16;
             this.label3.Text = "عنوان الشركة :";
             // 
@@ -245,7 +245,7 @@
             // 
             this.txtAddress.Location = new System.Drawing.Point(510, 246);
             this.txtAddress.Name = "txtAddress";
-            this.txtAddress.Size = new System.Drawing.Size(207, 36);
+            this.txtAddress.Size = new System.Drawing.Size(207, 24);
             this.txtAddress.TabIndex = 15;
             this.txtAddress.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -255,7 +255,7 @@
             this.label2.ForeColor = System.Drawing.Color.Red;
             this.label2.Location = new System.Drawing.Point(723, 191);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(100, 28);
+            this.label2.Size = new System.Drawing.Size(73, 18);
             this.label2.TabIndex = 14;
             this.label2.Text = "اسم الشركة :";
             this.label2.Click += new System.EventHandler(this.label2_Click);
@@ -264,7 +264,7 @@
             // 
             this.txtName.Location = new System.Drawing.Point(510, 191);
             this.txtName.Name = "txtName";
-            this.txtName.Size = new System.Drawing.Size(207, 36);
+            this.txtName.Size = new System.Drawing.Size(207, 24);
             this.txtName.TabIndex = 13;
             this.txtName.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
@@ -273,7 +273,7 @@
             this.btndelete.Appearance.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(128)))), ((int)(((byte)(185)))));
             this.btndelete.Appearance.BackColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(128)))), ((int)(((byte)(185)))));
             this.btndelete.Appearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(128)))), ((int)(((byte)(185)))));
-            this.btndelete.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btndelete.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btndelete.Appearance.ForeColor = System.Drawing.Color.White;
             this.btndelete.Appearance.Options.UseBackColor = true;
             this.btndelete.Appearance.Options.UseBorderColor = true;
@@ -292,7 +292,7 @@
             this.btnChoose.Appearance.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(128)))), ((int)(((byte)(185)))));
             this.btnChoose.Appearance.BackColor2 = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(128)))), ((int)(((byte)(185)))));
             this.btnChoose.Appearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(128)))), ((int)(((byte)(185)))));
-            this.btnChoose.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnChoose.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnChoose.Appearance.ForeColor = System.Drawing.Color.White;
             this.btnChoose.Appearance.Options.UseBackColor = true;
             this.btnChoose.Appearance.Options.UseBorderColor = true;
@@ -312,7 +312,7 @@
             this.label1.ForeColor = System.Drawing.Color.Red;
             this.label1.Location = new System.Drawing.Point(723, 28);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(105, 28);
+            this.label1.Size = new System.Drawing.Size(81, 18);
             this.label1.TabIndex = 10;
             this.label1.Text = "شعار الشركة :";
             // 
@@ -342,10 +342,10 @@
             this.tabPage3.Controls.Add(this.NudSaleNumber);
             this.tabPage3.Controls.Add(this.btnSaveGenralSetting);
             this.tabPage3.Controls.Add(this.label8);
-            this.tabPage3.Location = new System.Drawing.Point(4, 37);
+            this.tabPage3.Location = new System.Drawing.Point(4, 27);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(839, 330);
+            this.tabPage3.Size = new System.Drawing.Size(839, 340);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "اعدادت عامة";
             this.tabPage3.UseVisualStyleBackColor = true;
@@ -366,7 +366,7 @@
             this.rbtnA4Buy.AutoSize = true;
             this.rbtnA4Buy.Location = new System.Drawing.Point(6, 46);
             this.rbtnA4Buy.Name = "rbtnA4Buy";
-            this.rbtnA4Buy.Size = new System.Drawing.Size(97, 32);
+            this.rbtnA4Buy.Size = new System.Drawing.Size(78, 22);
             this.rbtnA4Buy.TabIndex = 38;
             this.rbtnA4Buy.Text = "طباعة A4";
             this.rbtnA4Buy.UseVisualStyleBackColor = true;
@@ -377,7 +377,7 @@
             this.rbtn8cmBuy.Checked = true;
             this.rbtn8cmBuy.Location = new System.Drawing.Point(130, 46);
             this.rbtn8cmBuy.Name = "rbtn8cmBuy";
-            this.rbtn8cmBuy.Size = new System.Drawing.Size(180, 32);
+            this.rbtn8cmBuy.Size = new System.Drawing.Size(149, 22);
             this.rbtn8cmBuy.TabIndex = 37;
             this.rbtn8cmBuy.TabStop = true;
             this.rbtn8cmBuy.Text = "طباعة حراري (8 سنتى)";
@@ -399,7 +399,7 @@
             this.rbtnA4Sales.AutoSize = true;
             this.rbtnA4Sales.Location = new System.Drawing.Point(6, 46);
             this.rbtnA4Sales.Name = "rbtnA4Sales";
-            this.rbtnA4Sales.Size = new System.Drawing.Size(97, 32);
+            this.rbtnA4Sales.Size = new System.Drawing.Size(78, 22);
             this.rbtnA4Sales.TabIndex = 38;
             this.rbtnA4Sales.Text = "طباعة A4";
             this.rbtnA4Sales.UseVisualStyleBackColor = true;
@@ -410,7 +410,7 @@
             this.rbtn8cmSales.Checked = true;
             this.rbtn8cmSales.Location = new System.Drawing.Point(130, 46);
             this.rbtn8cmSales.Name = "rbtn8cmSales";
-            this.rbtn8cmSales.Size = new System.Drawing.Size(180, 32);
+            this.rbtn8cmSales.Size = new System.Drawing.Size(149, 22);
             this.rbtn8cmSales.TabIndex = 37;
             this.rbtn8cmSales.TabStop = true;
             this.rbtn8cmSales.Text = "طباعة حراري (8 سنتى)";
@@ -422,7 +422,7 @@
             this.checkBuyPrint.AutoSize = true;
             this.checkBuyPrint.Location = new System.Drawing.Point(592, 271);
             this.checkBuyPrint.Name = "checkBuyPrint";
-            this.checkBuyPrint.Size = new System.Drawing.Size(229, 32);
+            this.checkBuyPrint.Size = new System.Drawing.Size(177, 22);
             this.checkBuyPrint.TabIndex = 35;
             this.checkBuyPrint.Text = "تفعيل طباعة فواتير المشتريات";
             this.checkBuyPrint.UseVisualStyleBackColor = true;
@@ -432,7 +432,7 @@
             this.checkSalePrint.AutoSize = true;
             this.checkSalePrint.Location = new System.Drawing.Point(603, 235);
             this.checkSalePrint.Name = "checkSalePrint";
-            this.checkSalePrint.Size = new System.Drawing.Size(218, 32);
+            this.checkSalePrint.Size = new System.Drawing.Size(167, 22);
             this.checkSalePrint.TabIndex = 34;
             this.checkSalePrint.Text = "تفعيل طباعة فواتير المبيعات";
             this.checkSalePrint.UseVisualStyleBackColor = true;
@@ -442,7 +442,7 @@
             this.checkdiscount.AutoSize = true;
             this.checkdiscount.Location = new System.Drawing.Point(464, 197);
             this.checkdiscount.Name = "checkdiscount";
-            this.checkdiscount.Size = new System.Drawing.Size(357, 32);
+            this.checkdiscount.Size = new System.Drawing.Size(271, 22);
             this.checkdiscount.TabIndex = 33;
             this.checkdiscount.Text = "تفعيل امكانيه الخصم على فواتير المبيعات للكاشير";
             this.checkdiscount.UseVisualStyleBackColor = true;
@@ -453,7 +453,7 @@
             this.label10.ForeColor = System.Drawing.Color.Red;
             this.label10.Location = new System.Drawing.Point(594, 126);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(242, 28);
+            this.label10.Size = new System.Drawing.Size(185, 18);
             this.label10.TabIndex = 32;
             this.label10.Text = "عدد طباعة نسخه فواتير المشتريات:";
             // 
@@ -467,7 +467,7 @@
             0,
             0});
             this.NudBuyNumber.Name = "NudBuyNumber";
-            this.NudBuyNumber.Size = new System.Drawing.Size(85, 36);
+            this.NudBuyNumber.Size = new System.Drawing.Size(85, 24);
             this.NudBuyNumber.TabIndex = 31;
             this.NudBuyNumber.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.NudBuyNumber.Value = new decimal(new int[] {
@@ -482,7 +482,7 @@
             this.label9.ForeColor = System.Drawing.Color.Red;
             this.label9.Location = new System.Drawing.Point(595, 84);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(231, 28);
+            this.label9.Size = new System.Drawing.Size(175, 18);
             this.label9.TabIndex = 30;
             this.label9.Text = "عدد طباعة نسخه فواتير المبيعات:";
             // 
@@ -491,7 +491,7 @@
             this.rbtnVale.AutoSize = true;
             this.rbtnVale.Location = new System.Drawing.Point(520, 34);
             this.rbtnVale.Name = "rbtnVale";
-            this.rbtnVale.Size = new System.Drawing.Size(125, 32);
+            this.rbtnVale.Size = new System.Drawing.Size(93, 22);
             this.rbtnVale.TabIndex = 29;
             this.rbtnVale.Text = "قيمة من المال";
             this.rbtnVale.UseVisualStyleBackColor = true;
@@ -502,7 +502,7 @@
             this.rbtnPresent.Checked = true;
             this.rbtnPresent.Location = new System.Drawing.Point(651, 34);
             this.rbtnPresent.Name = "rbtnPresent";
-            this.rbtnPresent.Size = new System.Drawing.Size(100, 32);
+            this.rbtnPresent.Size = new System.Drawing.Size(75, 22);
             this.rbtnPresent.TabIndex = 28;
             this.rbtnPresent.TabStop = true;
             this.rbtnPresent.Text = "نسبه مؤيه";
@@ -514,7 +514,7 @@
             this.checkTaxes.AutoSize = true;
             this.checkTaxes.Location = new System.Drawing.Point(602, 166);
             this.checkTaxes.Name = "checkTaxes";
-            this.checkTaxes.Size = new System.Drawing.Size(219, 32);
+            this.checkTaxes.Size = new System.Drawing.Size(166, 22);
             this.checkTaxes.TabIndex = 27;
             this.checkTaxes.Text = "تفعيل ضريبة القيمة المضافه";
             this.checkTaxes.UseVisualStyleBackColor = true;
@@ -529,7 +529,7 @@
             0,
             0});
             this.NudSaleNumber.Name = "NudSaleNumber";
-            this.NudSaleNumber.Size = new System.Drawing.Size(85, 36);
+            this.NudSaleNumber.Size = new System.Drawing.Size(85, 24);
             this.NudSaleNumber.TabIndex = 26;
             this.NudSaleNumber.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.NudSaleNumber.Value = new decimal(new int[] {
@@ -540,7 +540,7 @@
             // 
             // btnSaveGenralSetting
             // 
-            this.btnSaveGenralSetting.Appearance.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSaveGenralSetting.Appearance.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSaveGenralSetting.Appearance.Options.UseFont = true;
             this.btnSaveGenralSetting.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("btnSaveGenralSetting.ImageOptions.Image")));
             this.btnSaveGenralSetting.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightTop;
@@ -557,7 +557,7 @@
             this.label8.ForeColor = System.Drawing.Color.Red;
             this.label8.Location = new System.Drawing.Point(388, 3);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(444, 28);
+            this.label8.Size = new System.Drawing.Size(330, 18);
             this.label8.TabIndex = 24;
             this.label8.Text = "هل تريد ان يكون الخصم على المنتج نسبه مؤيه ام قيمه من المال؟";
             // 
@@ -567,7 +567,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(849, 395);
             this.Controls.Add(this.tabControl1);
-            this.Font = new System.Drawing.Font("Droid Arabic Kufi", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.LookAndFeel.UseDefaultLookAndFeel = false;
             this.Margin = new System.Windows.Forms.Padding(6);
