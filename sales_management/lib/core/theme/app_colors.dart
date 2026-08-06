@@ -13,11 +13,11 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   // ── الألوان الأساسية (Seed Colors) ──────────────────────────────────────
 
-  /// اللون الأساسي: أخضر زمردي داكن — يناسب تطبيقات المحاسبة والمال
-  static const Color primarySeed = Color(0xFF1B5E20);
+  /// اللون الأساسي: أزرق ملكي فاخر (Royal Midnight Navy) — طابع التطبيقات المالية الحديثة (Fintech)
+  static const Color primarySeed = Color(0xFF0F172A);
 
-  /// اللون الثانوي: ذهبي — للعناصر البارزة والأيقونات المميزة
-  static const Color secondarySeed = Color(0xFFF9A825);
+  /// اللون الثانوي: سايان كهربائي (Electric Cyan) — للعناصر البارزة والأيقونات والتحديدات
+  static const Color secondarySeed = Color(0xFF0284C7);
 
   /// لون الخطأ: أحمر قياسي Material
   static const Color errorSeed = Color(0xFFB00020);

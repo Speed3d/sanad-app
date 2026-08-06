@@ -141,61 +141,68 @@ class _DesktopShell extends StatelessWidget {
       body: Row(
         children: [
           // ── NavigationRail الجانبية ──────────────────────────────────
-          NavigationRail(
-            // إظهار التسميات دائماً على الشاشات الكبيرة
-            labelType: NavigationRailLabelType.all,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: (index) {
-              context.go(_navItems[index].route);
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: NavigationRail(
+                      // إظهار التسمية للعنصر المحدد أو كافة العناصر بحسب المساحة
+                      labelType: NavigationRailLabelType.selected,
+                      selectedIndex: selectedIndex,
+                      onDestinationSelected: (index) {
+                        context.go(_navItems[index].route);
+                      },
+                      // اللوجو / عنوان التطبيق في الأعلى
+                      leading: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.account_balance,
+                            color: theme.colorScheme.onPrimaryContainer,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      // أزرار إضافية في الأسفل
+                      trailing: Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          children: [
+                            // زر البحث الشامل
+                            IconButton(
+                              icon: const Icon(Icons.search_rounded),
+                              tooltip: 'البحث الشامل',
+                              onPressed: () => showGlobalSearchDialog(context),
+                            ),
+                            // زر سجل المراجعة
+                            IconButton(
+                              icon: const Icon(Icons.history),
+                              tooltip: 'سجل المراجعة',
+                              onPressed: () => context.go(AppRoutes.audit),
+                            ),
+                          ],
+                        ),
+                      ),
+                      destinations: _navItems
+                          .map((item) => NavigationRailDestination(
+                                icon: Icon(item.icon),
+                                selectedIcon: Icon(item.selectedIcon),
+                                label: Text(item.label),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ),
+              );
             },
-            // اللوجو / عنوان التطبيق في الأعلى
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.account_balance,
-                      color: theme.colorScheme.onPrimaryContainer,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // أزرار إضافية في الأسفل (الخروج)
-            trailing: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                children: [
-                  // زر البحث الشامل
-                  IconButton(
-                    icon: const Icon(Icons.search_rounded),
-                    tooltip: 'البحث الشامل',
-                    onPressed: () => showGlobalSearchDialog(context),
-                  ),
-                  // زر سجل المراجعة
-                  IconButton(
-                    icon: const Icon(Icons.history),
-                    tooltip: 'سجل المراجعة',
-                    onPressed: () => context.go(AppRoutes.audit),
-                  ),
-                ],
-              ),
-            ),
-            destinations: _navItems
-                .map((item) => NavigationRailDestination(
-                      icon: Icon(item.icon),
-                      selectedIcon: Icon(item.selectedIcon),
-                      label: Text(item.label),
-                    ))
-                .toList(),
           ),
 
           // خط فاصل رفيع
