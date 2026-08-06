@@ -8,9 +8,11 @@
 //   - مؤشر تقدم أثناء العمليات
 //
 // التشفير:
+//   منطق التشفير كله في core/services/backup_crypto_service.dart
 //   خوارزمية: AES-256-GCM
 //   اشتقاق المفتاح: PBKDF2-SHA256 — 100,000 تكرار — مفتاح 32 بايت
-//   البادئة في الملف: b"SMBAK1\n" + salt(16) + iv(12) + tag(16) + ciphertext
+//   البادئة في الملف: b"SMBAK2\n" + salt(16) + iv(12) + tag(16) + ciphertext
+//   (الملفات القديمة SMBAK1 لا تزال تُفتَح للتوافق)
 //
 // ملاحظة:
 //   يعمل على Android/iOS/Desktop فقط (dart:io).
@@ -21,23 +23,32 @@ import 'dart:io' as io;
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, compute;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pointycastle/export.dart' as pc;
 
 import '../../providers/database_provider.dart';
+import '../../../core/services/backup_crypto_service.dart';
 import '../../../core/services/cloud_backup_service.dart';
 
-// ── ثوابت التشفير ────────────────────────────────────────────────────────────
+// ── دوال التشفير داخل Isolate ────────────────────────────────────────────────
+//
+// compute() يتطلب دوالّ من المستوى الأعلى (top-level) أو static،
+// لأن الـ Isolate لا يستطيع الوصول إلى حالة الودجت.
 
-const _kMagic = 'SMBAK1\n'; // 7 bytes
-const _kSaltLen = 16;
-const _kIvLen = 12;
-const _kTagLen = 16;
-const _kKeyLen = 32; // AES-256
-const _kPbkdfIterations = 100000;
+/// نقطة دخول التشفير داخل Isolate منفصل
+Uint8List _encryptInIsolate(({Uint8List bytes, String password}) args) {
+  return BackupCryptoService.encrypt(args.bytes, args.password);
+}
+
+/// نقطة دخول فك التشفير داخل Isolate منفصل
+Uint8List? _decryptInIsolate(({Uint8List bytes, String password}) args) {
+  return BackupCryptoService.decrypt(args.bytes, args.password);
+}
+
+/// الحد الأدنى لطول كلمة مرور النسخة الاحتياطية
+const _kMinBackupPasswordLen = 8;
 
 // ════════════════════════════════════════════════════════════════════════════
 // BackupScreen
@@ -82,6 +93,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       _setStatus('أدخل كلمة المرور أولاً', error: true);
       return;
     }
+    // حد أدنى لطول كلمة المرور — تحمي هذه الكلمة قاعدة البيانات كاملةً،
+    // فكلمة من حرف واحد تجعل التشفير بلا قيمة عملياً.
+    if (pass.length < _kMinBackupPasswordLen) {
+      _setStatus(
+        'كلمة المرور قصيرة جداً — يجب ألا تقل عن $_kMinBackupPasswordLen أحرف',
+        error: true,
+      );
+      return;
+    }
     if (pass != _confirmCtrl.text) {
       _setStatus('كلمتا المرور غير متطابقتين', error: true);
       return;
@@ -99,8 +119,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
       final dbBytes = await dbFile.readAsBytes();
 
-      // 2. التشفير
-      final encrypted = _encryptBytes(dbBytes, pass);
+      // 2. التشفير (على خيط منفصل حتى لا تتجمد الواجهة)
+      final encrypted = await _encryptBytes(dbBytes, pass);
 
       // 3. الحفظ المحلّي
       final now = DateTime.now();
@@ -151,8 +171,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         return;
       }
 
-      // 2. فك التشفير
-      final decrypted = _decryptBytes(bytes, pass);
+      // 2. فك التشفير (على خيط منفصل حتى لا تتجمد الواجهة)
+      final decrypted = await _decryptBytes(bytes, pass);
       if (decrypted == null) {
         _setStatus('كلمة المرور غير صحيحة أو الملف تالف', error: true);
         return;
@@ -178,106 +198,23 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     }
   }
 
-  // ── AES-256-GCM تشفير ────────────────────────────────────────────────────
+  // ── التشفير ──────────────────────────────────────────────────────────────
+  //
+  // منطق التشفير كله انتقل إلى BackupCryptoService حتى يصبح قابلاً للاختبار
+  // (كان دوالّ خاصة داخل ودجت، فيستحيل اختباره) وقابلاً للتشغيل في Isolate.
+  //
+  // التشفير وفك التشفير يعملان الآن داخل compute() على خيط منفصل، لأن
+  // 100,000 دورة PBKDF2 مع AES على ملف قاعدة بيانات كامل كانت تُجمّد
+  // الواجهة لثوانٍ على الخيط الرئيسي.
 
-  Uint8List _encryptBytes(Uint8List plain, String password) {
-    final salt = _randomBytes(_kSaltLen);
-    final iv = _randomBytes(_kIvLen);
-    final key = _deriveKey(password, salt);
-
-    final cipher = pc.GCMBlockCipher(pc.AESEngine())
-      ..init(
-        true,
-        pc.AEADParameters(
-          pc.KeyParameter(key),
-          _kTagLen * 8,
-          iv,
-          Uint8List(0),
-        ),
-      );
-
-    final out = Uint8List(cipher.getOutputSize(plain.length));
-    var off = cipher.processBytes(plain, 0, plain.length, out, 0);
-    off += cipher.doFinal(out, off);
-
-    // out = ciphertext (off - 16 bytes) + tag (16 bytes)
-    final ciphertext = out.sublist(0, off - _kTagLen);
-    final tag = out.sublist(off - _kTagLen, off);
-
-    final magic = Uint8List.fromList(_kMagic.codeUnits);
-    final result = Uint8List(
-      magic.length + _kSaltLen + _kIvLen + _kTagLen + ciphertext.length,
-    );
-    var pos = 0;
-    result.setRange(pos, pos += magic.length, magic);
-    result.setRange(pos, pos += _kSaltLen, salt);
-    result.setRange(pos, pos += _kIvLen, iv);
-    result.setRange(pos, pos += _kTagLen, tag);
-    result.setRange(pos, pos + ciphertext.length, ciphertext);
-    return result;
+  /// تشفير بيانات قاعدة البيانات على خيط منفصل
+  Future<Uint8List> _encryptBytes(Uint8List plain, String password) {
+    return compute(_encryptInIsolate, (bytes: plain, password: password));
   }
 
-  Uint8List? _decryptBytes(Uint8List data, String password) {
-    try {
-      final magic = Uint8List.fromList(_kMagic.codeUnits);
-      if (data.length < magic.length + _kSaltLen + _kIvLen + _kTagLen) {
-        return null;
-      }
-      for (int i = 0; i < magic.length; i++) {
-        if (data[i] != magic[i]) return null;
-      }
-      var pos = magic.length;
-      final salt = data.sublist(pos, pos += _kSaltLen);
-      final iv = data.sublist(pos, pos += _kIvLen);
-      final tag = data.sublist(pos, pos += _kTagLen);
-      final ciphertext = data.sublist(pos);
-
-      final key = _deriveKey(password, salt);
-
-      // GCM decrypt — يحتاج ciphertext + tag مُلحَق
-      final combined = Uint8List(ciphertext.length + _kTagLen)
-        ..setRange(0, ciphertext.length, ciphertext)
-        ..setRange(ciphertext.length, ciphertext.length + _kTagLen, tag);
-
-      final cipher = pc.GCMBlockCipher(pc.AESEngine())
-        ..init(
-          false,
-          pc.AEADParameters(
-            pc.KeyParameter(key),
-            _kTagLen * 8,
-            iv,
-            Uint8List(0),
-          ),
-        );
-
-      final plain = Uint8List(cipher.getOutputSize(combined.length));
-      var off = cipher.processBytes(combined, 0, combined.length, plain, 0);
-      off += cipher.doFinal(plain, off);
-      return plain.sublist(0, off);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Uint8List _deriveKey(String password, Uint8List salt) {
-    final pbkdf2 = pc.PBKDF2KeyDerivator(pc.HMac(pc.SHA256Digest(), 64))
-      ..init(pc.Pbkdf2Parameters(salt, _kPbkdfIterations, _kKeyLen));
-    return pbkdf2.process(Uint8List.fromList(password.codeUnits));
-  }
-
-  Uint8List _randomBytes(int length) {
-    final rng = pc.SecureRandom('Fortuna')
-      ..seed(
-        pc.KeyParameter(
-          Uint8List.fromList(
-            List.generate(
-              32,
-              (i) => (DateTime.now().microsecondsSinceEpoch >> (i % 8)) & 0xFF,
-            ),
-          ),
-        ),
-      );
-    return rng.nextBytes(length);
+  /// فك تشفير ملف نسخة احتياطية على خيط منفصل
+  Future<Uint8List?> _decryptBytes(Uint8List data, String password) {
+    return compute(_decryptInIsolate, (bytes: data, password: password));
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -332,7 +269,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'تُشفَّر النسخة بـ AES-256-GCM مع اشتقاق المفتاح '
-                      'بـ PBKDF2-SHA256 (${_kPbkdfIterations ~/ 1000}k تكرار). '
+                      'بـ PBKDF2-SHA256 (${BackupFormat.pbkdfIterations ~/ 1000}k تكرار). '
                       'احتفظ بكلمة المرور — لا يمكن الاستعادة بدونها.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,

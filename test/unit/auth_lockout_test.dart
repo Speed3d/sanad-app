@@ -18,7 +18,6 @@
 //   4. ذرية الزيادة (لا تضيع محاولة عند التزامن)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sales_management/data/database/app_database.dart';
