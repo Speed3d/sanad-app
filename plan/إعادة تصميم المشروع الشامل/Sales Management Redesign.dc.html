@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="./image-slot.js"></script>
+  <style>
+    body { margin: 0; }
+    a { color: var(--gold, #B8862E); }
+    a:hover { color: var(--navy, #0F172A); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(148,160,184,0.4); border-radius: 8px; }
+  </style>
+</helmet>
+<div dir="rtl" style="{{rootStyle}}">
+
+  <sc-if value="{{isDesktop}}" hint-placeholder-val="{{true}}">
+    <aside style="{{sidebarStyle}}">
+      <div style="display:flex;align-items:center;gap:12px;padding:4px 8px 20px;">
+        <image-slot id="app-logo" shape="circle" style="width:44px;height:44px;flex-shrink:0;" placeholder="شعار"></image-slot>
+        <div style="display:flex;flex-direction:column;overflow:hidden;">
+          <div style="font-weight:800;font-size:15px;color:#F5F1E6;white-space:nowrap;">اسم الشركة</div>
+          <div style="font-size:11px;color:var(--gold);font-weight:600;">إدارة المبيعات والخزينة</div>
+        </div>
+      </div>
+
+      <nav style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+        <sc-for list="{{navItems}}" as="item" hint-placeholder-count="9">
+          <button onClick="{{item.onClick}}" style="{{item.style}}">
+            <span style="display:flex;align-items:center;justify-content:center;width:20px;">{{item.icon}}</span>
+            <span style="font-size:13.5px;font-weight:600;white-space:nowrap;">{{item.label}}</span>
+          </button>
+        </sc-for>
+      </nav>
+
+      <div style="flex:1;"></div>
+
+      <div style="display:flex;flex-direction:column;gap:4px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+        <button onClick="{{goAudit}}" style="{{sideUtilBtnStyle}}">
+          <span style="display:flex;align-items:center;justify-content:center;width:20px;">{{clockIcon}}</span>
+          <span style="font-size:13px;font-weight:600;">سجل المراجعة</span>
+        </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-top:4px;">
+          <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.75);">الوضع الليلي</span>
+          <button onClick="{{toggleDark}}" style="{{switchTrackStyle}}">
+            <span style="{{switchThumbStyle}}">{{themeIcon}}</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </sc-if>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+
+    <header style="{{topbarStyle}}">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <div style="font-size:19px;font-weight:800;">{{screenTitle}}</div>
+        <sc-if value="{{isDashboard}}" hint-placeholder-val="{{false}}">
+          <div style="font-size:12.5px;color:var(--subtext);">{{todayLabel}}</div>
+        </sc-if>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onClick="{{noop}}" style="{{iconBtnStyle}}">{{searchIcon}}</button>
+        <button onClick="{{noop}}" style="{{iconBtnStyle}}">{{bellIcon}}</button>
+        <sc-if value="{{isMobile}}" hint-placeholder-val="{{false}}">
+          <button onClick="{{toggleDark}}" style="{{iconBtnStyle}}">{{themeIcon}}</button>
+        </sc-if>
+        <image-slot id="user-avatar" shape="circle" style="width:38px;height:38px;flex-shrink:0;" placeholder="أنت"></image-slot>
+      </div>
+    </header>
+
+    <main style="{{mainStyle}}">
+
+      <sc-if value="{{isDashboard}}" hint-placeholder-val="{{true}}">
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+          <div style="{{alertCardStyle}}">
+            <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:rgba(184,134,46,0.18);flex-shrink:0;">{{bellIconSmall}}</span>
+            <div style="flex:1;">
+              <div style="font-size:13.5px;font-weight:700;">تنبيه ذكي</div>
+              <div style="font-size:12.5px;color:var(--subtext);margin-top:2px;">رصيد «خزينة الفرع الثاني» أقل من الحد الأدنى المحدد (1,500,000 د.ع)</div>
+            </div>
+            <button onClick="{{goTreasury}}" style="{{ghostBtnStyle}}">عرض</button>
+          </div>
+
+          <div style="{{heroCardStyle}}">
+            <div style="{{heroGlowStyle}}"></div>
+            <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.75);font-size:13px;font-weight:600;">
+                  <span style="display:flex;">{{walletIconWhite}}</span>
+                  إجمالي الأرصدة
+                </div>
+                <div style="font-size:36px;font-weight:800;color:#fff;margin-top:10px;letter-spacing:-0.5px;">{{totalIqdFmt}} <span style="font-size:17px;font-weight:600;color:rgba(255,255,255,0.6);">د.ع</span></div>
+                <div style="font-size:14px;color:var(--gold);font-weight:700;margin-top:4px;">$ {{totalUsdFmt}}</div>
+              </div>
+              <div style="{{trendPillStyle}}">{{arrowUpIcon}} 4.2%</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+            <div style="{{statCardStyle}}">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="{{chipGreenStyle}}">{{arrowDownIcon}}</span><span style="font-size:12.5px;color:var(--subtext);font-weight:600;">قبض اليوم</span></div>
+              <div style="font-size:21px;font-weight:800;color:var(--green);margin-top:10px;">{{kabdFmt}}</div>
+              <div style="font-size:11px;color:var(--subtext);margin-top:2px;">د.ع &nbsp;·&nbsp; +12% عن أمس</div>
+            </div>
+            <div style="{{statCardStyle}}">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="{{chipRedStyle}}">{{arrowUpIconSmall}}</span><span style="font-size:12.5px;color:var(--subtext);font-weight:600;">صرف اليوم</span></div>
+              <div style="font-size:21px;font-weight:800;color:var(--red);margin-top:10px;">{{sarfFmt}}</div>
+              <div style="font-size:11px;color:var(--subtext);margin-top:2px;">د.ع &nbsp;·&nbsp; -4% عن أمس</div>
+            </div>
+            <div style="{{statCardStyle}}">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="{{chipGoldStyle}}">{{swapIcon}}</span><span style="font-size:12.5px;color:var(--subtext);font-weight:600;">الصافي</span></div>
+              <div style="font-size:21px;font-weight:800;color:var(--gold);margin-top:10px;">{{netFmt}}</div>
+              <div style="font-size:11px;color:var(--subtext);margin-top:2px;">د.ع &nbsp;·&nbsp; فرق موجب</div>
+            </div>
+          </div>
+
+          <div style="{{chartCardStyle}}">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="font-size:14.5px;font-weight:700;">اتجاه السيولة — آخر 7 أيام</div>
+              <div style="display:flex;gap:14px;">
+                <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--subtext);"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);"></span>قبض</span>
+                <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--subtext);"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);"></span>صرف</span>
+              </div>
+            </div>
+            <svg width="100%" height="220" viewBox="0 0 640 220" style="margin-top:14px;overflow:visible;">
+              <defs>
+                <linearGradient id="gKabd" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--green)" stop-opacity="0.35"></stop>
+                  <stop offset="100%" stop-color="var(--green)" stop-opacity="0"></stop>
+                </linearGradient>
+                <linearGradient id="gSarf" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--red)" stop-opacity="0.3"></stop>
+                  <stop offset="100%" stop-color="var(--red)" stop-opacity="0"></stop>
+                </linearGradient>
+              </defs>
+              <line x1="24" y1="40" x2="616" y2="40" stroke="var(--border)" stroke-width="1"></line>
+              <line x1="24" y1="100" x2="616" y2="100" stroke="var(--border)" stroke-width="1"></line>
+              <line x1="24" y1="160" x2="616" y2="160" stroke="var(--border)" stroke-width="1"></line>
+              <path d="{{chartAreaSarf}}" fill="url(#gSarf)"></path>
+              <path d="{{chartLineSarf}}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>
+              <path d="{{chartAreaKabd}}" fill="url(#gKabd)"></path>
+              <path d="{{chartLineKabd}}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>
+              <sc-for list="{{chartPoints}}" as="p" hint-placeholder-count="7">
+                <text x="{{p.x}}" y="208" text-anchor="middle" font-size="11" fill="var(--subtext)" font-family="Cairo, sans-serif">{{p.label}}</text>
+              </sc-for>
+            </svg>
+          </div>
+
+          <div style="{{sectionHeadStyle}}">
+            <div style="font-size:15px;font-weight:700;">الخزائن</div>
+            <button onClick="{{goTreasury}}" style="{{linkBtnStyle}}">عرض الكل</button>
+          </div>
+          <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;">
+            <sc-for list="{{treasuries}}" as="tr" hint-placeholder-count="4">
+              <div style="{{treasuryCardStyle}}">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{tr.dotColor}};flex-shrink:0;"></span>
+                  <span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{tr.name}}</span>
+                </div>
+                <div style="font-size:16px;font-weight:800;margin-top:10px;">{{tr.balanceFmt}} <span style="font-size:11px;color:var(--subtext);font-weight:600;">د.ع</span></div>
+                <div style="height:5px;border-radius:4px;background:var(--surface2);margin-top:10px;overflow:hidden;">
+                  <div style="height:100%;border-radius:4px;background:var(--gold);width:{{tr.pct}}%;"></div>
+                </div>
+                <div style="font-size:11px;color:var(--subtext);margin-top:8px;">{{tr.vouchers}} سند</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="{{sectionHeadStyle}}">
+            <div style="font-size:15px;font-weight:700;">إحصائيات سريعة</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <sc-for list="{{quickStats}}" as="q" hint-placeholder-count="3">
+              <div style="{{quickStatCardStyle}}">
+                <span style="{{chipNavyStyle}}">{{q.icon}}</span>
+                <div style="font-size:22px;font-weight:800;margin-top:10px;">{{q.count}}</div>
+                <div style="font-size:12px;color:var(--subtext);font-weight:600;margin-top:2px;">{{q.label}}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="{{sectionHeadStyle}}">
+            <div style="font-size:15px;font-weight:700;">إجراءات سريعة</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <sc-for list="{{quickActions}}" as="a" hint-placeholder-count="6">
+              <button onClick="{{a.onClick}}" style="{{a.tileStyle}}">
+                <span style="{{a.chipStyle}}">{{a.icon}}</span>
+                <span style="font-size:12.5px;font-weight:700;text-align:center;">{{a.label}}</span>
+              </button>
+            </sc-for>
+          </div>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isVouchers}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div style="{{tabsWrapStyle}}">
+              <button onClick="{{setTabSarf}}" style="{{tabSarfStyle}}">سند صرف</button>
+              <button onClick="{{setTabKabd}}" style="{{tabKabdStyle}}">سند قبض</button>
+            </div>
+            <div style="{{searchBarStyle}}">
+              {{searchIconSmall}}
+              <input value="{{voucherQuery}}" onChange="{{onQueryChange}}" placeholder="بحث بالاسم أو السبب أو المرجع" style="{{searchInputStyle}}" />
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <sc-for list="{{filteredVouchers}}" as="v" hint-placeholder-count="4">
+              <div style="{{voucherRowStyle}}">
+                <span style="{{v.chipStyle}}">{{v.icon}}</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{v.name}}</div>
+                  <div style="font-size:12px;color:var(--subtext);margin-top:2px;">{{v.reason}} &nbsp;·&nbsp; {{v.treasury}}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+                  <div style="font-size:14.5px;font-weight:800;color:{{v.amountColor}};">{{v.amountFmt}} د.ع</div>
+                  <div style="font-size:11px;color:var(--subtext);margin-top:2px;">{{v.date}}</div>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{noVouchers}}" hint-placeholder-val="{{false}}">
+              <div style="text-align:center;padding:40px 0;color:var(--subtext);font-size:13px;">لا توجد سندات مطابقة</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <button onClick="{{openAddSheet}}" style="{{fabStyle}}">{{plusIcon}}</button>
+      </sc-if>
+
+      <sc-if value="{{isTreasury}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <div style="{{heroCardStyle}}">
+            <div style="{{heroGlowStyle}}"></div>
+            <div style="position:relative;display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+              <div>
+                <div style="color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;">إجمالي أرصدة الخزائن</div>
+                <div style="font-size:30px;font-weight:800;color:#fff;margin-top:8px;">{{totalIqdFmt}} <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);">د.ع</span></div>
+              </div>
+              <div>
+                <div style="color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;">بالدولار</div>
+                <div style="font-size:22px;font-weight:800;color:var(--gold);margin-top:8px;">$ {{totalUsdFmt}}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
+            <sc-for list="{{treasuries}}" as="tr" hint-placeholder-count="4">
+              <div style="{{treasuryFullCardStyle}}">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:{{tr.dotColor}};"></span>
+                    <span style="font-size:14px;font-weight:700;">{{tr.name}}</span>
+                  </div>
+                  <span style="font-size:11px;color:var(--subtext);font-weight:600;">{{tr.kindLabel}}</span>
+                </div>
+                <div style="font-size:24px;font-weight:800;margin-top:16px;">{{tr.balanceFmt}} <span style="font-size:12px;color:var(--subtext);font-weight:600;">د.ع</span></div>
+                <sc-if value="{{tr.hasUsd}}" hint-placeholder-val="{{false}}">
+                  <div style="font-size:13px;color:var(--gold);font-weight:700;margin-top:2px;">$ {{tr.usdFmt}}</div>
+                </sc-if>
+                <div style="height:6px;border-radius:4px;background:var(--surface2);margin-top:16px;overflow:hidden;">
+                  <div style="height:100%;border-radius:4px;background:var(--gold);width:{{tr.pct}}%;"></div>
+                </div>
+                <div style="font-size:12px;color:var(--subtext);margin-top:10px;">{{tr.vouchers}} سند مسجّل</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isPlaceholder}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 20px;color:var(--subtext);">
+          <span style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;background:var(--surface2);margin-bottom:18px;">{{placeholderIcon}}</span>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">{{screenTitle}}</div>
+          <div style="font-size:13px;margin-top:6px;max-width:340px;">هذه الشاشة جزء من النظام الكامل ولم تُضمَّن في هذا النموذج التجريبي — التركيز هنا على لوحة التحكم والسندات والخزائن.</div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+
+  <sc-if value="{{isMobile}}" hint-placeholder-val="{{false}}">
+    <nav style="{{bottomNavStyle}}">
+      <sc-for list="{{mobileNavItems}}" as="item" hint-placeholder-count="5">
+        <button onClick="{{item.onClick}}" style="{{item.mobileStyle}}">
+          <span style="display:flex;">{{item.icon}}</span>
+          <span style="font-size:10.5px;font-weight:600;">{{item.label}}</span>
+        </button>
+      </sc-for>
+    </nav>
+  </sc-if>
+
+  <sc-if value="{{showAddSheet}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{closeAddSheet}}" style="{{overlayStyle}}">
+      <div onClick="{{stop}}" style="{{sheetStyle}}">
+        <div style="width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 18px;"></div>
+        <div style="font-size:15px;font-weight:700;text-align:center;margin-bottom:18px;">نوع السند الجديد</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button onClick="{{closeAddSheet}}" style="{{sheetTileStyle}}">
+            <span style="{{chipRedStyle}}">{{arrowUpIconSmall}}</span>
+            <div style="text-align:right;">
+              <div style="font-size:13.5px;font-weight:700;">سند صرف</div>
+              <div style="font-size:11.5px;color:var(--subtext);">صرف من الخزينة</div>
+            </div>
+          </button>
+          <button onClick="{{closeAddSheet}}" style="{{sheetTileStyle}}">
+            <span style="{{chipGreenStyle}}">{{arrowDownIcon}}</span>
+            <div style="text-align:right;">
+              <div style="font-size:13.5px;font-weight:700;">سند قبض</div>
+              <div style="font-size:11.5px;color:var(--subtext);">إيداع في الخزينة</div>
+            </div>
+          </button>
+          <button onClick="{{closeAddSheet}}" style="{{sheetTileStyle}}">
+            <span style="{{chipGoldStyle}}">{{swapIcon}}</span>
+            <div style="text-align:right;">
+              <div style="font-size:13.5px;font-weight:700;">تحويل بين خزينتين</div>
+              <div style="font-size:11.5px;color:var(--subtext);">نقل رصيد بين خزينتين</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { dark: false, screen: 'dashboard', isDesktop: true, showAddSheet: false, voucherTab: 'sarf', voucherQuery: '' };
+
+  treasuriesData = [
+    { id: 1, name: 'الخزينة الرئيسية', kind: 'main', balanceIqd: 48500000, balanceUsd: 3200, vouchers: 212 },
+    { id: 2, name: 'خزينة المقاولين', kind: 'contractor', balanceIqd: 12750000, balanceUsd: 0, vouchers: 64 },
+    { id: 3, name: 'خزينة الشركاء', kind: 'partner', balanceIqd: 9300000, balanceUsd: 1500, vouchers: 38 },
+    { id: 4, name: 'خزينة الفرع الثاني', kind: 'main', balanceIqd: 1150000, balanceUsd: 0, vouchers: 21 },
+  ];
+
+  chartRaw = [
+    { d: 'سبت', kabd: 4200000, sarf: 3100000 },
+    { d: 'أحد', kabd: 5100000, sarf: 2800000 },
+    { d: 'اثنين', kabd: 3900000, sarf: 4300000 },
+    { d: 'ثلاثاء', kabd: 6250000, sarf: 4180000 },
+    { d: 'أربعاء', kabd: 4800000, sarf: 3600000 },
+    { d: 'خميس', kabd: 7100000, sarf: 5200000 },
+    { d: 'جمعة', kabd: 2600000, sarf: 1900000 },
+  ];
+
+  vouchersRaw = [
+    { id: 1, type: 'sarf', name: 'أحمد الخالدي', reason: 'راتب شهر تموز', treasury: 'الخزينة الرئيسية', amount: 850000, date: '٠٥ أغسطس', ref: 'S-1042' },
+    { id: 2, type: 'kabd', name: 'شركة النور للمقاولات', reason: 'دفعة مقاولة', treasury: 'خزينة المقاولين', amount: 3200000, date: '٠٥ أغسطس', ref: 'K-887' },
+    { id: 3, type: 'sarf', name: 'مؤسسة الفرات للتوريد', reason: 'شراء مواد', treasury: 'الخزينة الرئيسية', amount: 1450000, date: '٠٤ أغسطس', ref: 'S-1041' },
+    { id: 4, type: 'kabd', name: 'محمد جبار', reason: 'تسديد سلفة', treasury: 'خزينة الشركاء', amount: 600000, date: '٠٤ أغسطس', ref: 'K-886' },
+    { id: 5, type: 'sarf', name: 'مصاريف نقل وصيانة', reason: 'صيانة مركبة', treasury: 'الخزينة الرئيسية', amount: 220000, date: '٠٣ أغسطس', ref: 'S-1040' },
+    { id: 6, type: 'kabd', name: 'شركة دجلة التجارية', reason: 'دفعة أولى عقد', treasury: 'خزينة الشركاء', amount: 4100000, date: '٠٣ أغسطس', ref: 'K-885' },
+    { id: 7, type: 'sarf', name: 'سلفة موظف', reason: 'سلفة طارئة', treasury: 'خزينة الفرع الثاني', amount: 300000, date: '٠٢ أغسطس', ref: 'S-1039' },
+    { id: 8, type: 'kabd', name: 'إيراد مبيعات نقدية', reason: 'مبيعات اليوم', treasury: 'الخزينة الرئيسية', amount: 1750000, date: '٠٢ أغسطس', ref: 'K-884' },
+  ];
+
+  navDefs = [
+    { id: 'dashboard', label: 'لوحة التحكم', icon: 'grid' },
+    { id: 'vouchers', label: 'السندات', icon: 'receipt' },
+    { id: 'treasury', label: 'الخزائن', icon: 'wallet' },
+    { id: 'employees', label: 'الموظفون', icon: 'users' },
+    { id: 'contractors', label: 'المقاولون', icon: 'tool' },
+    { id: 'partners', label: 'الشركاء', icon: 'handshake' },
+    { id: 'reports', label: 'التقارير', icon: 'chart' },
+    { id: 'fiscal', label: 'السنوات المالية', icon: 'calendar' },
+    { id: 'settings', label: 'الإعدادات', icon: 'settings' },
+  ];
+
+  componentDidMount() {
+    this._onResize = () => this.setState({ isDesktop: window.innerWidth >= 880 });
+    this._onResize();
+    window.addEventListener('resize', this._onResize);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); }
+
+  fmt(n) {
+    const neg = n < 0; n = Math.round(Math.abs(n));
+    const s = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + s;
+  }
+
+  icon(name, size, color, sw) {
+    size = size || 20; color = color || 'currentColor'; sw = sw || 1.8;
+    const P = (d, i) => React.createElement('path', { d, key: 'p' + i });
+    const C = (cx, cy, r, i) => React.createElement('circle', { cx, cy, r, key: 'c' + i });
+    const R = (x, y, w, h, rx, i) => React.createElement('rect', { x, y, width: w, height: h, rx: rx || 2, key: 'r' + i });
+    const L = (x1, y1, x2, y2, i) => React.createElement('line', { x1, y1, x2, y2, key: 'l' + i });
+    let k = [];
+    switch (name) {
+      case 'grid': k = [R(3, 3, 7, 7, 2, 1), R(14, 3, 7, 7, 2, 2), R(3, 14, 7, 7, 2, 3), R(14, 14, 7, 7, 2, 4)]; break;
+      case 'receipt': k = [R(6, 2, 12, 20, 2, 1), L(9, 7, 15, 7, 1), L(9, 11, 15, 11, 2), L(9, 15, 13, 15, 3)]; break;
+      case 'wallet': k = [R(2, 7, 20, 13, 3, 1), P('M2 10.5h20', 1), C(17, 14, 1.3, 1)]; break;
+      case 'users': k = [C(9, 8, 3, 1), P('M4 19c0-3 2.2-5 5-5s5 2 5 5', 1), C(17.5, 9, 2.2, 2), P('M15.7 19c0-2.2 1.2-3.8 2.8-4.3', 2)]; break;
+      case 'tool': k = [L(5, 19, 11.5, 12.5, 1), C(15.5, 8.5, 3, 1), P('M13.3 6.3l4.4 4.4', 1)]; break;
+      case 'handshake': k = [C(7, 9, 3, 1), C(17, 9, 3, 1), P('M4.2 19c1-3 3-4.5 5-4.5s3.3 1.1 3.3 2.9-1.3 2.9-3.3 2.9', 1), P('M19.8 19c-1-3-3-4.5-5-4.5', 2)]; break;
+      case 'chart': k = [L(4, 20, 4, 4, 1), L(4, 20, 20, 20, 2), R(6, 12, 3, 8, 1, 1), R(11, 8, 3, 12, 1, 2), R(16, 14, 3, 6, 1, 3)]; break;
+      case 'calendar': k = [R(3, 5, 18, 16, 3, 1), L(3, 10, 21, 10, 1), L(8, 2, 8, 6, 2), L(16, 2, 16, 6, 3)]; break;
+      case 'settings': k = [C(12, 12, 3.2, 1), P('M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-1.6-.9L14.5 3h-5l-.4 2.5a7 7 0 0 0-1.6.9l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .2 1.6l-2 1.5 2 3.4 2.3-.9c.5.4 1 .7 1.6.9L9.5 21h5l.4-2.5c.6-.2 1.1-.5 1.6-.9l2.3.9 2-3.4-2-1.5c.1-.5.2-1 .2-1.6z', 1)]; break;
+      case 'search': k = [C(11, 11, 7, 1), L(21, 21, 16, 16, 1)]; break;
+      case 'bell': k = [P('M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3z', 1), P('M10 20a2 2 0 0 0 4 0', 2)]; break;
+      case 'sun': k = [C(12, 12, 4, 1), L(12, 2, 12, 4.5, 1), L(12, 19.5, 12, 22, 2), L(2, 12, 4.5, 12, 3), L(19.5, 12, 22, 12, 4), L(4.9, 4.9, 6.6, 6.6, 5), L(17.4, 17.4, 19.1, 19.1, 6), L(4.9, 19.1, 6.6, 17.4, 7), L(17.4, 6.6, 19.1, 4.9, 8)]; break;
+      case 'moon': k = [P('M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z', 1)]; break;
+      case 'plus': k = [L(12, 5, 12, 19, 1), L(5, 12, 19, 12, 2)]; break;
+      case 'arrowUp': k = [L(6, 17, 17, 6, 1), L(9, 6, 17, 6, 2), L(17, 6, 17, 14, 3)]; break;
+      case 'arrowDown': k = [L(6, 6, 17, 17, 1), L(9, 17, 17, 17, 2), L(17, 17, 17, 9, 3)]; break;
+      case 'swap': k = [L(4, 8, 16, 8, 1), L(12.5, 4.5, 16, 8, 2), L(12.5, 11.5, 16, 8, 3), L(20, 16, 8, 16, 4), L(11.5, 12.5, 8, 16, 5), L(11.5, 19.5, 8, 16, 6)]; break;
+      case 'clock': k = [C(12, 12, 9, 1), L(12, 7, 12, 12, 1), L(12, 12, 16, 14, 2)]; break;
+      case 'briefcase': k = [R(3, 7, 18, 12, 2, 1), R(8, 4, 8, 4, 1, 2), L(3, 13, 21, 13, 1)]; break;
+      default: k = [C(12, 12, 9, 1)];
+    }
+    return React.createElement('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: sw, strokeLinecap: 'round', strokeLinejoin: 'round' }, k);
+  }
+
+  buildLine(data, key, w, h, pad, max) {
+    const n = data.length;
+    const step = (w - pad * 2) / (n - 1);
+    const pts = data.map((d, i) => [pad + i * step, h - pad - (d[key] / max) * (h - pad * 2)]);
+    const line = 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L');
+    const area = line + ` L${pts[n - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z`;
+    return { line, area, pts };
+  }
+
+  renderVals() {
+    const dark = this.state.dark;
+    const vars = dark ? {
+      '--bg': '#0B1220', '--surface': '#131B2C', '--surface2': '#1B2740', '--text': '#E7EAF2',
+      '--subtext': '#94A0B8', '--border': '#232F48', '--navy': '#0F172A', '--navy2': '#18233A',
+      '--gold': '#E0BC66', '--green': '#34D399', '--red': '#F87171', '--blue': '#60A5FA',
+      '--shadow': '0 10px 30px rgba(0,0,0,0.5)',
+    } : {
+      '--bg': '#F5F6FA', '--surface': '#FFFFFF', '--surface2': '#F0F1F5', '--text': '#0F172A',
+      '--subtext': '#64748B', '--border': '#E4E6EC', '--navy': '#0F172A', '--navy2': '#16213B',
+      '--gold': '#B8862E', '--green': '#16A34A', '--red': '#DC2626', '--blue': '#2563EB',
+      '--shadow': '0 10px 30px rgba(15,23,42,0.08)',
+    };
+
+    const rootStyle = Object.assign({}, vars, {
+      display: 'flex', minHeight: '100vh', width: '100%', background: 'var(--bg)', color: 'var(--text)',
+      fontFamily: "'Cairo', sans-serif", direction: 'rtl', boxSizing: 'border-box',
+    });
+
+    const sidebarStyle = {
+      width: '256px', flexShrink: 0, background: 'var(--navy2)', display: 'flex', flexDirection: 'column',
+      padding: '20px 14px', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', boxSizing: 'border-box',
+    };
+
+    const navBtnBase = {
+      display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', borderRadius: '10px',
+      border: 'none', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.72)',
+      textAlign: 'right', fontFamily: "'Cairo', sans-serif", transition: 'background 0.15s',
+    };
+
+    const navItems = this.navDefs.map(d => {
+      const active = this.state.screen === d.id;
+      return {
+        id: d.id, label: d.label,
+        icon: this.icon(d.icon, 18, active ? '#F5D98B' : 'currentColor', 1.7),
+        onClick: () => this.setState({ screen: d.id }),
+        style: Object.assign({}, navBtnBase, active ? {
+          background: 'rgba(224,188,102,0.14)', color: '#F5D98B',
+        } : {}),
+      };
+    });
+
+    const mobileIdx = ['dashboard', 'vouchers', 'treasury', 'employees', 'settings'];
+    const mobileNavItems = mobileIdx.map(id => {
+      const d = this.navDefs.find(n => n.id === id);
+      const active = this.state.screen === id;
+      return {
+        id, label: d.label,
+        icon: this.icon(d.icon, 20, active ? 'var(--gold)' : 'var(--subtext)', 1.7),
+        onClick: () => this.setState({ screen: id }),
+        mobileStyle: {
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+          padding: '8px 0', border: 'none', background: 'transparent', cursor: 'pointer',
+          color: active ? 'var(--gold)' : 'var(--subtext)', fontFamily: "'Cairo', sans-serif",
+        },
+      };
+    });
+
+    const sideUtilBtnStyle = Object.assign({}, navBtnBase, {});
+
+    const switchTrackStyle = {
+      width: '46px', height: '25px', borderRadius: '13px', border: 'none', cursor: 'pointer',
+      background: dark ? 'rgba(224,188,102,0.3)' : 'rgba(255,255,255,0.15)', position: 'relative', padding: 0,
+    };
+    const switchThumbStyle = {
+      position: 'absolute', top: '2.5px', right: dark ? '2.5px' : '23.5px', width: '20px', height: '20px',
+      borderRadius: '50%', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      transition: 'right 0.2s', color: '#0F172A',
+    };
+
+    const topbarStyle = {
+      height: '72px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '0 28px', background: 'var(--surface)', borderBottom: '1px solid var(--border)',
+    };
+    const iconBtnStyle = {
+      width: '38px', height: '38px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--subtext)',
+    };
+    const mainStyle = { flex: 1, overflowY: 'auto', padding: '24px 28px 100px', boxSizing: 'border-box' };
+
+    const cardBase = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px', boxShadow: 'var(--shadow)' };
+
+    const alertCardStyle = Object.assign({}, cardBase, { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px' });
+    const ghostBtnStyle = { border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontFamily: "'Cairo', sans-serif", fontWeight: 700, fontSize: '12px', padding: '7px 14px', borderRadius: '8px', cursor: 'pointer' };
+
+    const heroCardStyle = { position: 'relative', overflow: 'hidden', borderRadius: '20px', padding: '26px 28px', background: `linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%)`, boxShadow: 'var(--shadow)' };
+    const heroGlowStyle = { position: 'absolute', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(224,188,102,0.25), transparent 70%)', top: '-100px', left: '-60px' };
+    const trendPillStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(224,188,102,0.18)', color: 'var(--gold)', fontSize: '12.5px', fontWeight: 700, padding: '6px 10px', borderRadius: '20px' };
+
+    const statCardStyle = Object.assign({}, cardBase, { padding: '16px' });
+    const chip = (bg, color) => ({ width: '30px', height: '30px', borderRadius: '9px', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center' });
+
+    const chartCardStyle = Object.assign({}, cardBase, { padding: '20px' });
+    const sectionHeadStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' };
+    const linkBtnStyle = { border: 'none', background: 'transparent', color: 'var(--gold)', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', fontFamily: "'Cairo', sans-serif" };
+
+    const kindMeta = { main: { dot: 'var(--gold)', label: 'رئيسية' }, contractor: { dot: 'var(--blue)', label: 'مقاولين' }, partner: { dot: 'var(--navy)', label: 'شركاء' } };
+    const maxBal = Math.max(...this.treasuriesData.map(t => t.balanceIqd));
+    const treasuries = this.treasuriesData.map(t => ({
+      id: t.id, name: t.name, vouchers: t.vouchers, kindLabel: kindMeta[t.kind].label,
+      dotColor: kindMeta[t.kind].dot, balanceFmt: this.fmt(t.balanceIqd), hasUsd: t.balanceUsd > 0,
+      usdFmt: this.fmt(t.balanceUsd), pct: Math.max(6, Math.round((t.balanceIqd / maxBal) * 100)),
+    }));
+
+    const treasuryCardStyle = Object.assign({}, cardBase, { padding: '14px', minWidth: '168px', flexShrink: 0 });
+    const treasuryFullCardStyle = Object.assign({}, cardBase, { padding: '20px' });
+
+    const quickStats = [
+      { icon: this.icon('users', 20, 'var(--navy)', 1.6), count: 14, label: 'الموظفون' },
+      { icon: this.icon('tool', 20, 'var(--navy)', 1.6), count: 9, label: 'المقاولون' },
+      { icon: this.icon('handshake', 20, 'var(--navy)', 1.6), count: 5, label: 'الشركاء' },
+    ].map(q => dark ? Object.assign({}, q, { icon: this.icon(q === q ? '' : '', 0) }) : q);
+    // recompute icons with theme-appropriate color
+    const navyOrGold = dark ? 'var(--gold)' : 'var(--navy)';
+    const quickStatsFinal = [
+      { icon: this.icon('users', 20, navyOrGold, 1.6), count: 14, label: 'الموظفون' },
+      { icon: this.icon('tool', 20, navyOrGold, 1.6), count: 9, label: 'المقاولون' },
+      { icon: this.icon('handshake', 20, navyOrGold, 1.6), count: 5, label: 'الشركاء' },
+    ];
+    const quickStatCardStyle = Object.assign({}, cardBase, { padding: '18px 14px', display: 'flex', flexDirection: 'column' });
+    const chipNavyStyle = chip('var(--surface2)', navyOrGold);
+
+    const tileBase = Object.assign({}, cardBase, {
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px',
+      padding: '18px 8px', cursor: 'pointer', fontFamily: "'Cairo', sans-serif", color: 'var(--text)',
+    });
+    const quickActions = [
+      { label: 'سند صرف', icon: this.icon('arrowUp', 22, 'var(--red)', 1.8), chipBg: 'rgba(220,38,38,0.10)', chipColor: 'var(--red)', onClick: () => this.setState({ screen: 'vouchers', voucherTab: 'sarf' }) },
+      { label: 'سند قبض', icon: this.icon('arrowDown', 22, 'var(--green)', 1.8), chipBg: 'rgba(22,163,74,0.10)', chipColor: 'var(--green)', onClick: () => this.setState({ screen: 'vouchers', voucherTab: 'kabd' }) },
+      { label: 'تحويل', icon: this.icon('swap', 22, 'var(--blue)', 1.8), chipBg: 'rgba(37,99,235,0.10)', chipColor: 'var(--blue)', onClick: () => this.setState({ screen: 'vouchers' }) },
+      { label: 'التقارير', icon: this.icon('chart', 22, navyOrGold, 1.8), chipBg: 'var(--surface2)', chipColor: navyOrGold, onClick: () => this.setState({ screen: 'reports' }) },
+      { label: 'استيراد إكسل', icon: this.icon('briefcase', 22, navyOrGold, 1.8), chipBg: 'var(--surface2)', chipColor: navyOrGold, onClick: () => this.setState({ screen: 'reports' }) },
+      { label: 'النسخ الاحتياطي', icon: this.icon('clock', 22, navyOrGold, 1.8), chipBg: 'var(--surface2)', chipColor: navyOrGold, onClick: () => this.setState({ screen: 'settings' }) },
+    ].map(a => ({
+      label: a.label, icon: a.icon, onClick: a.onClick, tileStyle: tileBase,
+      chipStyle: { width: '44px', height: '44px', borderRadius: '12px', background: a.chipBg, color: a.chipColor, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    }));
+
+    // ── vouchers screen ──
+    const tabsWrapStyle = { display: 'flex', gap: '4px', background: 'var(--surface2)', padding: '4px', borderRadius: '10px' };
+    const tabBtn = (active) => ({ padding: '9px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: "'Cairo', sans-serif", fontWeight: 700, fontSize: '13px', background: active ? 'var(--surface)' : 'transparent', color: active ? 'var(--text)' : 'var(--subtext)', boxShadow: active ? '0 2px 6px rgba(0,0,0,0.06)' : 'none' });
+    const searchBarStyle = { display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '9px 14px', minWidth: '260px', color: 'var(--subtext)' };
+    const searchInputStyle = { border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Cairo', sans-serif", fontSize: '13px', color: 'var(--text)', flex: 1 };
+
+    const filteredVouchers = this.vouchersRaw
+      .filter(v => v.type === this.state.voucherTab)
+      .filter(v => !this.state.voucherQuery || (v.name + v.reason + v.ref).includes(this.state.voucherQuery))
+      .map(v => ({
+        id: v.id, name: v.name, reason: v.reason, treasury: v.treasury, date: v.date,
+        icon: this.icon(v.type === 'sarf' ? 'arrowUp' : 'arrowDown', 17, v.type === 'sarf' ? 'var(--red)' : 'var(--green)', 1.8),
+        chipStyle: chip(v.type === 'sarf' ? 'rgba(220,38,38,0.10)' : 'rgba(22,163,74,0.10)', v.type === 'sarf' ? 'var(--red)' : 'var(--green)'),
+        amountFmt: this.fmt(v.amount), amountColor: v.type === 'sarf' ? 'var(--red)' : 'var(--green)',
+      }));
+
+    const voucherRowStyle = Object.assign({}, cardBase, { display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px' });
+
+    const fabStyle = {
+      position: 'fixed', bottom: '32px', left: '32px', width: '54px', height: '54px', borderRadius: '50%',
+      background: 'var(--gold)', color: '#1A1204', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: 'pointer', boxShadow: '0 10px 24px rgba(184,134,46,0.4)', zIndex: 20,
+    };
+
+    // ── modal ──
+    const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(8,12,22,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50 };
+    const sheetStyle = { width: '100%', maxWidth: '460px', background: 'var(--surface)', borderRadius: '22px 22px 0 0', padding: '20px 20px 28px', boxShadow: '0 -10px 30px rgba(0,0,0,0.2)' };
+    const sheetTileStyle = { display: 'flex', alignItems: 'center', gap: '14px', border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: '14px', padding: '14px', cursor: 'pointer', width: '100%', fontFamily: "'Cairo', sans-serif" };
+
+    // ── bottom nav ──
+    const bottomNavStyle = { position: 'fixed', bottom: 0, left: 0, right: 0, display: 'flex', background: 'var(--surface)', borderTop: '1px solid var(--border)', zIndex: 30 };
+
+    // ── chart ──
+    const maxVal = Math.max(...this.chartRaw.map(d => Math.max(d.kabd, d.sarf))) * 1.15;
+    const kLine = this.buildLine(this.chartRaw, 'kabd', 640, 220, 24, maxVal);
+    const sLine = this.buildLine(this.chartRaw, 'sarf', 640, 220, 24, maxVal);
+    const chartPoints = this.chartRaw.map((d, i) => ({ x: kLine.pts[i][0], label: d.d }));
+
+    const total = this.treasuriesData.reduce((s, t) => ({ iqd: s.iqd + t.balanceIqd, usd: s.usd + t.balanceUsd }), { iqd: 0, usd: 0 });
+    const kabd = 6250000, sarf = 4180000;
+
+    const screenTitles = {
+      dashboard: 'لوحة التحكم', vouchers: 'السندات', treasury: 'الخزائن', employees: 'الموظفون',
+      contractors: 'المقاولون', partners: 'الشركاء', reports: 'التقارير', fiscal: 'السنوات المالية', settings: 'الإعدادات',
+    };
+    const placeholderIcons = { employees: 'users', contractors: 'tool', partners: 'handshake', reports: 'chart', fiscal: 'calendar', settings: 'settings' };
+
+    return {
+      rootStyle, sidebarStyle, navItems, mobileNavItems, sideUtilBtnStyle, switchTrackStyle, switchThumbStyle,
+      isDesktop: this.state.isDesktop, isMobile: !this.state.isDesktop,
+      topbarStyle, iconBtnStyle, mainStyle,
+      screenTitle: screenTitles[this.state.screen] || '', todayLabel: 'الأربعاء، 6 أغسطس 2026',
+      isDashboard: this.state.screen === 'dashboard', isVouchers: this.state.screen === 'vouchers',
+      isTreasury: this.state.screen === 'treasury', isPlaceholder: !['dashboard', 'vouchers', 'treasury'].includes(this.state.screen),
+      placeholderIcon: this.icon(placeholderIcons[this.state.screen] || 'grid', 30, 'var(--subtext)', 1.6),
+
+      alertCardStyle, ghostBtnStyle, bellIconSmall: this.icon('bell', 18, 'var(--gold)', 1.7),
+      heroCardStyle, heroGlowStyle, trendPillStyle, walletIconWhite: this.icon('wallet', 16, 'rgba(255,255,255,0.8)', 1.7),
+      arrowUpIcon: this.icon('arrowUp', 12, 'var(--gold)', 2.2),
+      totalIqdFmt: this.fmt(total.iqd), totalUsdFmt: this.fmt(total.usd),
+
+      statCardStyle, chipGreenStyle: chip('rgba(22,163,74,0.10)', 'var(--green)'), chipRedStyle: chip('rgba(220,38,38,0.10)', 'var(--red)'), chipGoldStyle: chip('rgba(184,134,46,0.12)', 'var(--gold)'),
+      arrowDownIcon: this.icon('arrowDown', 14, 'var(--green)', 2), arrowUpIconSmall: this.icon('arrowUp', 14, 'var(--red)', 2), swapIcon: this.icon('swap', 14, 'var(--gold)', 1.8),
+      kabdFmt: this.fmt(kabd), sarfFmt: this.fmt(sarf), netFmt: this.fmt(kabd - sarf),
+
+      chartCardStyle, chartLineKabd: kLine.line, chartAreaKabd: kLine.area, chartLineSarf: sLine.line, chartAreaSarf: sLine.area, chartPoints,
+
+      sectionHeadStyle, linkBtnStyle, goTreasury: () => this.setState({ screen: 'treasury' }), goAudit: () => {},
+      treasuries, treasuryCardStyle, treasuryFullCardStyle,
+
+      quickStats: quickStatsFinal, quickStatCardStyle, chipNavyStyle,
+      quickActions, noop: () => {},
+
+      tabsWrapStyle, tabSarfStyle: tabBtn(this.state.voucherTab === 'sarf'), tabKabdStyle: tabBtn(this.state.voucherTab === 'kabd'),
+      setTabSarf: () => this.setState({ voucherTab: 'sarf' }), setTabKabd: () => this.setState({ voucherTab: 'kabd' }),
+      searchBarStyle, searchInputStyle, searchIconSmall: this.icon('search', 16, 'var(--subtext)', 1.8),
+      voucherQuery: this.state.voucherQuery, onQueryChange: (e) => this.setState({ voucherQuery: e.target.value }),
+      filteredVouchers, noVouchers: filteredVouchers.length === 0, voucherRowStyle,
+      openAddSheet: () => this.setState({ showAddSheet: true }), closeAddSheet: () => this.setState({ showAddSheet: false }), stop: (e) => e.stopPropagation(),
+      fabStyle, plusIcon: this.icon('plus', 24, '#1A1204', 2.4),
+
+      showAddSheet: this.state.showAddSheet, overlayStyle, sheetStyle, sheetTileStyle,
+
+      bottomNavStyle,
+      searchIcon: this.icon('search', 18, 'var(--subtext)', 1.8), bellIcon: this.icon('bell', 18, 'var(--subtext)', 1.8),
+      toggleDark: () => this.setState({ dark: !this.state.dark }),
+      themeIcon: this.icon(dark ? 'moon' : 'sun', 13, '#1A1204', 2),
+      clockIcon: this.icon('clock', 18, 'currentColor', 1.7),
+    };
+  }
+}
+</script>
+</body>
+</html>
