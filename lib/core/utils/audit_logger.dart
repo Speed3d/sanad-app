@@ -201,6 +201,74 @@ class AuditLogger {
         ));
   }
 
+  /// تسجيل محاولة دخول فاشلة (كلمة مرور خاطئة)
+  ///
+  /// [userId]    — معرّف المستخدم المستهدَف (إن وُجد)
+  /// [username]  — اسم المستخدم المُدخَل
+  /// [attempts]  — رقم المحاولة الحالية
+  Future<void> logLoginFailed({
+    int? userId,
+    required String username,
+    required int attempts,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.users,
+          action: AuditActions.login,
+          recordId: userId,
+          meta: _toMeta({'event': 'login_failed', 'attempts': attempts}),
+        ));
+  }
+
+  /// تسجيل قفل حساب بعد تجاوز حد المحاولات الفاشلة
+  ///
+  /// [userId]      — معرّف المستخدم المقفول
+  /// [username]    — اسم المستخدم
+  /// [lockedUntil] — وقت انتهاء القفل
+  Future<void> logAccountLocked({
+    int? userId,
+    required String username,
+    required DateTime lockedUntil,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.users,
+          action: AuditActions.login,
+          recordId: userId,
+          meta: _toMeta({
+            'event': 'account_locked',
+            'locked_until': lockedUntil.toIso8601String(),
+          }),
+        ));
+  }
+
+  /// تسجيل حذف/أرشفة سجلات التدقيق نفسها (عملية حساسة يجب أن تُوثَّق)
+  ///
+  /// [userId]       — معرّف المستخدم المنفِّذ
+  /// [username]     — اسم المستخدم
+  /// [deletedCount] — عدد السجلات المحذوفة
+  /// [cutoffDate]   — التاريخ الذي حُذف ما قبله
+  Future<void> logAuditPurge({
+    required int userId,
+    required String username,
+    required int deletedCount,
+    required DateTime cutoffDate,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.system,
+          action: AuditActions.delete,
+          meta: _toMeta({
+            'event': 'audit_purge',
+            'deleted_count': deletedCount,
+            'cutoff_date': cutoffDate.toIso8601String(),
+          }),
+        ));
+  }
+
   // ── أحداث السندات ─────────────────────────────────────────────────────────
 
   /// تسجيل إنشاء سند جديد

@@ -25,6 +25,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
 import 'auth_provider.dart';
@@ -89,6 +90,12 @@ class FiscalNotifier extends _$FiscalNotifier {
   int? get _currentUserId {
     final authState = ref.read(authNotifierProvider);
     return authState is AuthAuthenticated ? authState.user.id : null;
+  }
+
+  /// اسم المستخدم الحالي — 'system' إذا لم يكن مسجَّلاً
+  String get _currentUsername {
+    final authState = ref.read(authNotifierProvider);
+    return authState is AuthAuthenticated ? authState.user.username : 'system';
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -168,6 +175,14 @@ class FiscalNotifier extends _$FiscalNotifier {
     state = const AsyncLoading();
     try {
       await _db.fiscalPeriodsDao.closePeriod(periodId, userId, notes: notes);
+      // توثيق إقفال الفترة في سجل التدقيق (عملية مالية حساسة)
+      final period = await _db.fiscalPeriodsDao.getPeriodById(periodId);
+      await ref.read(auditLoggerProvider).logFiscalClose(
+            userId: userId,
+            username: _currentUsername,
+            fiscalPeriodId: periodId,
+            periodName: period?.name ?? '#$periodId',
+          );
       state = const AsyncData('تم إقفال الفترة المالية بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -214,6 +229,15 @@ class FiscalNotifier extends _$FiscalNotifier {
       }
 
       final affectedCount = subsequentFrozen.length;
+
+      // توثيق إعادة الفتح في سجل التدقيق (عملية مالية حساسة جداً)
+      await ref.read(auditLoggerProvider).logFiscalReopen(
+            userId: _currentUserId ?? 0,
+            username: _currentUsername,
+            fiscalPeriodId: periodId,
+            periodName: reopenedPeriod.name,
+          );
+
       final msg = affectedCount > 0
           ? 'تم إعادة فتح الفترة — $affectedCount فترة تحتاج إعادة احتساب ✓'
           : 'تم إعادة فتح الفترة المالية بنجاح ✓';

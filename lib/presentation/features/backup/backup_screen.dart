@@ -28,9 +28,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../../core/services/backup_crypto_service.dart';
 import '../../../core/services/cloud_backup_service.dart';
+import '../../../core/utils/audit_logger.dart';
 
 // ── دوال التشفير داخل Isolate ────────────────────────────────────────────────
 //
@@ -130,6 +132,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       final savePath = '${dir.path}/$fileName';
       await io.File(savePath).writeAsBytes(encrypted, flush: true);
 
+      // توثيق إنشاء النسخة في سجل التدقيق
+      final actor = ref.read(authNotifierProvider.notifier).currentUser;
+      if (actor != null) {
+        await ref.read(auditLoggerProvider).logBackupCreated(
+              userId: actor.id,
+              username: actor.username,
+              filePath: savePath,
+            );
+      }
+
       // 4. المزمنة السحابية التلقائية إلى Google Drive
       final cloudService = ref.read(cloudBackupServiceProvider);
       final synced = await cloudService.uploadBackupToCloud(savePath);
@@ -188,6 +200,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
       // إعادة تحميل المزود
       ref.invalidate(appDatabaseProvider);
+
+      // توثيق الاستعادة في سجل التدقيق — يُكتَب في قاعدة البيانات المُستعادة
+      // (auditLoggerProvider يُعاد بناؤه على النسخة الجديدة بعد invalidate)
+      final actor = ref.read(authNotifierProvider.notifier).currentUser;
+      if (actor != null) {
+        await ref.read(auditLoggerProvider).logBackupRestored(
+              userId: actor.id,
+              username: actor.username,
+              filePath: result.files.first.name,
+            );
+      }
 
       _setStatus(
         '✅ تمت استعادة النسخة الاحتياطية بنجاح.\n'

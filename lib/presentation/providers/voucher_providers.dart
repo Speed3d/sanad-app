@@ -18,6 +18,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/voucher_model.dart';
@@ -227,6 +228,11 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
     return s is AuthAuthenticated ? s.user.id : null;
   }
 
+  String get _username {
+    final s = ref.read(authNotifierProvider);
+    return s is AuthAuthenticated ? s.user.username : 'system';
+  }
+
   // ── إنشاء سند صرف جديد ─────────────────────────────────────────────────
 
   /// إنشاء سند صرف جديد مع الكشف التلقائي للفترة المالية
@@ -261,7 +267,7 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
         );
         return false;
       }
-      await _repo.createVoucher(
+      final voucherId = await _repo.createVoucher(
         fiscalPeriodId: period.id,
         voucherType: 'sarf',
         treasuryId: treasuryId,
@@ -276,6 +282,16 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
         exchangeRate: exchangeRate,
         createdByUserId: _userId,
       );
+      // توثيق إنشاء السند في سجل التدقيق
+      await ref.read(auditLoggerProvider).logVoucherCreated(
+            userId: _userId ?? 0,
+            username: _username,
+            voucherId: voucherId,
+            voucherType: 'sarf',
+            amount: amount,
+            currency: currency,
+            treasuryId: treasuryId,
+          );
       state = const AsyncData('تم إنشاء سند الصرف بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -337,7 +353,18 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
   Future<bool> deleteSarf(int id) async {
     state = const AsyncLoading();
     try {
+      // قراءة السند قبل حذفه لتوثيق مبلغه في سجل التدقيق
+      final voucher = await _db.vouchersDao.getVoucherById(id);
       await _repo.deleteVoucher(id, deletedByUserId: _userId);
+      if (voucher != null) {
+        await ref.read(auditLoggerProvider).logVoucherDeleted(
+              userId: _userId ?? 0,
+              username: _username,
+              voucherId: id,
+              amount: voucher.amount,
+              currency: voucher.currency,
+            );
+      }
       state = const AsyncData('تم حذف السند ✓');
       return true;
     } catch (e, st) {
@@ -374,6 +401,11 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
     return s is AuthAuthenticated ? s.user.id : null;
   }
 
+  String get _username {
+    final s = ref.read(authNotifierProvider);
+    return s is AuthAuthenticated ? s.user.username : 'system';
+  }
+
   // ── إنشاء سند قبض جديد ─────────────────────────────────────────────────
 
   /// إنشاء سند قبض جديد مع الكشف التلقائي للفترة المالية
@@ -406,7 +438,7 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
         );
         return false;
       }
-      await _repo.createVoucher(
+      final voucherId = await _repo.createVoucher(
         fiscalPeriodId: period.id,
         voucherType: 'kabd',
         treasuryId: treasuryId,
@@ -420,6 +452,16 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
         exchangeRate: exchangeRate,
         createdByUserId: _userId,
       );
+      // توثيق إنشاء السند في سجل التدقيق
+      await ref.read(auditLoggerProvider).logVoucherCreated(
+            userId: _userId ?? 0,
+            username: _username,
+            voucherId: voucherId,
+            voucherType: 'kabd',
+            amount: amount,
+            currency: currency,
+            treasuryId: treasuryId,
+          );
       state = const AsyncData('تم إنشاء سند القبض بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -479,7 +521,18 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
   Future<bool> deleteKabd(int id) async {
     state = const AsyncLoading();
     try {
+      // قراءة السند قبل حذفه لتوثيق مبلغه في سجل التدقيق
+      final voucher = await _db.vouchersDao.getVoucherById(id);
       await _repo.deleteVoucher(id, deletedByUserId: _userId);
+      if (voucher != null) {
+        await ref.read(auditLoggerProvider).logVoucherDeleted(
+              userId: _userId ?? 0,
+              username: _username,
+              voucherId: id,
+              amount: voucher.amount,
+              currency: voucher.currency,
+            );
+      }
       state = const AsyncData('تم حذف السند ✓');
       return true;
     } catch (e, st) {
@@ -544,6 +597,11 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
     return s is AuthAuthenticated ? s.user.id : null;
   }
 
+  String get _username {
+    final s = ref.read(authNotifierProvider);
+    return s is AuthAuthenticated ? s.user.username : 'system';
+  }
+
   Future<bool> createTransfer({
     required int fromTreasuryId,
     required int toTreasuryId,
@@ -579,7 +637,7 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
         return false;
       }
 
-      await _repo.createTransfer(
+      final ids = await _repo.createTransfer(
         fromTreasuryId: fromTreasuryId,
         toTreasuryId: toTreasuryId,
         amount: amount,
@@ -590,6 +648,17 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
         exchangeRate: exchangeRate,
         createdByUserId: _userId,
       );
+
+      // توثيق التحويل في سجل التدقيق (يشمل معرّفي طرفَي التحويل)
+      await ref.read(auditLoggerProvider).logVoucherCreated(
+            userId: _userId ?? 0,
+            username: _username,
+            voucherId: ids.outId,
+            voucherType: 'transfer',
+            amount: amount,
+            currency: currency,
+            treasuryId: fromTreasuryId,
+          );
 
       state = const AsyncData('تم التحويل بين الخزائن بنجاح ✓');
       return true;

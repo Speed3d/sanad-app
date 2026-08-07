@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/audit_logger.dart';
 import '../../../../domain/models/auth_state.dart';
 import '../../../../domain/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
@@ -527,12 +528,24 @@ class _AddUserDialogState extends ConsumerState<_AddUserDialog> {
       final service = ref.read(authServiceProvider);
       final hash = await service.hashPassword(_passwordCtrl.text);
 
-      await userRepo.createUser(
+      final newUserId = await userRepo.createUser(
         username: _usernameCtrl.text.trim(),
         passwordHash: hash,
         fullName: _fullNameCtrl.text.trim(),
         role: _selectedRole,
       );
+
+      // توثيق إنشاء المستخدم في سجل التدقيق (من أنشأ ومن أُنشئ وبأي دور)
+      final admin = ref.read(authNotifierProvider.notifier).currentUser;
+      if (admin != null) {
+        await ref.read(auditLoggerProvider).logUserCreated(
+              adminId: admin.id,
+              adminUsername: admin.username,
+              newUserId: newUserId,
+              newUsername: _usernameCtrl.text.trim(),
+              role: _selectedRole,
+            );
+      }
 
       if (mounted) {
         Navigator.pop(context);
