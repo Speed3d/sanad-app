@@ -121,6 +121,23 @@ class VoucherRepository implements IVoucherRepository {
     return _db.vouchersDao.getDailySummary(date);
   }
 
+  /// حارس الفترة المالية — يرمي استثناءً إذا كانت الفترة غير نشطة
+  ///
+  /// ⚠️ لماذا؟ (إصلاح تدقيق 2026-08-06)
+  ///   الفترة المُقفَلة (frozen) تمثّل بيانات محاسبية مُجمَّدة. الكتابة أو
+  ///   التعديل أو الحذف فيها يغيّر أرصدة تاريخية بعد إغلاقها. الإنشاء كان
+  ///   محمياً ضمناً (getFiscalPeriodForDate تُعيد النشطة فقط)، لكن التعديل
+  ///   والحذف لم يكونا محميَّين إطلاقاً. هذا الحارس يسدّ الثغرة في كل المسارات.
+  Future<void> _ensurePeriodActive(int fiscalPeriodId) async {
+    final period = await _db.fiscalPeriodsDao.getPeriodById(fiscalPeriodId);
+    if (period != null && period.status != 'active') {
+      throw StateError(
+        'الفترة المالية "${period.name}" مُقفَلة — لا يمكن تعديل أو إضافة '
+        'سندات فيها. أعد فتح الفترة أولاً إذا لزم الأمر.',
+      );
+    }
+  }
+
   @override
   Future<int> createVoucher({
     required int fiscalPeriodId,
@@ -139,6 +156,9 @@ class VoucherRepository implements IVoucherRepository {
     double exchangeRate = 1.0,
     int? createdByUserId,
   }) async {
+    // 0. التأكد أن الفترة نشطة (دفاع في العمق حتى لو مرّر المستدعي فترة مقفلة)
+    await _ensurePeriodActive(fiscalPeriodId);
+
     // 1. الحصول على رقم السند التالي (ذري)
     final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
       fiscalPeriodId: fiscalPeriodId,
@@ -181,6 +201,9 @@ class VoucherRepository implements IVoucherRepository {
     int? createdByUserId,
     double exchangeRate = 1.0,
   }) async {
+    // التأكد أن الفترة نشطة قبل أي كتابة
+    await _ensurePeriodActive(fiscalPeriodId);
+
     // الحصول على رقمَي السند التاليَين
     final outNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
       fiscalPeriodId: fiscalPeriodId,
@@ -231,6 +254,8 @@ class VoucherRepository implements IVoucherRepository {
 
   @override
   Future<void> updateVoucher(VoucherModel voucher) async {
+    // منع تعديل سند داخل فترة مُقفَلة (يغيّر أرصدة تاريخية)
+    await _ensurePeriodActive(voucher.fiscalPeriodId);
     await _db.vouchersDao.updateVoucher(
       VouchersCompanion(
         id: Value(voucher.id),
@@ -254,8 +279,13 @@ class VoucherRepository implements IVoucherRepository {
   }
 
   @override
-  Future<void> deleteVoucher(int id, {int? deletedByUserId}) {
-    return _db.vouchersDao.softDeleteVoucher(
+  Future<void> deleteVoucher(int id, {int? deletedByUserId}) async {
+    // منع حذف سند داخل فترة مُقفَلة
+    final voucher = await _db.vouchersDao.getVoucherById(id);
+    if (voucher != null) {
+      await _ensurePeriodActive(voucher.fiscalPeriodId);
+    }
+    await _db.vouchersDao.softDeleteVoucher(
       id,
       deletedByUser: deletedByUserId,
     );
