@@ -74,11 +74,25 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
         .watch();
   }
 
-  /// سندات حسب نوعها (sarf / kabd) — Reactive Stream
+  /// سندات حسب نوعها — Reactive Stream
+  ///
+  /// قواعد التصنيف:
+  ///   'sarf'     → الصرف + التحويلات الصادرة (transfer_out)
+  ///   'kabd'     → القبض + التحويلات الواردة (transfer_in)
+  ///   'transfer' → كل التحويلات (وارد + صادر) — لتبويب التحويلات المخصّص
+  ///   غير ذلك    → النوع كما هو
   Stream<List<Voucher>> watchVouchersByType(String voucherType) {
-    final types = [voucherType];
-    if (voucherType == 'sarf') types.add('transfer_out');
-    if (voucherType == 'kabd') types.add('transfer_in');
+    final List<String> types;
+    if (voucherType == 'sarf') {
+      types = ['sarf', 'transfer_out'];
+    } else if (voucherType == 'kabd') {
+      types = ['kabd', 'transfer_in'];
+    } else if (voucherType == 'transfer') {
+      // التبويب المخصّص للتحويلات — كان يُعيد قائمة فارغة دائماً (تدقيق 2026-08-06)
+      types = ['transfer_in', 'transfer_out'];
+    } else {
+      types = [voucherType];
+    }
 
     return (select(vouchers)
           ..where(

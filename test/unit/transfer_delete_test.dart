@@ -76,6 +76,17 @@ void main() {
     expect(out.transferGroupId, equals(inV!.transferGroupId));
   });
 
+  test('watchVouchersByType("transfer") يُعيد طرفَي التحويل', () async {
+    await makeTransfer(50000.0, DateTime(2026, 4, 1));
+
+    final transfers =
+        await db.vouchersDao.watchVouchersByType('transfer').first;
+    // يجب أن يظهر الطرفان (وارد + صادر) — كان يُعيد قائمة فارغة سابقاً
+    expect(transfers.length, equals(2));
+    final types = transfers.map((v) => v.voucherType).toSet();
+    expect(types, containsAll(['transfer_in', 'transfer_out']));
+  });
+
   test('حذف طرف تحويل يحذف الطرف التوأم عبر المجموعة', () async {
     final ids = await makeTransfer(100000.0, DateTime(2026, 5, 1));
 

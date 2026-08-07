@@ -378,9 +378,7 @@ class _VoucherTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final sarfAsync = ref.watch(vouchersByTypeProvider('sarf'));
-    final kabdAsync = ref.watch(vouchersByTypeProvider('kabd'));
-
+    // تبويب بنوع محدد — نراقب مزوّداً واحداً فقط (لا اشتراكات زائدة)
     if (typeFilter != null) {
       final streamAsync = ref.watch(vouchersByTypeProvider(typeFilter!));
       return streamAsync.when(
@@ -389,6 +387,10 @@ class _VoucherTab extends ConsumerWidget {
         error: (e, _) => Center(child: Text('خطأ: $e')),
       );
     }
+
+    // تبويب "الكل" — دمج الصرف (+صادر) والقبض (+وارد) = كل الأنواع الحركية
+    final sarfAsync = ref.watch(vouchersByTypeProvider('sarf'));
+    final kabdAsync = ref.watch(vouchersByTypeProvider('kabd'));
 
     if (sarfAsync.isLoading || kabdAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());
