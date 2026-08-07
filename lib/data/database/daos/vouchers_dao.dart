@@ -174,26 +174,10 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
-  /// بحث متقدم عن سندات السلف والمشاريع (لتقارير السلف)
-  Future<List<Voucher>> searchAdvanceVouchers({
-    String? advanceNumber,
-    String? projectName,
-    String? invoiceNumber,
-  }) {
-    return (select(vouchers)..where((v) {
-      Expression<bool> condition = v.isDeleted.equals(false) & v.advanceNumber.isNotNull();
-      if (advanceNumber != null && advanceNumber.trim().isNotEmpty) {
-        condition = condition & v.advanceNumber.equals(advanceNumber.trim());
-      }
-      if (projectName != null && projectName.trim().isNotEmpty) {
-        condition = condition & v.projectName.like('%${projectName.trim()}%');
-      }
-      if (invoiceNumber != null && invoiceNumber.trim().isNotEmpty) {
-        condition = condition & v.invoiceNumber.like('%${invoiceNumber.trim()}%');
-      }
-      return condition;
-    })..orderBy([(v) => OrderingTerm.desc(v.voucherDate)])).get();
-  }
+  // ملاحظة (2026-08-07): حُذف `searchAdvanceVouchers` من هنا. كان يبحث عن
+  // سندات السلف بمطابقة نصية على `advance_number` ويشترط أن يكون غير فارغ،
+  // فيستبعد سندات التحويل ولا يستطيع حساب «المُرسَل». حلّ محلّه استعلامات
+  // AdvancesDao التي تعمل على كيان السلفة بمفتاح خارجي.
 
   // ── كشف الحساب ────────────────────────────────────────────────────────────
 
@@ -412,20 +396,8 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
-  /// حذف ناعم (Soft Delete) لكافة السندات المرتبطة برقم سلفة محدد
-  ///
-  /// يُستخدم للتراجع السريع عن سلفة تم استيرادها بالخطأ، 
-  /// مما يُعيد المبالغ تلقائياً لرصيد الخزينة دون فقدان الأثر الرقابي.
-  Future<void> softDeleteAdvance(String advanceNumber, {int? deletedByUser}) async {
-    await db.transaction(() async {
-      await (update(vouchers)..where((v) => v.advanceNumber.equals(advanceNumber))).write(
-        VouchersCompanion(
-          isDeleted: const Value(true),
-          deletedAt: Value(DateTime.now()),
-          updatedByUserId: Value(deletedByUser),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
-    });
-  }
+  // ملاحظة (2026-08-07): حُذف `softDeleteAdvance(String advanceNumber)` من
+  // هنا. كان يحذف **كل** سند يحمل رقم السلفة نصياً — بما فيها سند التحويل
+  // الذي موّل المشروع، فيُبخّر التمويل ويُظهر الخزينة صفراً. حلّ محلّه
+  // `AdvancesDao.cancelAdvance` الذي يعكس سندات الصرف وحدها.
 }

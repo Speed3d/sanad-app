@@ -24,6 +24,7 @@ import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/voucher_model.dart';
 import '../../domain/repositories/i_voucher_repository.dart';
+import 'advance_providers.dart';
 import 'auth_provider.dart';
 import 'database_provider.dart';
 import 'repository_providers.dart';
@@ -154,47 +155,6 @@ Future<List<VoucherModel>> searchVouchers(Ref ref, String query) {
   return repo.searchVouchers(query.trim());
 }
 
-/// تقرير السلف (يبحث في السندات التي تحتوي على رقم سلفة)
-@riverpod
-Future<List<VoucherModel>> advanceReports(
-  Ref ref, {
-  String? advanceNumber,
-  String? projectName,
-  String? invoiceNumber,
-}) async {
-  final db = ref.watch(appDatabaseProvider);
-  final rows = await db.vouchersDao.searchAdvanceVouchers(
-    advanceNumber: advanceNumber,
-    projectName: projectName,
-    invoiceNumber: invoiceNumber,
-  );
-  return rows
-      .map((v) => VoucherModel(
-            id: v.id,
-            voucherNumber: v.voucherNumber,
-            voucherType: v.voucherType,
-            treasuryId: v.treasuryId,
-            fiscalPeriodId: v.fiscalPeriodId,
-            amount: v.amount,
-            currency: v.currency,
-            exchangeRate: v.exchangeRate,
-            voucherDate: v.voucherDate,
-            personName: v.personName,
-            reason: v.reason,
-            itemType: v.itemType,
-            referenceNumber: v.referenceNumber,
-            closeSafe: v.closeSafe,
-            linkedTreasuryId: v.linkedTreasuryId,
-            linkedEntityId: v.linkedEntityId,
-            projectName: v.projectName,
-            invoiceNumber: v.invoiceNumber,
-            spentBy: v.spentBy,
-            advanceNumber: v.advanceNumber,
-            isDeleted: v.isDeleted,
-            deletedAt: v.deletedAt,
-          ))
-      .toList();
-}
 
 // ── الفترات المالية المساعدة ────────────────────────────────────────────────
 
@@ -599,40 +559,11 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
   void reset() => state = const AsyncData(null);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AdvanceDeleteNotifier — إلغاء وتراجع عن السلف
-// ═══════════════════════════════════════════════════════════════════════════
-
-@riverpod
-class AdvanceDeleteNotifier extends _$AdvanceDeleteNotifier {
-  @override
-  AsyncValue<String?> build() => const AsyncData(null);
-
-  Future<bool> deleteAdvance(String advanceNumber) async {
-    state = const AsyncLoading();
-    try {
-      final db = ref.read(appDatabaseProvider);
-      final s = ref.read(authNotifierProvider);
-      final userId = s is AuthAuthenticated ? s.user.id : null;
-
-      await db.vouchersDao.softDeleteAdvance(
-        advanceNumber,
-        deletedByUser: userId,
-      );
-
-      // تنشيط Providers المتعلقة بالتقارير لتحديث الواجهة تلقائياً
-      ref.invalidate(advanceReportsProvider);
-      ref.invalidate(accountStatementProvider);
-      ref.invalidate(vouchersByTypeProvider);
-
-      state = const AsyncData('تم إلغاء السلفة واسترداد المبالغ بنجاح ✓');
-      return true;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      return false;
-    }
-  }
-}
+// ملاحظة (2026-08-07): حُذف من هنا `AdvanceDeleteNotifier` القديم الذي كان
+// يحذف السندات بمطابقة نصية على `advance_number`. حلّ محلّه
+// `AdvanceNotifier.cancelAdvance` في advance_providers.dart، وهو يعمل على
+// كيان السلفة بمفتاح خارجي، ويحفظ سندات التحويل (فالمال انتقل فعلاً)، ويكتب
+// في سجل التدقيق. الطريقة القديمة كانت تحذف التمويل مع المصاريف.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VoucherTransferNotifier — إدارة عمليات التحويل بين الخزائن
@@ -664,6 +595,8 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
     required DateTime voucherDate,
     String reason = '',
     double exchangeRate = 1.0,
+    /// السلفة التي يموّلها هذا التحويل — null = تحويل عادي غير مرتبط بسلفة
+    int? advanceId,
   }) async {
     if (fromTreasuryId == toTreasuryId) {
       state = const AsyncError(
@@ -715,6 +648,19 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
         createdByUserId: _userId,
       );
 
+      // ربط طرفَي التحويل بالسلفة (إن حُدِّدت) — بهذا يُحتسَب «المُرسَل» في
+      // تقرير السلفة. نربط الطرفين معاً لا الوارد وحده، ليبقى أثر التمويل
+      // ظاهراً على الخزينتين، وحساب المُرسَل يفلتر على خزينة المشروع.
+      if (advanceId != null) {
+        await ref.read(advanceRepositoryProvider).linkTransferVouchers(
+              advanceId: advanceId,
+              voucherIds: [ids.outId, ids.inId],
+            );
+        ref.invalidate(advanceSummaryProvider(advanceId));
+        ref.invalidate(advanceByIdProvider(advanceId));
+        ref.invalidate(advancesByStatusProvider);
+      }
+
       // توثيق التحويل في سجل التدقيق (يشمل معرّفي طرفَي التحويل)
       await ref.read(auditLoggerProvider).logVoucherCreated(
             userId: _userId ?? 0,
@@ -726,7 +672,11 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
             treasuryId: fromTreasuryId,
           );
 
-      state = const AsyncData('تم التحويل بين الخزائن بنجاح ✓');
+      state = AsyncData(
+        advanceId != null
+            ? 'تم التحويل وربطه بالسلفة ✓'
+            : 'تم التحويل بين الخزائن بنجاح ✓',
+      );
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);

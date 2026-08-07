@@ -27,10 +27,12 @@ import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/treasury_repository.dart';
 import '../../data/repositories/voucher_repository.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../data/repositories/advance_repository.dart';
 import '../../domain/repositories/i_user_repository.dart';
 import '../../domain/repositories/i_treasury_repository.dart';
 import '../../domain/repositories/i_voucher_repository.dart';
 import '../../domain/repositories/i_settings_repository.dart';
+import '../../domain/repositories/i_advance_repository.dart';
 import 'database_provider.dart';
 
 part 'repository_providers.g.dart';
@@ -71,4 +73,16 @@ IVoucherRepository voucherRepository(Ref ref) {
 ISettingsRepository settingsRepository(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
   return SettingsRepository(db);
+}
+
+// ── مستودع سلف المشاريع ──────────────────────────────────────────────────────
+
+/// Provider مستودع سلف المشاريع
+///
+/// ⚠️ سلف المشاريع (Advances) ≠ سلف الموظفين (CashAdvances) التي يديرها
+/// EmployeesDao — راجع advances_table.dart
+@Riverpod(keepAlive: true)
+IAdvanceRepository advanceRepository(Ref ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return AdvanceRepository(db);
 }

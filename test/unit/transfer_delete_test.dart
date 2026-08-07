@@ -21,7 +21,9 @@ void main() {
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    expect(db.schemaVersion, equals(4));
+    // كان هنا expect(schemaVersion, 4) — أُزيل لأنه كان يُفشل أربعة اختبارات
+    // عن حذف التحويلات لمجرد ترقية الـ schema. الرقم الحالي مُثبَّت في
+    // schema_v5_test.dart وحده.
     periodId = await db.fiscalPeriodsDao.insertPeriod(
       FiscalPeriodsCompanion.insert(
         name: '2026',

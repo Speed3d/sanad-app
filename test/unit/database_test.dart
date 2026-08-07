@@ -29,7 +29,10 @@ void main() {
 
   group('اختبارات قاعدة البيانات (Drift DB Tests)', () {
     test('يجب إنشاء قاعدة البيانات بالأدوار والمخطط الصحيح', () async {
-      expect(db.schemaVersion, equals(4));
+      // لا نثبّت الرقم الحالي هنا — تثبيته يجعل كل ترقية schema تُفشل
+      // اختبارات لا علاقة لها بالترقية. الرقم الحالي مُثبَّت في ملف واحد فقط:
+      // اختبار أحدث إصدار (schema_v5_test.dart).
+      expect(db.schemaVersion, greaterThanOrEqualTo(1));
     });
 
     test('إدراج واستعلام خزينة جديدة', () async {

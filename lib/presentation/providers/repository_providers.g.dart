@@ -86,5 +86,27 @@ final settingsRepositoryProvider = Provider<ISettingsRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SettingsRepositoryRef = ProviderRef<ISettingsRepository>;
+String _$advanceRepositoryHash() => r'7f453a79c5e68c02d62cfec1d9907dab37ff4998';
+
+/// Provider مستودع سلف المشاريع
+///
+/// ⚠️ سلف المشاريع (Advances) ≠ سلف الموظفين (CashAdvances) التي يديرها
+/// EmployeesDao — راجع advances_table.dart
+///
+/// Copied from [advanceRepository].
+@ProviderFor(advanceRepository)
+final advanceRepositoryProvider = Provider<IAdvanceRepository>.internal(
+  advanceRepository,
+  name: r'advanceRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$advanceRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AdvanceRepositoryRef = ProviderRef<IAdvanceRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

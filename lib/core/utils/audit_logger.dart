@@ -77,6 +77,9 @@ abstract final class AuditTables {
   /// جدول الإعدادات
   static const String appSettings = 'app_settings';
 
+  /// جدول سلف المشاريع (≠ cash_advances سلف الموظفين)
+  static const String advances = 'advances';
+
   /// حدث على مستوى النظام (لا يرتبط بجدول محدد)
   static const String system = 'system';
 }
@@ -119,6 +122,12 @@ abstract final class AuditActions {
 
   /// تحويل بين الخزائن
   static const String transfer = 'TRANSFER';
+
+  /// اعتماد سلفة مشروع (تحويل المسودة إلى سندات صرف)
+  static const String advancePost = 'ADVANCE_POST';
+
+  /// إلغاء سلفة مشروع (حذف ناعم لسندات صرفها)
+  static const String advanceCancel = 'ADVANCE_CANCEL';
 
   // ── عمليات النسخ الاحتياطي ───────────────────────────────────────────────
 
@@ -361,6 +370,78 @@ class AuditLogger {
             'treasury_name': treasuryName,
             'total_amount': totalAmount,
             if (fileName != null) 'file_name': fileName,
+          }),
+        ));
+  }
+
+  // ── أحداث سلف المشاريع ────────────────────────────────────────────────────
+
+  /// تسجيل اعتماد سلفة مشروع
+  ///
+  /// أهم حدث في نظام السلف: اللحظة التي تتحوّل فيها المسودة إلى سندات وتتأثر
+  /// الخزينة. يُسجَّل معه **مقدار العجز واسم من غطّاه** لأنه دَين على الشركة
+  /// يجب أن يبقى له أثر مستقل عن جدول السلف نفسه.
+  ///
+  /// [advanceId]       — معرّف السلفة
+  /// [advanceNumber]   — رقمها المعروض
+  /// [vouchersCreated] — عدد سندات الصرف المُنشأة
+  /// [totalAmount]     — إجمالي المبلغ المُرحَّل
+  /// [deficit]         — مقدار العجز (0 = لا عجز)
+  /// [deficitCoveredBy]— من غطّى العجز من ماله
+  Future<void> logAdvancePosted({
+    required int userId,
+    required String username,
+    required int advanceId,
+    required String advanceNumber,
+    required int vouchersCreated,
+    required double totalAmount,
+    required int treasuryId,
+    String treasuryName = '',
+    double deficit = 0,
+    String? deficitCoveredBy,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.advances,
+          action: AuditActions.advancePost,
+          recordId: advanceId,
+          meta: _toMeta({
+            'advance_number': advanceNumber,
+            'vouchers_created': vouchersCreated,
+            'total_amount': totalAmount,
+            'treasury_id': treasuryId,
+            if (treasuryName.isNotEmpty) 'treasury_name': treasuryName,
+            'deficit': deficit,
+            if (deficit > 0 && deficitCoveredBy != null)
+              'deficit_covered_by': deficitCoveredBy,
+          }),
+        ));
+  }
+
+  /// تسجيل إلغاء سلفة مشروع
+  ///
+  /// [vouchersReversed] — عدد سندات الصرف التي حُذفت حذفاً ناعماً
+  Future<void> logAdvanceCancelled({
+    required int userId,
+    required String username,
+    required int advanceId,
+    required String advanceNumber,
+    required String previousStatus,
+    int vouchersReversed = 0,
+    double reversedAmount = 0,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.advances,
+          action: AuditActions.advanceCancel,
+          recordId: advanceId,
+          meta: _toMeta({
+            'advance_number': advanceNumber,
+            'previous_status': previousStatus,
+            'vouchers_reversed': vouchersReversed,
+            'reversed_amount': reversedAmount,
           }),
         ));
   }

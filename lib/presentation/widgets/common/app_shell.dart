@@ -62,6 +62,14 @@ final List<_NavItem> _navItems = [
     selectedIcon: Icons.account_balance_wallet_rounded,
     route: AppRoutes.treasury,
   ),
+  // سلف المشاريع — بعد الخزائن مباشرة لأنها أقرب شيء لها في العمل اليومي
+  const _NavItem(
+    id: 'advances',
+    label: 'السلف',
+    icon: Icons.folder_shared_outlined,
+    selectedIcon: Icons.folder_shared_rounded,
+    route: AppRoutes.advances,
+  ),
   const _NavItem(
     id: 'employees',
     label: 'الموظفون',

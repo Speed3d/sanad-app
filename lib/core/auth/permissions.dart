@@ -32,6 +32,22 @@ enum AppPermission {
   /// إدارة الكيانات (موظفون، مقاولون، شركاء) — إضافة/تعديل
   manageEntities,
 
+  /// استيراد جماعي من Excel (مصاريف سلفة)
+  ///
+  /// 📌 نزلت من `admin` إلى `user` بقرار المالك (2026-08-07)، بعد إعادة كتابة
+  ///    شاشة الاستيراد فعلياً:
+  ///      قبل — تُدرج سندات صرف مباشرة في الدفاتر متجاوزةً `BalanceGuard`.
+  ///      بعد — تُنتج **مسودة** لا تمسّ رصيد أي خزينة، والأثر المالي كله انتقل
+  ///            إلى [postAdvance] المحمية بـ admin.
+  ///    النتيجة المقصودة: المحاسب يجهّز المسودة ويصحّح تصنيف المصروفات،
+  ///    والمدير وحده يعتمد.
+  importExcel,
+
+  /// تجهيز مسودة سلفة وتحريرها (تعديل البنود، الاستبعاد)
+  ///
+  /// بمستوى user لأنها بلا أثر مالي إطلاقاً — أسطر المسودة ليست سندات.
+  prepareAdvance,
+
   // ── عمليات إدارية (admin و super_admin) ────────────────────────────────
   /// حذف سند (حذف ناعم)
   deleteVoucher,
@@ -41,9 +57,6 @@ enum AppPermission {
 
   /// تغيير سعر الصرف (يؤثر رجعياً على تقييمات الدولار)
   manageExchangeRate,
-
-  /// استيراد جماعي من Excel
-  importExcel,
 
   /// إنشاء نسخة احتياطية (تصدير)
   createBackup,
@@ -62,6 +75,18 @@ enum AppPermission {
 
   /// إلغاء سلفة كاملة (حذف جماعي + عكس أرصدة)
   cancelAdvance,
+
+  /// اعتماد سلفة مشروع — تحويل أسطر المسودة إلى سندات صرف حقيقية
+  ///
+  /// هذه هي اللحظة الوحيدة التي تتأثر فيها الخزينة في نظام السلف، فهي
+  /// الحاجز الحقيقي لا الاستيراد.
+  postAdvance,
+
+  /// اعتماد سلفة يتجاوز مصروفها رصيد الخزينة (يجعل الرصيد سالباً)
+  ///
+  /// مفصولة عن postAdvance عمداً: قد يُقرَّر مستقبلاً رفعها إلى super_admin
+  /// وحده دون المساس بالاعتماد العادي.
+  postAdvanceWithDeficit,
 
   // ── عمليات كارثية (super_admin فقط) ────────────────────────────────────
   /// استعادة قاعدة البيانات كاملة من ملف (تمسح كل شيء)
@@ -89,22 +114,25 @@ enum _Level { user, admin, superAdmin }
 /// الدور المطلوب لكل عملية
 _Level _requiredLevel(AppPermission p) {
   switch (p) {
-    // أي مستخدم مصادَق
+    // أي مستخدم مصادَق — عمليات بلا أثر مالي مباشر
     case AppPermission.createVoucher:
     case AppPermission.manageEntities:
+    case AppPermission.importExcel:
+    case AppPermission.prepareAdvance:
       return _Level.user;
 
     // admin فأعلى
     case AppPermission.deleteVoucher:
     case AppPermission.manageTreasuries:
     case AppPermission.manageExchangeRate:
-    case AppPermission.importExcel:
     case AppPermission.createBackup:
     case AppPermission.viewAudit:
     case AppPermission.closeFiscalPeriod:
     case AppPermission.manageUsers:
     case AppPermission.managePayroll:
     case AppPermission.cancelAdvance:
+    case AppPermission.postAdvance:
+    case AppPermission.postAdvanceWithDeficit:
       return _Level.admin;
 
     // super_admin فقط — العمليات الكارثية

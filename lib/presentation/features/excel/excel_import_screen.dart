@@ -1,62 +1,66 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// excel_import_screen.dart — معالج استيراد Excel
+// excel_import_screen.dart — معالج استيراد مصاريف السلفة من Excel
 //
-// معالج مكون من 3 خطوات:
-//   1. اختيار الملف  — file_picker يختار .xlsx ويقرأ الـ bytes
-//   2. معاينة + تعيين الأعمدة — Stepper ثانٍ مع dropdown لكل حقل
-//   3. تأكيد + استيراد — progress indicator مع ملخص النتائج
+// 🔄 أُعيدت كتابة هذه الشاشة (2026-08-07) — التغيير جوهري لا تجميلي:
+//   قبل: تقرأ الملف و**تُدرج سندات صرف مباشرة** في الدفاتر، متجاوزةً
+//        VoucherRepository وBalanceGuard، بلا مراجعة ولا كشف تكرار.
+//   بعد: تُنتج **مسودة سلفة** لا تمسّ رصيد أي خزينة. المراجعة والتصحيح
+//        والاعتماد في شاشة مراجعة المسودة.
 //
-// الحقول المدعومة للاستيراد:
-//   نوع السند | التاريخ | المبلغ | العملة | اسم الشخص | السبب | نوع البند
+// الخطوات الأربع:
+//   1. اختيار الملف — قراءة .xlsx وحساب بصمته لكشف الاستيراد المكرر
+//   2. الوجهة — خزينة المشروع + سلفة موجودة أو جديدة
+//   3. تعيين الأعمدة + معاينة
+//   4. تجهيز المسودة ثم الانتقال لمراجعتها
 //
-// ملاحظة:
-//   يستخدم FilePicker.platform.pickFiles(withData: true) للتوافق مع Web.
-//   يستخدم حزمة excel لتحليل ملفات .xlsx.
+// بالدينار حصراً (قرار المالك): لا حقل عملة، وأي سطر بالدولار يُرفض برسالة
+// واضحة بدل تسجيله صامتاً كدينار — وهو خطأ بمقدار سعر الصرف كله.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'package:drift/drift.dart' show Value;
-import 'package:excel/excel.dart';
+// حزمة excel تُصدِّر Border و TextSpan التي تتعارض مع نظيرتيهما في Flutter —
+// نخفيهما لأننا نستعمل نسخ Flutter منهما في الواجهة
+import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:pointycastle/digests/sha256.dart';
 
-import '../../../core/utils/audit_logger.dart';
-import '../../../data/database/app_database.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/database_provider.dart';
+import '../../../core/constants/app_routes.dart';
+import '../../../domain/models/advance_model.dart';
+import '../../../domain/repositories/i_advance_repository.dart';
+import '../../providers/advance_providers.dart';
+import '../../providers/repository_providers.dart';
 import '../../providers/treasury_providers.dart';
-import '../../providers/voucher_providers.dart';
+import 'excel_row_parser.dart';
 
 // ── ثوابت أسماء الحقول ──────────────────────────────────────────────────────
 
-const _kVoucherType = 'نوع السند';
 const _kDate = 'التاريخ';
 const _kAmount = 'المبلغ';
-const _kCurrency = 'العملة';
+const _kItemType = 'نوع البند (الفلتر)';
 const _kPersonName = 'اسم الشخص';
 const _kReason = 'السبب';
-const _kItemType = 'نوع البند';
 const _kProjectName = 'اسم المشروع';
 const _kInvoiceNumber = 'رقم الفاتورة';
 const _kSpentBy = 'صرف من قبل';
 
-const _kRequiredFields = [_kVoucherType, _kDate, _kAmount];
+const _kRequiredFields = [_kDate, _kAmount];
 
 const _kAllFields = [
-  _kVoucherType,
   _kDate,
   _kAmount,
-  _kCurrency,
+  _kItemType,
   _kPersonName,
   _kReason,
-  _kItemType,
   _kProjectName,
   _kInvoiceNumber,
   _kSpentBy,
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
-// ExcelImportScreen — الشاشة الرئيسية
+// الشاشة الرئيسية
 // ════════════════════════════════════════════════════════════════════════════
 
 class ExcelImportScreen extends ConsumerStatefulWidget {
@@ -71,25 +75,27 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
 
   // ── الخطوة 1 — الملف ────────────────────────────────────────────────────
   String? _fileName;
-  List<List<String>> _rawRows = []; // الصفوف كنصوص (بعد التحويل)
+  String _fileHash = '';
+  List<List<String>> _rawRows = [];
   bool _hasHeaderRow = true;
   bool _pickingFile = false;
+  AdvanceModel? _duplicateOf;
 
-  // ── الخطوة 2 — تعيين الأعمدة ────────────────────────────────────────────
-  // Map<fieldName, columnIndex | null>
-  late Map<String, int?> _columnMap;
+  // ── الخطوة 2 — الوجهة ───────────────────────────────────────────────────
   int? _selectedTreasuryId;
-  String _advanceNumber = '';
-  // صفحة المعاينة
+  int? _selectedAdvanceId;
+  bool _creatingNewAdvance = true;
+  final _newAdvanceNumberCtrl = TextEditingController();
+  DateTime _advanceDate = DateTime.now();
+
+  // ── الخطوة 3 — تعيين الأعمدة ────────────────────────────────────────────
+  late Map<String, int?> _columnMap;
   int _previewPage = 0;
   static const _previewPageSize = 10;
 
-  // ── الخطوة 3 — الاستيراد ─────────────────────────────────────────────────
-  bool _importing = false;
-  int _importedCount = 0;
-  int _failedCount = 0;
+  // ── الخطوة 4 — التجهيز ──────────────────────────────────────────────────
+  bool _working = false;
   List<String> _errors = [];
-  bool _done = false;
 
   @override
   void initState() {
@@ -97,7 +103,13 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     _columnMap = {for (final f in _kAllFields) f: null};
   }
 
-  // ── المعاينة من الصفوف المُحوَّلة ───────────────────────────────────────
+  @override
+  void dispose() {
+    _newAdvanceNumberCtrl.dispose();
+    super.dispose();
+  }
+
+  // ── المعاينة ────────────────────────────────────────────────────────────
 
   List<List<String>> get _dataRows =>
       _hasHeaderRow && _rawRows.isNotEmpty ? _rawRows.sublist(1) : _rawRows;
@@ -129,6 +141,15 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
         return;
       }
 
+      // بصمة المحتوى — لا اسم الملف، فإعادة التسمية لا تُخفي التكرار.
+      // نستخدم SHA256 من pointycastle الموجودة أصلاً للنسخ المشفّرة.
+      final digest = SHA256Digest().process(bytes);
+      final hash =
+          digest.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
+      final duplicate =
+          await ref.read(advanceRepositoryProvider).findByFileHash(hash);
+
       final excel = Excel.decodeBytes(bytes);
       final sheetName = excel.tables.keys.first;
       final sheet = excel.tables[sheetName];
@@ -137,7 +158,6 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
         return;
       }
 
-      // تحويل جميع الخلايا إلى نصوص (مع ضمان النوع String)
       final rows = sheet.rows.map((row) {
         return row.map<String>((cell) {
           final v = cell?.value;
@@ -146,56 +166,28 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
           if (v is IntCellValue) return v.value.toString();
           if (v is DoubleCellValue) return v.value.toString();
           if (v is DateCellValue) {
-            return '${v.year}/${v.month.toString().padLeft(2, '0')}/${v.day.toString().padLeft(2, '0')}';
+            return '${v.year}/${v.month.toString().padLeft(2, '0')}/'
+                '${v.day.toString().padLeft(2, '0')}';
           }
           if (v is BoolCellValue) return v.value.toString();
           return v.toString();
         }).toList();
       }).toList();
 
-      // تحديد العرض الأقصى (جعل كل صف بنفس الطول)
       final maxLen = rows.fold<int>(0, (m, r) => r.length > m ? r.length : m);
-      final normalizedRows = rows.map((r) {
+      final normalized = rows.map((r) {
         final padded = List<String>.from(r);
         padded.addAll(List.filled(maxLen - r.length, ''));
         return padded;
       }).toList();
 
-      // الكشف التلقائي للأعمدة من الرأس
-      final autoMap = <String, int?>{for (final f in _kAllFields) f: null};
-      if (normalizedRows.isNotEmpty) {
-        final firstRow = normalizedRows[0];
-        for (int i = 0; i < firstRow.length; i++) {
-          final cell = firstRow[i].trim().toLowerCase();
-          if (cell.contains('نوع') && cell.contains('سند')) {
-            autoMap[_kVoucherType] = i;
-          } else if (cell.contains('تاريخ') || cell == 'date') {
-            autoMap[_kDate] = i;
-          } else if (cell.contains('مبلغ') || cell == 'amount') {
-            autoMap[_kAmount] = i;
-          } else if (cell.contains('عملة') || cell == 'currency') {
-            autoMap[_kCurrency] = i;
-          } else if (cell.contains('اسم') || cell.contains('person')) {
-            autoMap[_kPersonName] = i;
-          } else if (cell.contains('سبب') || cell.contains('reason')) {
-            autoMap[_kReason] = i;
-          } else if (cell.contains('بند') || cell.contains('item')) {
-            autoMap[_kItemType] = i;
-          } else if (cell.contains('مشروع') || cell.contains('مكان')) {
-            autoMap[_kProjectName] = i;
-          } else if (cell.contains('فاتورة') || cell.contains('وصل')) {
-            autoMap[_kInvoiceNumber] = i;
-          } else if (cell.contains('صرف من قبل') || cell.contains('قائم بالصرف')) {
-            autoMap[_kSpentBy] = i;
-          }
-        }
-      }
-
       setState(() {
         _fileName = file.name;
-        _rawRows = normalizedRows;
+        _fileHash = hash;
+        _duplicateOf = duplicate;
+        _rawRows = normalized;
         _hasHeaderRow = true;
-        _columnMap = autoMap;
+        _columnMap = _autoDetectColumns(normalized);
         _previewPage = 0;
         _step = 1;
       });
@@ -204,6 +196,36 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     } finally {
       if (mounted) setState(() => _pickingFile = false);
     }
+  }
+
+  /// الكشف التلقائي لتعيين الأعمدة من صف الرأس
+  Map<String, int?> _autoDetectColumns(List<List<String>> rows) {
+    final map = <String, int?>{for (final f in _kAllFields) f: null};
+    if (rows.isEmpty) return map;
+
+    for (int i = 0; i < rows[0].length; i++) {
+      final cell = rows[0][i].trim().toLowerCase();
+      if (cell.contains('تاريخ') || cell == 'date') {
+        map[_kDate] = i;
+      } else if (cell.contains('مبلغ') || cell == 'amount') {
+        map[_kAmount] = i;
+      } else if (cell.contains('بند') ||
+          cell.contains('فلتر') ||
+          cell.contains('item')) {
+        map[_kItemType] = i;
+      } else if (cell.contains('مشروع') || cell.contains('مكان')) {
+        map[_kProjectName] = i;
+      } else if (cell.contains('فاتورة') || cell.contains('وصل')) {
+        map[_kInvoiceNumber] = i;
+      } else if (cell.contains('صرف من قبل') || cell.contains('قائم بالصرف')) {
+        map[_kSpentBy] = i;
+      } else if (cell.contains('سبب') || cell.contains('reason')) {
+        map[_kReason] = i;
+      } else if (cell.contains('اسم') || cell.contains('person')) {
+        map[_kPersonName] = i;
+      }
+    }
+    return map;
   }
 
   void _showError(String msg) {
@@ -217,184 +239,110 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     );
   }
 
-  // ── التحقق من اكتمال التعيين ─────────────────────────────────────────────
+  // ── التحقق ──────────────────────────────────────────────────────────────
 
-  bool get _mappingComplete {
-    for (final field in _kRequiredFields) {
-      if (_columnMap[field] == null) return false;
+  bool get _destinationReady {
+    if (_selectedTreasuryId == null) return false;
+    if (_creatingNewAdvance) {
+      return _newAdvanceNumberCtrl.text.trim().isNotEmpty;
     }
-    return _selectedTreasuryId != null;
+    return _selectedAdvanceId != null;
   }
 
-  // ── الاستيراد ────────────────────────────────────────────────────────────
+  bool get _mappingComplete =>
+      _kRequiredFields.every((f) => _columnMap[f] != null);
 
-  Future<void> _startImport() async {
-    setState(() {
-      _importing = true;
-      _importedCount = 0;
-      _failedCount = 0;
-      _errors = [];
-      _done = false;
-    });
-
-    final db = ref.read(appDatabaseProvider);
-    final treasuryId = _selectedTreasuryId!;
-    final data = _dataRows;
-    final List<VouchersCompanion> batchList = [];
-
-    // المستخدم الحالي — لإسناد السندات المستوردة إليه (كانت بلا إسناد)
-    final currentUser = ref.read(authNotifierProvider.notifier).currentUser;
-    final currentUserId = currentUser?.id;
-
-    for (int i = 0; i < data.length; i++) {
-      final row = data[i];
-      try {
-        // قراءة القيم المطلوبة
-        final typeRaw = _getCell(row, _kVoucherType).toLowerCase().trim();
-        final dateRaw = _getCell(row, _kDate).trim();
-        final amountRaw = _getCell(row, _kAmount).trim();
-        final currency = _getCell(row, _kCurrency).trim().toUpperCase();
-        final personName = _getCell(row, _kPersonName).trim();
-        final reason = _getCell(row, _kReason).trim();
-        final itemType = _getCell(row, _kItemType).trim();
-        final projectName = _getCell(row, _kProjectName).trim();
-        final invoiceNumber = _getCell(row, _kInvoiceNumber).trim();
-        final spentBy = _getCell(row, _kSpentBy).trim();
-
-        // تحويل النوع
-        final String voucherType;
-        if (typeRaw.contains('صرف') || typeRaw == 'sarf') {
-          voucherType = 'sarf';
-        } else if (typeRaw.contains('قبض') || typeRaw == 'kabd') {
-          voucherType = 'kabd';
-        } else {
-          throw Exception('نوع السند غير معروف: "$typeRaw"');
-        }
-
-        // تحويل التاريخ
-        final date = _parseDate(dateRaw);
-        if (date == null) {
-          throw Exception('تاريخ غير صحيح: "$dateRaw"');
-        }
-
-        // تحويل المبلغ
-        final amount = double.tryParse(
-          amountRaw.replaceAll(',', '').replaceAll(' ', ''),
-        );
-        if (amount == null || amount <= 0) {
-          throw Exception('مبلغ غير صحيح: "$amountRaw"');
-        }
-
-        // الفترة المالية
-        final period =
-            await db.fiscalPeriodsDao.getFiscalPeriodForDate(date);
-        if (period == null) {
-          throw Exception('لا توجد فترة مالية للتاريخ: $dateRaw');
-        }
-
-        // رقم السند التالي
-        final voucherNumber = await db.fiscalPeriodsDao.getNextVoucherNumber(
-          fiscalPeriodId: period.id,
-          voucherType: voucherType,
-        );
-
-        // إضافة السند إلى القائمة المجمعة
-        batchList.add(
-          VouchersCompanion.insert(
-            voucherNumber: voucherNumber,
-            voucherType: voucherType,
-            treasuryId: treasuryId,
-            fiscalPeriodId: period.id,
-            amount: amount,
-            currency: Value(
-              currency.isNotEmpty && (currency == 'USD' || currency == 'IQD')
-                  ? currency
-                  : 'IQD',
-            ),
-            voucherDate: date,
-            personName: Value(personName),
-            reason: Value(reason),
-            itemType: Value(itemType),
-            projectName: Value(projectName.isEmpty ? null : projectName),
-            invoiceNumber: Value(invoiceNumber.isEmpty ? null : invoiceNumber),
-            spentBy: Value(spentBy.isEmpty ? null : spentBy),
-            advanceNumber: Value(_advanceNumber.isEmpty ? null : _advanceNumber),
-            createdByUserId: Value(currentUserId),
-          ),
-        );
-      } catch (e) {
-        setState(() {
-          _failedCount++;
-          _errors.add('صف ${i + 1 + (_hasHeaderRow ? 1 : 0)}: $e');
-        });
-      }
-    }
-
-    // التنفيذ المجمّع (Batch Insert)
-    if (batchList.isNotEmpty && _failedCount == 0) {
-      try {
-        await db.vouchersDao.insertVouchersBatch(batchList);
-        setState(() => _importedCount = batchList.length);
-
-        // توثيق عملية الاستيراد الجماعي في سجل التدقيق
-        if (currentUser != null) {
-          final totalAmount =
-              batchList.fold<double>(0, (sum, c) => sum + c.amount.value);
-          final treasury = await db.treasuriesDao.getTreasuryById(treasuryId);
-          await ref.read(auditLoggerProvider).logExcelImport(
-                userId: currentUser.id,
-                username: currentUser.username,
-                rowCount: batchList.length,
-                treasuryId: treasuryId,
-                treasuryName: treasury?.name ?? '#$treasuryId',
-                totalAmount: totalAmount,
-              );
-        }
-      } catch (e) {
-        setState(() {
-          _failedCount = batchList.length;
-          _errors.add('خطأ في إدخال قاعدة البيانات: $e');
-        });
-      }
-    } else if (_failedCount > 0) {
-       _errors.add('تم إلغاء الترحيل بسبب وجود أخطاء في بعض الصفوف لحماية البيانات.');
-    }
-
-    // إعادة تحميل providers المتأثرة
-    ref.invalidate(vouchersByTypeProvider('sarf'));
-    ref.invalidate(vouchersByTypeProvider('kabd'));
-
-    setState(() {
-      _importing = false;
-      _done = true;
-    });
-  }
-
-  String _getCell(List<String> row, String field) {
+  String _cell(List<String> row, String field) {
     final idx = _columnMap[field];
     if (idx == null || idx >= row.length) return '';
     return row[idx];
   }
 
-  DateTime? _parseDate(String raw) {
-    if (raw.isEmpty) return null;
-    // صيغ مدعومة: YYYY/MM/DD | YYYY-MM-DD | DD/MM/YYYY | DD-MM-YYYY
+  /// تحليل كل الصفوف — يُعيد الأسطر الصالحة ويجمع الأخطاء
+  ///
+  /// المنطق نفسه في [ExcelRowParser] لأنه قابل للاختبار هناك، وهذه الدالة
+  /// تربطه بتعيين الأعمدة الذي اختاره المستخدم فقط.
+  ExcelParseResult _parseRows() {
+    final lines = <ParsedAdvanceLine>[];
+    final errors = <String>[];
+    final data = _dataRows;
+
+    for (int i = 0; i < data.length; i++) {
+      final row = data[i];
+      final result = ExcelRowParser.parseRow(
+        rowNumber: i + 1,
+        rowLabel: 'صف ${i + 1 + (_hasHeaderRow ? 1 : 0)}',
+        dateRaw: _cell(row, _kDate),
+        amountRaw: _cell(row, _kAmount),
+        itemType: _cell(row, _kItemType),
+        reason: _cell(row, _kReason),
+        personName: _cell(row, _kPersonName),
+        projectName: _cell(row, _kProjectName),
+        invoiceNumber: _cell(row, _kInvoiceNumber),
+        spentBy: _cell(row, _kSpentBy),
+      );
+      if (result.line != null) lines.add(result.line!);
+      if (result.error != null) errors.add(result.error!);
+    }
+    return ExcelParseResult(lines: lines, errors: errors);
+  }
+
+  // ── تجهيز المسودة ───────────────────────────────────────────────────────
+
+  Future<void> _buildDraft() async {
+    setState(() {
+      _working = true;
+      _errors = [];
+    });
+
     try {
-      final parts = raw.split(RegExp(r'[/\-.]'));
-      if (parts.length != 3) return null;
-      final a = int.tryParse(parts[0]);
-      final b = int.tryParse(parts[1]);
-      final c = int.tryParse(parts[2]);
-      if (a == null || b == null || c == null) return null;
-      if (a > 31) {
-        // YYYY/MM/DD
-        return DateTime(a, b, c);
-      } else {
-        // DD/MM/YYYY
-        return DateTime(c, b, a);
+      final parsed = _parseRows();
+      if (parsed.errors.isNotEmpty) {
+        setState(() => _errors = parsed.errors);
+        return;
       }
-    } catch (_) {
-      return null;
+      if (parsed.lines.isEmpty) {
+        setState(() => _errors = ['الملف لا يحتوي على أي سطر صالح.']);
+        return;
+      }
+
+      final notifier = ref.read(advanceNotifierProvider.notifier);
+
+      // إنشاء السلفة أو استعمال الموجودة
+      int? advanceId = _selectedAdvanceId;
+      if (_creatingNewAdvance) {
+        advanceId = await notifier.createAdvance(
+          advanceNumber: _newAdvanceNumberCtrl.text.trim(),
+          projectTreasuryId: _selectedTreasuryId!,
+          advanceDate: _advanceDate,
+        );
+        if (advanceId == null) {
+          final err = ref.read(advanceNotifierProvider).error;
+          setState(() => _errors = [err?.toString() ?? 'تعذّر إنشاء السلفة.']);
+          return;
+        }
+      }
+
+      final ok = await notifier.createDraft(
+        advanceId: advanceId!,
+        lines: parsed.lines,
+        fileName: _fileName ?? '',
+        fileHash: _fileHash,
+        replaceExisting: true,
+      );
+
+      if (!ok) {
+        final err = ref.read(advanceNotifierProvider).error;
+        setState(() => _errors = [err?.toString() ?? 'تعذّر تجهيز المسودة.']);
+        return;
+      }
+
+      // الانتقال مباشرة إلى المراجعة — الاستيراد بلا مراجعة بلا قيمة
+      if (mounted) {
+        context.go('${AppRoutes.advances}/$advanceId');
+      }
+    } finally {
+      if (mounted) setState(() => _working = false);
     }
   }
 
@@ -407,7 +355,7 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('استيراد من Excel'),
+        title: const Text('استيراد مصاريف سلفة'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -415,29 +363,32 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
       ),
       body: Stepper(
         currentStep: _step,
-        controlsBuilder: (ctx, details) => const SizedBox.shrink(),
+        controlsBuilder: (_, __) => const SizedBox.shrink(),
         steps: [
-          // ── الخطوة 1: اختيار الملف ──────────────────────────────────
           Step(
             title: const Text('اختيار ملف Excel'),
             subtitle: _fileName != null ? Text(_fileName!) : null,
-            content: _buildStep1(),
+            content: _buildStep1(theme),
             isActive: _step >= 0,
             state: _step > 0 ? StepState.complete : StepState.indexed,
           ),
-          // ── الخطوة 2: معاينة وتعيين الأعمدة ────────────────────────
           Step(
-            title: const Text('معاينة وتعيين الأعمدة'),
+            title: const Text('وجهة الاستيراد'),
             content: _buildStep2(theme),
             isActive: _step >= 1,
             state: _step > 1 ? StepState.complete : StepState.indexed,
           ),
-          // ── الخطوة 3: الاستيراد ─────────────────────────────────────
           Step(
-            title: const Text('تأكيد الاستيراد'),
+            title: const Text('تعيين الأعمدة والمعاينة'),
             content: _buildStep3(theme),
             isActive: _step >= 2,
-            state: _done ? StepState.complete : StepState.indexed,
+            state: _step > 2 ? StepState.complete : StepState.indexed,
+          ),
+          Step(
+            title: const Text('تجهيز المسودة'),
+            content: _buildStep4(theme),
+            isActive: _step >= 3,
+            state: StepState.indexed,
           ),
         ],
       ),
@@ -446,16 +397,18 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
 
   // ── الخطوة 1 ────────────────────────────────────────────────────────────
 
-  Widget _buildStep1() {
+  Widget _buildStep1(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'اختر ملف Excel (.xlsx) يحتوي على بيانات السندات.\n'
-          'يجب أن يحتوي الملف على أعمدة: نوع السند، التاريخ، المبلغ.',
+        _InfoBanner(
+          icon: Icons.shield_outlined,
+          color: Colors.green,
+          title: 'الاستيراد لا يمسّ أرصدة الخزائن',
+          body: 'يُنتج هذا المعالج **مسودة** تراجعها وتصحّح تصنيف مصاريفها، '
+              'ولا يتأثر رصيد أي خزينة إلا بعد اعتمادك لها.',
         ),
         const SizedBox(height: 16),
-        // تنسيق العمود المتوقع
         const _FormatHint(),
         const SizedBox(height: 16),
         SizedBox(
@@ -477,43 +430,29 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     );
   }
 
-  // ── الخطوة 2 ────────────────────────────────────────────────────────────
+  // ── الخطوة 2 — الوجهة ───────────────────────────────────────────────────
 
   Widget _buildStep2(ThemeData theme) {
     if (_rawRows.isEmpty) return const SizedBox.shrink();
 
-    final headers = _headers;
-    final dataRows = _dataRows;
-    // صفحة المعاينة
-    final start = _previewPage * _previewPageSize;
-    final end = (start + _previewPageSize).clamp(0, dataRows.length);
-    final pageRows = dataRows.sublist(start, end);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── معلومات الملف ──────────────────────────────────────────
-        Row(
-          children: [
-            const Icon(Icons.table_chart_outlined, size: 18),
-            const SizedBox(width: 6),
-            Text('${dataRows.length} صف | ${headers.length} عمود'),
-            const Spacer(),
-            // هل السطر الأول رأس؟
-            Row(
-              children: [
-                Checkbox(
-                  value: _hasHeaderRow,
-                  onChanged: (v) =>
-                      setState(() => _hasHeaderRow = v ?? true),
-                ),
-                const Text('السطر الأول رأس'),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // ── اختيار الخزينة ────────────────────────────────────────
+        // تحذير التكرار — أهم حاجز في هذه الشاشة
+        if (_duplicateOf != null) ...[
+          _InfoBanner(
+            icon: Icons.warning_amber_rounded,
+            color: Colors.orange,
+            title: 'هذا الملف مستورَد سابقاً',
+            body: 'نفس محتوى الملف استُورد في السلفة رقم '
+                '${_duplicateOf!.advanceNumber} '
+                '(${_duplicateOf!.statusDisplayName}). '
+                'المتابعة قد تضاعف المصاريف — تأكد قبل الاستمرار.',
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // خزينة المشروع
         Consumer(
           builder: (_, ref, __) {
             final tAsync = ref.watch(allTreasuriesProvider);
@@ -525,45 +464,199 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
                     ? _selectedTreasuryId
                     : null;
                 return DropdownButtonFormField<int>(
-                  key: ValueKey(eff),
+                  key: ValueKey('treasury_$eff'),
                   initialValue: eff,
                   decoration: const InputDecoration(
-                    labelText: 'الخزينة المستهدفة *',
+                    labelText: 'خزينة المشروع *',
+                    helperText: 'الخزينة التي صُرفت منها هذه المصاريف',
                     prefixIcon: Icon(Icons.account_balance_outlined),
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
                   items: list
-                      .map((t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name),
-                          ))
+                      .map((t) =>
+                          DropdownMenuItem(value: t.id, child: Text(t.name)))
                       .toList(),
-                  onChanged: (v) => setState(() => _selectedTreasuryId = v),
+                  onChanged: (v) => setState(() {
+                    _selectedTreasuryId = v;
+                    _selectedAdvanceId = null;
+                  }),
                 );
               },
             );
           },
         ),
+        const SizedBox(height: 20),
+
+        Text('السلفة', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(
+              value: false,
+              icon: Icon(Icons.folder_open_outlined),
+              label: Text('سلفة موجودة'),
+            ),
+            ButtonSegment(
+              value: true,
+              icon: Icon(Icons.create_new_folder_outlined),
+              label: Text('سلفة جديدة'),
+            ),
+          ],
+          selected: {_creatingNewAdvance},
+          onSelectionChanged: (s) =>
+              setState(() => _creatingNewAdvance = s.first),
+        ),
         const SizedBox(height: 12),
-        // ── إدخال رقم السلفة (اختياري) ────────────────────────────
-        TextFormField(
-          initialValue: _advanceNumber,
-          decoration: const InputDecoration(
-            labelText: 'رقم السلفة (لتجميع هذه الصرفيات معاً)',
-            hintText: 'مثال: 23',
-            prefixIcon: Icon(Icons.folder_shared_outlined),
-            border: OutlineInputBorder(),
-            isDense: true,
+
+        if (_creatingNewAdvance)
+          Column(
+            children: [
+              TextFormField(
+                controller: _newAdvanceNumberCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'رقم السلفة الجديدة *',
+                  hintText: 'مثال: 23',
+                  prefixIcon: Icon(Icons.tag),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _advanceDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) setState(() => _advanceDate = picked);
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'تاريخ السلفة',
+                    prefixIcon: Icon(Icons.calendar_today),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  child: Text(DateFormat('yyyy/MM/dd').format(_advanceDate)),
+                ),
+              ),
+            ],
+          )
+        else if (_selectedTreasuryId == null)
+          const Text('اختر خزينة المشروع أولاً لعرض سلفها المفتوحة.')
+        else
+          Consumer(
+            builder: (_, ref, __) {
+              final aAsync = ref.watch(
+                activeAdvancesForTreasuryProvider(_selectedTreasuryId!),
+              );
+              return aAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text('خطأ: $e'),
+                data: (list) {
+                  if (list.isEmpty) {
+                    return _InfoBanner(
+                      icon: Icons.info_outline,
+                      color: Colors.blue,
+                      title: 'لا توجد سلف مفتوحة لهذه الخزينة',
+                      body: 'أنشئ سلفة جديدة، أو حوّل مبلغاً إلى هذه الخزينة '
+                          'مع رقم سلفة أولاً.',
+                    );
+                  }
+                  return DropdownButtonFormField<int>(
+                    key: ValueKey('adv_$_selectedAdvanceId'),
+                    initialValue: _selectedAdvanceId,
+                    decoration: const InputDecoration(
+                      labelText: 'السلفة المستهدفة *',
+                      prefixIcon: Icon(Icons.folder_shared_outlined),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: list
+                        .map((a) => DropdownMenuItem(
+                              value: a.id,
+                              child: Text(
+                                'سلفة ${a.advanceNumber} — '
+                                '${a.statusDisplayName}',
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedAdvanceId = v),
+                  );
+                },
+              );
+            },
           ),
-          onChanged: (v) => _advanceNumber = v,
+
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            OutlinedButton(
+              onPressed: () => setState(() => _step = 0),
+              child: const Text('رجوع'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed:
+                    _destinationReady ? () => setState(() => _step = 2) : null,
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('متابعة'),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
-        // ── تعيين الأعمدة ──────────────────────────────────────────
+      ],
+    );
+  }
+
+  // ── الخطوة 3 — الأعمدة والمعاينة ────────────────────────────────────────
+
+  Widget _buildStep3(ThemeData theme) {
+    if (_rawRows.isEmpty) return const SizedBox.shrink();
+
+    final headers = _headers;
+    final dataRows = _dataRows;
+    final start = _previewPage * _previewPageSize;
+    final end = (start + _previewPageSize).clamp(0, dataRows.length);
+    final pageRows = dataRows.sublist(start, end);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.table_chart_outlined, size: 18),
+            const SizedBox(width: 6),
+            Text('${dataRows.length} صف | ${headers.length} عمود'),
+            const Spacer(),
+            Row(
+              children: [
+                Checkbox(
+                  value: _hasHeaderRow,
+                  onChanged: (v) => setState(() => _hasHeaderRow = v ?? true),
+                ),
+                const Text('السطر الأول رأس'),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
         Text('تعيين الأعمدة', style: theme.textTheme.labelLarge),
+        Text(
+          'الحقول غير المُعيَّنة تبقى فارغة ويمكن ملؤها في شاشة المراجعة.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 8),
-        ...List.generate(_kAllFields.length, (i) {
-          final field = _kAllFields[i];
+        ..._kAllFields.map((field) {
           final isRequired = _kRequiredFields.contains(field);
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -591,13 +684,12 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
                   ),
                 ),
               ],
-              onChanged: (v) =>
-                  setState(() => _columnMap[field] = v),
+              onChanged: (v) => setState(() => _columnMap[field] = v),
             ),
           );
         }),
         const SizedBox(height: 12),
-        // ── معاينة البيانات ────────────────────────────────────────
+
         if (pageRows.isNotEmpty) ...[
           Text('معاينة (${start + 1}–$end من ${dataRows.length})',
               style: theme.textTheme.labelLarge),
@@ -618,19 +710,14 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
                 return DataRow(
                   cells: [
                     DataCell(Text('${start + j + 1}')),
-                    ...row.map((cell) => DataCell(
-                          Text(
-                            cell,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
+                    ...row.map((c) => DataCell(
+                          Text(c, overflow: TextOverflow.ellipsis, maxLines: 1),
                         )),
                   ],
                 );
               }),
             ),
           ),
-          // تنقل الصفحات
           if (dataRows.length > _previewPageSize)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -645,30 +732,27 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
                     '${((dataRows.length - 1) ~/ _previewPageSize) + 1}'),
                 IconButton(
                   icon: const Icon(Icons.navigate_next),
-                  onPressed:
-                      end < dataRows.length
-                          ? () => setState(() => _previewPage++)
-                          : null,
+                  onPressed: end < dataRows.length
+                      ? () => setState(() => _previewPage++)
+                      : null,
                 ),
               ],
             ),
         ],
         const SizedBox(height: 16),
-        // ── زر التالي ─────────────────────────────────────────────
         Row(
           children: [
             OutlinedButton(
-              onPressed: () => setState(() => _step = 0),
+              onPressed: () => setState(() => _step = 1),
               child: const Text('رجوع'),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton.icon(
-                onPressed: _mappingComplete
-                    ? () => setState(() => _step = 2)
-                    : null,
+                onPressed:
+                    _mappingComplete ? () => setState(() => _step = 3) : null,
                 icon: const Icon(Icons.arrow_forward),
-                label: const Text('متابعة للاستيراد'),
+                label: const Text('متابعة'),
               ),
             ),
           ],
@@ -678,144 +762,101 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     );
   }
 
-  // ── الخطوة 3 ────────────────────────────────────────────────────────────
+  // ── الخطوة 4 — التجهيز ──────────────────────────────────────────────────
 
-  Widget _buildStep3(ThemeData theme) {
-    final dataRows = _dataRows;
+  Widget _buildStep4(ThemeData theme) {
+    if (_rawRows.isEmpty) return const SizedBox.shrink();
+
+    final parsed = _parseRows();
+    final total = parsed.lines.fold<double>(0, (s, l) => s + l.amount);
+    final fmt = NumberFormat('#,##0.##');
+    final displayErrors = _errors.isNotEmpty ? _errors : parsed.errors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!_importing && !_done) ...[
-          // ملخص ما سيُستورَد
+        _SummaryTile(
+          icon: Icons.table_rows_outlined,
+          label: 'أسطر صالحة',
+          value: '${parsed.lines.length}',
+        ),
+        _SummaryTile(
+          icon: Icons.functions,
+          label: 'إجمالي المصاريف',
+          value: '${fmt.format(total)} د.ع',
+        ),
+        if (displayErrors.isNotEmpty)
           _SummaryTile(
-            icon: Icons.table_rows_outlined,
-            label: 'عدد السجلات للاستيراد',
-            value: '${dataRows.length} سجل',
+            icon: Icons.error_outline,
+            label: 'أسطر بها مشاكل',
+            value: '${displayErrors.length}',
+            color: Colors.red,
           ),
-          Consumer(
-            builder: (_, ref, __) {
-              final tAsync = ref.watch(allTreasuriesProvider);
-              final name = tAsync.valueOrNull
-                      ?.firstWhere(
-                        (t) => t.id == _selectedTreasuryId,
-                        orElse: () =>
-                            tAsync.valueOrNull!.first,
-                      )
-                      .name ??
-                  '—';
-              return _SummaryTile(
-                icon: Icons.account_balance_outlined,
-                label: 'الخزينة المستهدفة',
-                value: name,
-              );
-            },
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'تحذير: لا يمكن التراجع عن الاستيراد بعد البدء.',
-            style: TextStyle(color: Colors.orange, fontSize: 12),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              OutlinedButton(
-                onPressed: () => setState(() => _step = 1),
-                child: const Text('رجوع'),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _startImport,
-                  icon: const Icon(Icons.cloud_upload_outlined),
-                  label: const Text('بدء الاستيراد'),
-                ),
-              ),
-            ],
-          ),
-        ],
 
-        if (_importing) ...[
+        if (displayErrors.isNotEmpty) ...[
           const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: dataRows.isEmpty
-                ? null
-                : (_importedCount + _failedCount) / dataRows.length,
+          _InfoBanner(
+            icon: Icons.block,
+            color: Colors.red,
+            title: 'لن تُجهَّز المسودة قبل إصلاح هذه الأسطر',
+            body: 'تجهيز مسودة ناقصة يعني مطابقة خاطئة مع جدول الإكسل.',
           ),
-          const SizedBox(height: 12),
-          Text(
-            'جارٍ الاستيراد… ${_importedCount + _failedCount} / ${dataRows.length}',
-            style: theme.textTheme.bodyMedium,
+          const SizedBox(height: 8),
+          ...displayErrors.take(20).map(
+                (e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.close, size: 14, color: Colors.red),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(e, style: const TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          if (displayErrors.length > 20)
+            Text('… و${displayErrors.length - 20} خطأ آخر',
+                style: const TextStyle(fontSize: 12, color: Colors.red)),
+        ] else ...[
+          const SizedBox(height: 8),
+          _InfoBanner(
+            icon: Icons.check_circle_outline,
+            color: Colors.green,
+            title: 'جاهز للتجهيز',
+            body: 'ستُفتح شاشة المراجعة بعدها لتصحّح تصنيف المصاريف '
+                'وتطابق الإجمالي قبل الاعتماد. لن يتأثر رصيد الخزينة الآن.',
           ),
         ],
 
-        if (_done) ...[
-          // نتيجة الاستيراد
-          Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.green),
-              const SizedBox(width: 8),
-              Text(
-                'اكتمل الاستيراد',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _SummaryTile(
-            icon: Icons.check,
-            label: 'تم استيرادها بنجاح',
-            value: '$_importedCount سجل',
-            color: Colors.green,
-          ),
-          if (_failedCount > 0)
-            _SummaryTile(
-              icon: Icons.warning_amber_outlined,
-              label: 'فشل استيرادها',
-              value: '$_failedCount سجل',
-              color: Colors.red,
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            OutlinedButton(
+              onPressed: _working ? null : () => setState(() => _step = 2),
+              child: const Text('رجوع'),
             ),
-          if (_errors.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            ExpansionTile(
-              title: Text(
-                'تفاصيل الأخطاء (${_errors.length})',
-                style: const TextStyle(fontSize: 13, color: Colors.red),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: (_working || parsed.lines.isEmpty ||
+                        displayErrors.isNotEmpty)
+                    ? null
+                    : _buildDraft,
+                icon: _working
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.fact_check_outlined),
+                label: Text(_working ? 'جارٍ التجهيز…' : 'تجهيز المسودة'),
               ),
-              children: _errors
-                  .take(20)
-                  .map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline,
-                              size: 14, color: Colors.red),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(e, style: const TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                  .toList(),
             ),
           ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.check),
-              label: const Text('إنهاء'),
-            ),
-          ),
-        ],
+        ),
         const SizedBox(height: 16),
       ],
     );
@@ -826,7 +867,55 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
 // Widgets مساعدة
 // ════════════════════════════════════════════════════════════════════════════
 
-/// تلميح بتنسيق العمود المتوقع
+/// شريط معلومات ملوّن
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.labelLarge?.copyWith(color: color),
+                ),
+                const SizedBox(height: 2),
+                Text(body, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// تلميح بتنسيق الأعمدة المتوقع
 class _FormatHint extends StatelessWidget {
   const _FormatHint();
 
@@ -844,26 +933,29 @@ class _FormatHint extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.info_outline,
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.info_outline,
+                  size: 16, color: theme.colorScheme.primary),
               const SizedBox(width: 6),
-              Text(
-                'التنسيق المقترح للأعمدة:',
-                style: theme.textTheme.labelMedium,
-              ),
+              Text('الأعمدة المتوقعة (تُكتشَف تلقائياً من صف الرأس):',
+                  style: theme.textTheme.labelMedium),
             ],
           ),
           const SizedBox(height: 8),
-          const _HintRow(col: 'A', label: 'نوع السند', hint: 'صرف أو قبض *'),
-          const _HintRow(col: 'B', label: 'التاريخ', hint: 'YYYY/MM/DD *'),
-          const _HintRow(col: 'C', label: 'المبلغ', hint: 'رقم موجب *'),
-          const _HintRow(col: 'D', label: 'العملة', hint: 'IQD أو USD'),
-          const _HintRow(col: 'E', label: 'اسم الشخص', hint: 'نصي'),
-          const _HintRow(col: 'F', label: 'السبب', hint: 'نصي'),
-          const _HintRow(col: 'G', label: 'نوع البند', hint: 'نصي'),
+          const _HintRow(label: 'التاريخ', hint: 'YYYY/MM/DD *'),
+          const _HintRow(label: 'المبلغ', hint: 'رقم موجب بالدينار *'),
+          const _HintRow(label: 'نوع البند', hint: 'كهربائيات، بانزين، طعام…'),
+          const _HintRow(label: 'السبب', hint: 'نصي'),
+          const _HintRow(label: 'اسم الشخص', hint: 'نصي'),
+          const _HintRow(label: 'اسم المشروع', hint: 'نصي'),
+          const _HintRow(label: 'رقم الفاتورة', hint: 'نصي'),
+          const _HintRow(label: 'صرف من قبل', hint: 'نصي'),
+          const SizedBox(height: 6),
+          Text(
+            'ملاحظة: الاستيراد بالدينار العراقي فقط — أي سطر بالدولار يُرفض.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
         ],
       ),
     );
@@ -871,8 +963,7 @@ class _FormatHint extends StatelessWidget {
 }
 
 class _HintRow extends StatelessWidget {
-  const _HintRow({required this.col, required this.label, required this.hint});
-  final String col;
+  const _HintRow({required this.label, required this.hint});
   final String label;
   final String hint;
 
@@ -883,32 +974,18 @@ class _HintRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 3),
       child: Row(
         children: [
-          Container(
-            width: 24,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              col,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
+          const Icon(Icons.chevron_left, size: 14),
+          const SizedBox(width: 4),
           SizedBox(
-            width: 90,
+            width: 110,
             child: Text(label, style: theme.textTheme.bodySmall),
           ),
-          Text(
-            hint,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          Expanded(
+            child: Text(
+              hint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -924,6 +1001,7 @@ class _SummaryTile extends StatelessWidget {
     required this.value,
     this.color,
   });
+
   final IconData icon;
   final String label;
   final String value;
@@ -939,13 +1017,9 @@ class _SummaryTile extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: c),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(label, style: theme.textTheme.bodyMedium),
-          ),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold, color: c),
-          ),
+          Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
+          Text(value,
+              style: TextStyle(fontWeight: FontWeight.bold, color: c)),
         ],
       ),
     );

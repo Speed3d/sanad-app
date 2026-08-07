@@ -23,6 +23,7 @@ import 'tabs/company_tab.dart';
 import 'tabs/appearance_tab.dart';
 // import 'tabs/language_tab.dart'; // مُعطَّل مؤقتاً — انظر ملاحظة قسم اللغة أدناه
 import 'tabs/currency_tab.dart';
+import 'tabs/item_types_tab.dart';
 import 'tabs/security_tab.dart';
 import 'tabs/users_tab.dart';
 import 'tabs/backup_tab.dart';
@@ -68,6 +69,12 @@ final List<_SettingsSection> _sections = [
     subtitle: 'IQD / USD وسعر الصرف',
     icon: Icons.currency_exchange_outlined,
     builder: () => const CurrencyTab(),
+  ),
+  _SettingsSection(
+    title: 'أنواع البنود',
+    subtitle: 'تصنيفات المصروفات (كهربائيات، بانزين، راتب…)',
+    icon: Icons.label_outline,
+    builder: () => const ItemTypesTab(),
   ),
   _SettingsSection(
     title: 'الأمان',

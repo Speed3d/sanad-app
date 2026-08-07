@@ -22,8 +22,11 @@ void main() {
     await db.close();
   });
 
-  test('الإصدار الحالي هو 4', () {
-    expect(db.schemaVersion, equals(4));
+  // ملاحظة: لا نثبّت رقم الإصدار هنا — هذا الملف يتحقق من أن ميزات الإصدار 4
+  // ما زالت سليمة مهما تقدّم الـ schema. تثبيت الرقم الحالي مكانه ملف اختبار
+  // أحدث إصدار (schema_v5_test.dart) حتى لا يفشل هذا الملف مع كل ترقية.
+  test('الـ schema عند الإصدار 4 أو أحدث', () {
+    expect(db.schemaVersion, greaterThanOrEqualTo(4));
   });
 
   group('الرصيد الافتتاحي المدين (opening_balance_debit)', () {

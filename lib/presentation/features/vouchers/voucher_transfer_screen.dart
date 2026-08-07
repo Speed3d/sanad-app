@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../domain/models/advance_model.dart';
+import '../../providers/advance_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
@@ -27,11 +29,20 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
   DateTime _voucherDate = DateTime.now();
   String _currency = 'IQD';
 
+  // ── ربط التحويل بسلفة مشروع (اختياري) ───────────────────────────────────
+  // بهذا الربط يُحتسَب «المُرسَل» في تقرير السلفة، فتصح المطابقة:
+  // أرسلتُ كذا ← صرفوا كذا ← المتبقي كذا.
+  bool _linkToAdvance = false;
+  bool _createNewAdvance = true;
+  int? _selectedAdvanceId;
+  final _advanceNumberCtrl = TextEditingController();
+
   @override
   void dispose() {
     _amountCtrl.dispose();
     _reasonCtrl.dispose();
     _exchangeRateCtrl.dispose();
+    _advanceNumberCtrl.dispose();
     super.dispose();
   }
 
@@ -54,6 +65,46 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
 
     final exRate = double.tryParse(_exchangeRateCtrl.text) ?? 1.0;
 
+    // ── تجهيز السلفة قبل التحويل ─────────────────────────────────────────
+    // نُنشئ السلفة أولاً لأن التحويل يحتاج معرّفها ليربط طرفيه بها. لو فشل
+    // إنشاؤها (رقم مكرر مثلاً) نتوقف قبل تحريك أي مال.
+    int? advanceId;
+    if (_linkToAdvance) {
+      if (_createNewAdvance) {
+        final number = _advanceNumberCtrl.text.trim();
+        if (number.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اكتب رقم السلفة الجديدة أو ألغِ الربط'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        advanceId =
+            await ref.read(advanceNotifierProvider.notifier).createAdvance(
+                  advanceNumber: number,
+                  projectTreasuryId: _toTreasuryId!,
+                  advanceDate: _voucherDate,
+                );
+        if (advanceId == null) {
+          // رسالة الخطأ تظهر عبر مستمع advanceNotifierProvider أدناه
+          return;
+        }
+      } else {
+        if (_selectedAdvanceId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اختر السلفة أو ألغِ الربط'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        advanceId = _selectedAdvanceId;
+      }
+    }
+
     final success = await ref.read(voucherTransferNotifierProvider.notifier).createTransfer(
           fromTreasuryId: _fromTreasuryId!,
           toTreasuryId: _toTreasuryId!,
@@ -62,18 +113,156 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
           voucherDate: _voucherDate,
           reason: _reasonCtrl.text.trim(),
           exchangeRate: exRate,
+          advanceId: advanceId,
         );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التحويل بين الخزائن بنجاح'), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            advanceId != null
+                ? 'تم التحويل وربطه بالسلفة بنجاح'
+                : 'تم التحويل بين الخزائن بنجاح',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
       context.pop();
     }
+  }
+
+  // ── قسم ربط التحويل بسلفة ────────────────────────────────────────────────
+
+  /// واجهة ربط التحويل بسلفة مشروع
+  ///
+  /// الربط اختياري: التحويلات الإدارية بين الخزائن لا علاقة لها بالسلف.
+  /// لكن عند تمويل مشروع، الربط هو ما يجعل «المُرسَل» قابلاً للحساب لاحقاً.
+  Widget _buildAdvanceSection(ThemeData theme) {
+    return Card(
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              value: _linkToAdvance,
+              onChanged: (v) => setState(() => _linkToAdvance = v),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('هذا التحويل تمويل لسلفة مشروع'),
+              subtitle: const Text(
+                'الربط يجعل النظام يحسب: أرسلتُ كذا ← صرفوا كذا ← المتبقي كذا',
+                style: TextStyle(fontSize: 11),
+              ),
+            ),
+            if (_linkToAdvance) ...[
+              if (_toTreasuryId == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'اختر الخزينة المُستقبِلة أولاً.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                )
+              else ...[
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      icon: Icon(Icons.folder_open_outlined, size: 16),
+                      label: Text('سلفة موجودة'),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: Icon(Icons.create_new_folder_outlined, size: 16),
+                      label: Text('سلفة جديدة'),
+                    ),
+                  ],
+                  selected: {_createNewAdvance},
+                  onSelectionChanged: (s) =>
+                      setState(() => _createNewAdvance = s.first),
+                ),
+                const SizedBox(height: 12),
+                if (_createNewAdvance)
+                  TextFormField(
+                    controller: _advanceNumberCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم السلفة الجديدة *',
+                      hintText: 'مثال: 23',
+                      prefixIcon: Icon(Icons.tag),
+                      isDense: true,
+                    ),
+                  )
+                else
+                  Consumer(
+                    builder: (_, ref, __) {
+                      final async = ref.watch(
+                        activeAdvancesForTreasuryProvider(_toTreasuryId!),
+                      );
+                      return async.when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (e, _) => Text('خطأ: $e'),
+                        data: (list) {
+                          if (list.isEmpty) {
+                            return const Text(
+                              'لا توجد سلف مفتوحة لهذه الخزينة — أنشئ سلفة جديدة.',
+                              style: TextStyle(fontSize: 12),
+                            );
+                          }
+                          return DropdownButtonFormField<int>(
+                            key: ValueKey('adv_$_selectedAdvanceId'),
+                            initialValue: _selectedAdvanceId,
+                            decoration: const InputDecoration(
+                              labelText: 'السلفة *',
+                              prefixIcon: Icon(Icons.folder_shared_outlined),
+                              isDense: true,
+                            ),
+                            items: list
+                                .map((a) => DropdownMenuItem(
+                                      value: a.id,
+                                      child: Text(
+                                        'سلفة ${a.advanceNumber} — '
+                                        '${a.statusDisplayName}',
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _selectedAdvanceId = v),
+                          );
+                        },
+                      );
+                    },
+                  ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final treasuriesAsync = ref.watch(allTreasuriesProvider);
+
+    // أخطاء إنشاء السلفة (رقم مكرر مثلاً) تظهر من هنا
+    ref.listen<AsyncValue<String?>>(advanceNotifierProvider, (_, next) {
+      if (next is AsyncError && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+        ref.read(advanceNotifierProvider.notifier).reset();
+      }
+    });
     final settingsAsync = ref.watch(primaryCurrencyProvider);
     
     // نستمع لحالة التحويل لعرض رسائل الخطأ ومعرفة متى يتم التحميل
@@ -277,11 +466,15 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                   TextFormField(
                     controller: _reasonCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'التفاصيل / الملاحظات (رقم السلفة، المشروع، إلخ)',
+                      labelText: 'التفاصيل / الملاحظات',
                       prefixIcon: Icon(Icons.notes),
                     ),
                     maxLines: 2,
                   ),
+                  const SizedBox(height: 20),
+
+                  // ── ربط التحويل بسلفة مشروع ────────────────
+                  _buildAdvanceSection(theme),
                   const SizedBox(height: 32),
 
                   // ── زر الحفظ ───────────────────────────────

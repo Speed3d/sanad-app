@@ -14,6 +14,8 @@
 //       /vouchers/sarf    — سند الصرف
 //       /vouchers/kabd    — سند القبض
 //     /treasury           — الخزائن
+//     /advances           — سلف المشاريع
+//       /advances/:id     — مراجعة مسودة سلفة أو عرض تفاصيلها
 //     /employees          — الموظفون
 //     /contractors        — المقاولون
 //     /partners           — الشركاء
@@ -96,8 +98,14 @@ abstract final class AppRoutes {
   /// التقارير وكشوف الحساب
   static const String reports = '/reports';
 
-  /// استيراد Excel
+  /// استيراد Excel (مصاريف سلفة)
   static const String excelImport = '/reports/excel-import';
+
+  /// سلف المشاريع (≠ سلف الموظفين في /employees/loans)
+  static const String advances = '/advances';
+
+  /// مراجعة/تفاصيل سلفة — :id = معرّف السلفة
+  static const String advanceDetail = '/advances/:id';
 
   /// السنوات المالية
   static const String fiscal = '/fiscal';
