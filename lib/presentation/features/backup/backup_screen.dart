@@ -30,6 +30,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../../core/auth/permissions.dart';
 import '../../../core/services/backup_crypto_service.dart';
 import '../../../core/services/cloud_backup_service.dart';
 import '../../../core/utils/audit_logger.dart';
@@ -247,6 +248,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // الاستعادة عملية كارثية (تمسح قاعدة البيانات) → super_admin فقط.
+    // التصدير متاح لأي admin (الموجّه يضمن أن الوصول للشاشة admin فأعلى).
+    final currentUser = ref.read(authNotifierProvider.notifier).currentUser;
+    final canRestore =
+        currentUser != null && currentUser.can(AppPermission.restoreBackup);
+
     return Scaffold(
       appBar: AppBar(title: const Text('النسخ الاحتياطي')),
       body: SingleChildScrollView(
@@ -347,13 +355,25 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: (_working || kIsWeb) ? null : _importBackup,
+                    // معطّل لغير super_admin (يظهر لكن لا يعمل مع تلميح)
+                    onPressed: (_working || kIsWeb || !canRestore)
+                        ? null
+                        : _importBackup,
                     icon: const Icon(Icons.restore_outlined),
                     label: const Text('استعادة نسخة'),
                   ),
                 ),
               ],
             ),
+            if (!canRestore) ...[
+              const SizedBox(height: 6),
+              Text(
+                'الاستعادة متاحة لمدير النظام فقط',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
 
             // ── مؤشر التقدم ───────────────────────────────────
             if (_working) ...[

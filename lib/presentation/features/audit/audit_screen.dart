@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
+import '../../../core/auth/permissions.dart';
 import '../../../core/utils/audit_logger.dart';
 import '../../../data/database/app_database.dart';
 import '../../providers/audit_providers.dart';
@@ -93,16 +94,22 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // حذف/أرشفة سجل التدقيق عملية كارثية → super_admin فقط.
+    final currentUser = ref.read(authNotifierProvider.notifier).currentUser;
+    final canPurge =
+        currentUser != null && currentUser.can(AppPermission.purgeAuditLog);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('سجل المراجعة'),
         actions: [
-          // زر تنظيف السجلات القديمة
-          IconButton(
-            icon: const Icon(Icons.auto_delete_outlined),
-            tooltip: 'أرشفة السجلات القديمة',
-            onPressed: () => _showArchiveDialog(context),
-          ),
+          // زر تنظيف السجلات القديمة — يظهر لمدير النظام فقط
+          if (canPurge)
+            IconButton(
+              icon: const Icon(Icons.auto_delete_outlined),
+              tooltip: 'أرشفة السجلات القديمة',
+              onPressed: () => _showArchiveDialog(context),
+            ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(110),

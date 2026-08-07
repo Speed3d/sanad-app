@@ -11,8 +11,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/auth/permissions.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_provider.dart';
 import 'global_search_dialog.dart';
@@ -159,6 +161,11 @@ class _DesktopShell extends ConsumerWidget {
     final companyNameAsync = ref.watch(companyNameProvider);
     final companyName = companyNameAsync.valueOrNull ?? 'شركة إدارة المبيعات';
 
+    // سجل المراجعة متاح لمن يملك صلاحية عرضه فقط (admin فأعلى)
+    final currentUser = ref.watch(authNotifierProvider.notifier).currentUser;
+    final canViewAudit =
+        currentUser != null && currentUser.can(AppPermission.viewAudit);
+
     return Scaffold(
       body: Row(
         children: [
@@ -294,36 +301,40 @@ class _DesktopShell extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      // زر سجل المراجعة
-                      InkWell(
-                        onTap: () => AppShell.safeNavigate(context, AppRoutes.audit),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                child: Icon(
-                                  Icons.history_rounded,
-                                  size: 18,
-                                  color: Colors.white.withValues(alpha: 0.72),
+                      // زر سجل المراجعة — يظهر لمن يملك صلاحية العرض فقط
+                      if (canViewAudit) ...[
+                        InkWell(
+                          onTap: () =>
+                              AppShell.safeNavigate(context, AppRoutes.audit),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  child: Icon(
+                                    Icons.history_rounded,
+                                    size: 18,
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'سجل المراجعة',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.72),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'سجل المراجعة',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
+                        const SizedBox(height: 4),
+                      ],
 
                       // مفتاح الوضع الليلي (Dark Mode Switch)
                       Padding(
