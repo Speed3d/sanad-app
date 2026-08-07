@@ -147,36 +147,73 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
 }
 
 // ── 1. مخطط اتجاه السيولة المنساب (LineChart Spline Area) ─────────────────────
-class _LiquiditySplineChart extends StatelessWidget {
+//
+// ✅ بيانات حقيقية (تصحيح تدقيق 2026-08-06): كان يعرض أرقاماً ثابتة مُلفَّقة.
+//    الآن يقرأ إجمالي القبض/الصرف لكل يوم من الأيام السبعة الأخيرة فعلياً.
+class _LiquiditySplineChart extends ConsumerWidget {
   const _LiquiditySplineChart();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final weeklyAsync = ref.watch(weeklyLiquidityProvider);
 
-    final kabdSpots = const [
-      FlSpot(0, 2.1),
-      FlSpot(1, 3.5),
-      FlSpot(2, 2.8),
-      FlSpot(3, 5.2),
-      FlSpot(4, 4.1),
-      FlSpot(5, 6.25),
-      FlSpot(6, 5.8),
-    ];
+    return weeklyAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('تعذّر تحميل بيانات السيولة',
+            style: theme.textTheme.bodySmall),
+      ),
+      data: (points) {
+        // تحويل المبالغ إلى ملايين لسهولة القراءة على المحور الرأسي
+        const scale = 1000000.0;
+        final kabdSpots = [
+          for (var i = 0; i < points.length; i++)
+            FlSpot(i.toDouble(), points[i].kabd / scale),
+        ];
+        final sarfSpots = [
+          for (var i = 0; i < points.length; i++)
+            FlSpot(i.toDouble(), points[i].sarf / scale),
+        ];
 
-    final sarfSpots = const [
-      FlSpot(0, 1.2),
-      FlSpot(1, 2.1),
-      FlSpot(2, 1.9),
-      FlSpot(3, 3.8),
-      FlSpot(4, 3.0),
-      FlSpot(5, 4.18),
-      FlSpot(6, 3.5),
-    ];
+        // أقصى قيمة على المحور الرأسي (مع هامش 20%) — 1 كحد أدنى لتجنب مخطط مسطّح
+        final maxVal = [
+          ...kabdSpots.map((s) => s.y),
+          ...sarfSpots.map((s) => s.y),
+          1.0,
+        ].reduce((a, b) => a > b ? a : b);
+        final maxY = maxVal * 1.2;
 
-    const dayLabels = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        // تسميات أيام الأسبوع من التواريخ الفعلية
+        const weekdayNames = [
+          'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس',
+          'الجمعة', 'السبت', 'الأحد',
+        ];
+        final dayLabels = [
+          for (final p in points) weekdayNames[p.date.weekday - 1],
+        ];
 
+        return _buildChart(
+          context,
+          isDark,
+          kabdSpots,
+          sarfSpots,
+          dayLabels,
+          maxY,
+        );
+      },
+    );
+  }
+
+  Widget _buildChart(
+    BuildContext context,
+    bool isDark,
+    List<FlSpot> kabdSpots,
+    List<FlSpot> sarfSpots,
+    List<String> dayLabels,
+    double maxY,
+  ) {
     return Column(
       children: [
         // مفتاح الرسم (Legend)
@@ -230,9 +267,9 @@ class _LiquiditySplineChart extends StatelessWidget {
               ),
               borderData: FlBorderData(show: false),
               minX: 0,
-              maxX: 6,
+              maxX: (dayLabels.length - 1).toDouble().clamp(1, 6),
               minY: 0,
-              maxY: 7,
+              maxY: maxY,
               lineBarsData: [
                 // خط القبض (Green Spline)
                 LineChartBarData(

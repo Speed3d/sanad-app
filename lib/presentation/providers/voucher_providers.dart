@@ -103,6 +103,47 @@ Future<({double totalSarf, double totalKabd})> dailySummary(
   return repo.getDailySummary(date);
 }
 
+/// نقطة سيولة يومية واحدة لمخطط آخر 7 أيام
+class DailyLiquidityPoint {
+  /// تاريخ اليوم
+  final DateTime date;
+
+  /// إجمالي القبض في هذا اليوم (IQD)
+  final double kabd;
+
+  /// إجمالي الصرف في هذا اليوم (IQD)
+  final double sarf;
+
+  const DailyLiquidityPoint({
+    required this.date,
+    required this.kabd,
+    required this.sarf,
+  });
+}
+
+/// اتجاه السيولة لآخر 7 أيام — بيانات حقيقية للمخطط في لوحة التحكم
+///
+/// كان المخطط يعرض أرقاماً ثابتة مُلفَّقة (تدقيق 2026-08-06). الآن يجمع
+/// ملخص كل يوم من الأيام السبعة الأخيرة فعلياً من قاعدة البيانات.
+@riverpod
+Future<List<DailyLiquidityPoint>> weeklyLiquidity(Ref ref) async {
+  final repo = ref.watch(voucherRepositoryProvider);
+  final now = DateTime.now();
+  final points = <DailyLiquidityPoint>[];
+
+  // من قبل 6 أيام حتى اليوم (7 نقاط بترتيب زمني تصاعدي)
+  for (var i = 6; i >= 0; i--) {
+    final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+    final summary = await repo.getDailySummary(day);
+    points.add(DailyLiquidityPoint(
+      date: day,
+      kabd: summary.totalKabd,
+      sarf: summary.totalSarf,
+    ));
+  }
+  return points;
+}
+
 /// بحث في السندات بنص حر
 ///
 /// يُعيد قائمة فارغة فوراً إذا كان النص فارغاً
