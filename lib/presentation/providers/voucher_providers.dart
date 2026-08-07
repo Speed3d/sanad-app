@@ -18,6 +18,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
@@ -257,6 +258,18 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
     }
     state = const AsyncLoading();
     try {
+      // فحص كفاية رصيد الخزينة (حسب سياسة المنع في الإعدادات)
+      final balanceError = await BalanceGuard.checkSufficientBalance(
+        _db,
+        treasuryId: treasuryId,
+        currency: currency,
+        amount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+
       // الكشف التلقائي عن الفترة المالية حسب تاريخ السند
       final period =
           await _db.fiscalPeriodsDao.getFiscalPeriodForDate(voucherDate);
@@ -627,6 +640,18 @@ class VoucherTransferNotifier extends _$VoucherTransferNotifier {
     }
     state = const AsyncLoading();
     try {
+      // فحص كفاية رصيد الخزينة المصدر (حسب سياسة المنع في الإعدادات)
+      final balanceError = await BalanceGuard.checkSufficientBalance(
+        _db,
+        treasuryId: fromTreasuryId,
+        currency: currency,
+        amount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+
       final period =
           await _db.fiscalPeriodsDao.getFiscalPeriodForDate(voucherDate);
       if (period == null) {

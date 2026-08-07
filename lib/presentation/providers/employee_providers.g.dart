@@ -507,7 +507,7 @@ final employeeNotifierProvider =
 );
 
 typedef _$EmployeeNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
-String _$salaryNotifierHash() => r'c338cfcd66579619c582e96a7eeeeda7f2ffc8f1';
+String _$salaryNotifierHash() => r'e526545c095c59717523edb1c3e9e7f04467a233';
 
 /// Notifier لصرف الرواتب
 ///
@@ -529,7 +529,7 @@ final salaryNotifierProvider =
 );
 
 typedef _$SalaryNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
-String _$advanceNotifierHash() => r'3e01c218f93e1b4e7f4a38b10fd6de9e87aa6470';
+String _$advanceNotifierHash() => r'c4dd6001d7c9ee2cad9377a8db7e53cf1b2465da';
 
 /// Notifier لإدارة السلف وأقساط السداد
 ///

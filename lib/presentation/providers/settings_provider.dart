@@ -65,6 +65,25 @@ Stream<String?> secondaryCurrency(Ref ref) {
   return repo.watchSetting('secondary_currency');
 }
 
+/// Provider تفاعلي لسياسة منع الصرف فوق الرصيد
+///
+/// القيمة: 'true' = منع باتّ (الافتراضي) | 'false' = سماح بالرصيد المدين.
+/// null يعني غياب المفتاح، ويُعامَل كـ 'true' (منع) في الواجهة.
+@riverpod
+Stream<String?> enforceBalanceCheck(Ref ref) {
+  final repo = ref.watch(settingsRepositoryProvider);
+  return repo.watchSetting('enforce_balance_check');
+}
+
+/// Provider تفاعلي لنمط المزامنة السحابية
+///
+/// القيمة: 'local' = نسخة محلية إضافية (الافتراضي) | 'drive' = Google Drive.
+@riverpod
+Stream<String?> cloudSyncMode(Ref ref) {
+  final repo = ref.watch(settingsRepositoryProvider);
+  return repo.watchSetting('cloud_sync_mode');
+}
+
 /// Provider تفاعلي لسعر الصرف كـ double
 ///
 /// يُستخدَم في حسابات التحويل بين العملات

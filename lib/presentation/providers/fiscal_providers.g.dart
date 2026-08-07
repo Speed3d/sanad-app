@@ -203,7 +203,7 @@ class _PeriodVoucherCountProviderElement
   int get periodId => (origin as PeriodVoucherCountProvider).periodId;
 }
 
-String _$fiscalNotifierHash() => r'6226eef16f833473ce01115221007400230bbee9';
+String _$fiscalNotifierHash() => r'71f0c0791c114f09140598769b52565deee211ee';
 
 /// حالة عملية الفترة المالية
 ///

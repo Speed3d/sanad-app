@@ -15,6 +15,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
@@ -267,6 +268,18 @@ class SalaryNotifier extends _$SalaryNotifier {
     }
     state = const AsyncLoading();
     try {
+      // فحص كفاية رصيد الخزينة (حسب سياسة المنع في الإعدادات)
+      final balanceError = await BalanceGuard.checkSufficientBalance(
+        _db,
+        treasuryId: treasuryId,
+        currency: 'IQD',
+        amount: netAmount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+
       // 1. الفترة المالية
       final period =
           await _db.fiscalPeriodsDao.getFiscalPeriodForDate(paymentDate);
@@ -394,6 +407,18 @@ class AdvanceNotifier extends _$AdvanceNotifier {
     }
     state = const AsyncLoading();
     try {
+      // فحص كفاية رصيد الخزينة (حسب سياسة المنع في الإعدادات)
+      final balanceError = await BalanceGuard.checkSufficientBalance(
+        _db,
+        treasuryId: treasuryId,
+        currency: currency,
+        amount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+
       // 1. الفترة المالية
       final period =
           await _db.fiscalPeriodsDao.getFiscalPeriodForDate(advanceDate);

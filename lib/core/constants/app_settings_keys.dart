@@ -48,6 +48,16 @@ abstract final class AppSettingsKeys {
   /// مدة الجلسة قبل القفل التلقائي (بالدقائق) — '0' = لا قفل
   static const String autoLockMinutes = 'auto_lock_minutes';
 
+  // ── سياسات مالية ─────────────────────────────────────────────────────────
+
+  /// منع الصرف الذي يتجاوز رصيد الخزينة: 'true' = منع باتّ | 'false' = سماح
+  /// الافتراضي: منع (الأأمن مالياً) — يمكن للمالك تغييره من الإعدادات
+  static const String enforceBalanceCheck = 'enforce_balance_check';
+
+  /// نمط المزامنة السحابية: 'local' = نسخة محلية إضافية | 'drive' = Google Drive
+  /// الافتراضي: local (لأن مزامنة Drive تحتاج إعداد OAuth خارجي بعد)
+  static const String cloudSyncMode = 'cloud_sync_mode';
+
   // ── النسخ الاحتياطي ────────────────────────────────────────────────────────
 
   /// هل النسخ الاحتياطي التلقائي مفعَّل: 'true' | 'false'
