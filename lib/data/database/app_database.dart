@@ -115,7 +115,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -157,6 +157,11 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(vouchers, vouchers.invoiceNumber);
         await m.addColumn(vouchers, vouchers.spentBy);
         await m.addColumn(vouchers, vouchers.advanceNumber);
+      }
+
+      // ── الترقية إلى الإصدار 3 (رباط موثوق لسندَي التحويل) ──────────────
+      if (from < 3) {
+        await m.addColumn(vouchers, vouchers.transferGroupId);
       }
 
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────

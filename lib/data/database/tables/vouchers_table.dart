@@ -106,6 +106,12 @@ class Vouchers extends Table {
   TextColumn get advanceNumber =>
       text().named('advance_number').nullable()();
 
+  // معرّف مجموعة التحويل — يربط سندَي التحويل (transfer_out و transfer_in)
+  // برباط موثوق بدل المطابقة التخمينية (المبلغ+التاريخ+الخزائن) التي كانت
+  // تفشل مع تحويلين متطابقين في نفس اليوم. راجع تدقيق 2026-08-06 (H8).
+  TextColumn get transferGroupId =>
+      text().named('transfer_group_id').nullable()();
+
   // ملاحظات إضافية
   TextColumn get notes => text().withDefault(const Constant(''))();
 
