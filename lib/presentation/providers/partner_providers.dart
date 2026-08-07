@@ -85,6 +85,10 @@ class PartnerNotifier extends _$PartnerNotifier {
 
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
+  /// إبطال مزوّد مجموع نسب الحصص بعد أي كتابة — وإلا يبقى شريط توزيع
+  /// الحصص قديماً بعد كل إضافة/تعديل/حذف. تدقيق 2026-08-06 (H3).
+  void _invalidateShareTotal() => ref.invalidate(totalSharePercentageProvider);
+
   // ── إضافة شريك جديد ────────────────────────────────────────────────────
 
   Future<bool> createPartner({
@@ -130,6 +134,7 @@ class PartnerNotifier extends _$PartnerNotifier {
           notes: Value(notes.trim()),
         ),
       );
+      _invalidateShareTotal();
       state = const AsyncData('تم إضافة الشريك بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -187,6 +192,7 @@ class PartnerNotifier extends _$PartnerNotifier {
           isActive: Value(partner.isActive),
         ),
       );
+      _invalidateShareTotal();
       state = const AsyncData('تم تحديث بيانات الشريك ✓');
       return true;
     } catch (e, st) {
@@ -221,6 +227,7 @@ class PartnerNotifier extends _$PartnerNotifier {
     state = const AsyncLoading();
     try {
       await _db.partnersDao.softDeletePartner(id);
+      _invalidateShareTotal();
       state = const AsyncData('تم حذف الشريك ✓');
       return true;
     } catch (e, st) {
