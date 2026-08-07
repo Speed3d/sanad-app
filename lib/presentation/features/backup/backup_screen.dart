@@ -120,6 +120,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         _setStatus('لم يُعثَر على ملف قاعدة البيانات', error: true);
         return;
       }
+
+      // دمج سجل WAL في الملف الرئيسي قبل النسخ — وإلا تضيع آخر السندات
+      // المُثبَّتة التي لا تزال في ملف -wal المنفصل.
+      await ref.read(appDatabaseProvider).checkpointWal();
+
       final dbBytes = await dbFile.readAsBytes();
 
       // 2. التشفير (على خيط منفصل حتى لا تتجمد الواجهة)
@@ -198,6 +203,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       final dir = await getApplicationDocumentsDirectory();
       final dbPath = '${dir.path}/sales_management_db.sqlite';
       await io.File(dbPath).writeAsBytes(decrypted, flush: true);
+
+      // ⚠️ حذف ملفَّي WAL القديمَين (إصلاح تدقيق 2026-08-06):
+      //   بعد استبدال الملف الرئيسي، لو بقي ملف -wal قديم قد يُعيد SQLite
+      //   تشغيله فوق الملف المُستعاد فيُفسده. نحذف السايدكار لضمان نظافة
+      //   الاستعادة.
+      for (final suffix in const ['-wal', '-shm']) {
+        final sidecar = io.File('$dbPath$suffix');
+        if (sidecar.existsSync()) {
+          await sidecar.delete();
+        }
+      }
 
       // إعادة تحميل المزود
       ref.invalidate(appDatabaseProvider);
