@@ -396,7 +396,7 @@ final allTreasuriesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllTreasuriesRef = AutoDisposeFutureProviderRef<List<TreasuryModel>>;
-String _$treasuryNotifierHash() => r'c7aacc438b7285016bb0d4d65b00961bd076ae03';
+String _$treasuryNotifierHash() => r'35db5f660ab57dc6fbf82029f5d1027bb901f8c9';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف / تفعيل الخزائن
 ///

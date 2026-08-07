@@ -34,6 +34,9 @@ import 'tables/contractors_table.dart';
 import 'tables/partners_table.dart';
 import 'tables/audit_log_table.dart';
 import 'tables/exchange_rates_table.dart';
+import 'tables/advances_table.dart';
+import 'tables/advance_lines_table.dart';
+import 'tables/item_types_table.dart';
 import 'views/treasury_balance_view.dart';
 
 // ── استيراد الـ DAOs ──────────────────────────────────────────────────────────
@@ -47,6 +50,7 @@ import 'daos/contractors_dao.dart';
 import 'daos/partners_dao.dart';
 import 'daos/audit_log_dao.dart';
 import 'daos/exchange_rates_dao.dart';
+import 'daos/advances_dao.dart';
 
 // الملف المُولَّد تلقائياً بواسطة build_runner — لا تعدّله
 part 'app_database.g.dart';
@@ -82,6 +86,12 @@ part 'app_database.g.dart';
     Contractors,
     Partners,
 
+    // ── سلف المشاريع (Schema v5) ───────────────────────────────────────────
+    // ⚠️ Advances ≠ CashAdvances: الأولى سلفة مشروع، الثانية سلفة موظف
+    Advances,
+    AdvanceLines,
+    ItemTypes,
+
     // ── المساعد ────────────────────────────────────────────────────────────
     ExchangeRates,
     AuditLog,
@@ -98,6 +108,7 @@ part 'app_database.g.dart';
     PartnersDao,
     AuditLogDao,
     ExchangeRatesDao,
+    AdvancesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -115,7 +126,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -134,6 +145,9 @@ class AppDatabase extends _$AppDatabase {
 
       // إدراج البيانات الأولية (Seed Data)
       await _seedInitialData();
+
+      // بذور أنواع البنود الموحّدة
+      await _seedItemTypes();
     },
 
     /// يُنفَّذ عند ترقية الإصدار (schemaVersion تغيّر)
@@ -172,6 +186,17 @@ class AppDatabase extends _$AppDatabase {
         // عبر إعادة بناء الـ VIEW أدناه — لا يحتاجان تغييراً في الجداول.)
         // ignore: experimental_member_use
         await m.alterTable(TableMigration(cashAdvances));
+      }
+
+      // ── الترقية إلى الإصدار 5 (نظام سلف المشاريع بالمسودة) ────────────
+      if (from < 5) {
+        // جداول advances و advance_lines و item_types أُنشئت أعلاه عبر
+        // createAll() — يبقى العمود الجديد على جدول السندات القائم.
+        await m.addColumn(vouchers, vouchers.advanceId);
+
+        // بذور أنواع البنود — idempotent (insertOrIgnore) فلا تُكرّر شيئاً
+        // لو نُفِّذت الترقية أكثر من مرة أو كان الجدول مبذوراً أصلاً.
+        await _seedItemTypes();
       }
 
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────
@@ -247,6 +272,43 @@ class AppDatabase extends _$AppDatabase {
       CREATE INDEX IF NOT EXISTS idx_cash_advances_status
       ON cash_advances (status, employee_id)
       WHERE is_deleted = 0
+    ''');
+
+    // ── فهارس سلف المشاريع (Schema v5) ──────────────────────────────────
+
+    // منع تكرار رقم السلفة داخل نفس السنة المالية.
+    // جزئي (WHERE status != 'cancelled') عمداً: إلغاء سلفة يُحرّر رقمها
+    // لإعادة الاستعمال، وإلا لبقي الرقم محجوزاً للأبد بسبب خطأ أُلغي.
+    await customStatement('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_advances_number_unique
+      ON advances (fiscal_period_id, advance_number)
+      WHERE status != 'cancelled'
+    ''');
+
+    // قوائم السلف: الفلترة حسب الحالة والخزينة (الاستعلام الأشيع في الشاشة)
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_advances_status_treasury
+      ON advances (status, project_treasury_id)
+    ''');
+
+    // كشف الاستيراد المكرر: البحث ببصمة الملف
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_advances_file_hash
+      ON advances (source_file_hash)
+      WHERE source_file_hash != ''
+    ''');
+
+    // أسطر المسودة: تُقرأ دائماً بالكامل لسلفة واحدة
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_advance_lines_advance
+      ON advance_lines (advance_id, row_number)
+    ''');
+
+    // السندات المرتبطة بسلفة — لحساب المُرسَل والمصروف
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_vouchers_advance
+      ON vouchers (advance_id)
+      WHERE advance_id IS NOT NULL AND is_deleted = 0
     ''');
   }
 
@@ -330,6 +392,62 @@ class AppDatabase extends _$AppDatabase {
           description: const Value('إصدار الـ Schema — للاستخدام الداخلي فقط'),
         ),
       ]);
+    });
+  }
+
+  /// بذور أنواع البنود الموحّدة (Schema v5)
+  ///
+  /// تجمع القوائم الثابتة التي كانت مبعثرة في شاشتَي الصرف والقبض، وتضيف
+  /// إليها بنود مصاريف المشاريع الفعلية التي ترد في جداول الإكسل القادمة من
+  /// المحافظات (كهربائيات، بانزين، إنترنت، طعام…).
+  ///
+  /// **idempotent**: تستخدم `InsertMode.insertOrIgnore` مع قيد التفرّد على
+  /// `name`، فتكرار تنفيذها (في onCreate ثم onUpgrade مثلاً) لا يُنشئ نسخاً
+  /// مكررة ولا يرمي استثناءً، ولا يمسّ بنداً عدّله المالك أو عطّله.
+  Future<void> _seedItemTypes() async {
+    // (الاسم، النوع، ترتيب العرض)
+    const seeds = <({String name, String kind, int order})>[
+      // ── بنود صرف المشاريع (الأشيع في جداول الإكسل الواردة) ──────────
+      (name: 'مشتريات', kind: 'sarf', order: 10),
+      (name: 'كهربائيات', kind: 'sarf', order: 20),
+      (name: 'بانزين', kind: 'sarf', order: 30),
+      (name: 'نقل', kind: 'sarf', order: 40),
+      (name: 'طعام', kind: 'sarf', order: 50),
+      (name: 'إنترنت', kind: 'sarf', order: 60),
+      (name: 'صيانة', kind: 'sarf', order: 70),
+      (name: 'قرطاسية', kind: 'sarf', order: 80),
+      // ── بنود صرف إدارية ─────────────────────────────────────────────
+      (name: 'راتب', kind: 'sarf', order: 90),
+      (name: 'أجور عمال', kind: 'sarf', order: 100),
+      (name: 'إيجار', kind: 'sarf', order: 110),
+      (name: 'مصاريف تشغيل', kind: 'sarf', order: 120),
+      (name: 'رسوم وضرائب', kind: 'sarf', order: 130),
+      (name: 'سلفة', kind: 'sarf', order: 140),
+      // ── بنود القبض ──────────────────────────────────────────────────
+      (name: 'رأس مال', kind: 'kabd', order: 200),
+      (name: 'دفعة عميل', kind: 'kabd', order: 210),
+      (name: 'إيراد بيع', kind: 'kabd', order: 220),
+      (name: 'قرض وارد', kind: 'kabd', order: 230),
+      (name: 'مرتجع صرف', kind: 'kabd', order: 240),
+      (name: 'إيرادات أخرى', kind: 'kabd', order: 250),
+      // ── عام ─────────────────────────────────────────────────────────
+      (name: 'أخرى', kind: 'both', order: 999),
+    ];
+
+    await batch((batch) {
+      batch.insertAll(
+        itemTypes,
+        seeds
+            .map(
+              (s) => ItemTypesCompanion.insert(
+                name: s.name,
+                kind: Value(s.kind),
+                sortOrder: Value(s.order),
+              ),
+            )
+            .toList(),
+        mode: InsertMode.insertOrIgnore,
+      );
     });
   }
 }

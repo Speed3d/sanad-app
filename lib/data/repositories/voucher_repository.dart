@@ -9,6 +9,7 @@
 
 import 'package:drift/drift.dart';
 
+import '../../core/services/fiscal_period_guard.dart';
 import '../../domain/models/voucher_model.dart';
 import '../../domain/repositories/i_voucher_repository.dart';
 import '../database/app_database.dart';
@@ -123,19 +124,10 @@ class VoucherRepository implements IVoucherRepository {
 
   /// حارس الفترة المالية — يرمي استثناءً إذا كانت الفترة غير نشطة
   ///
-  /// ⚠️ لماذا؟ (إصلاح تدقيق 2026-08-06)
-  ///   الفترة المُقفَلة (frozen) تمثّل بيانات محاسبية مُجمَّدة. الكتابة أو
-  ///   التعديل أو الحذف فيها يغيّر أرصدة تاريخية بعد إغلاقها. الإنشاء كان
-  ///   محمياً ضمناً (getFiscalPeriodForDate تُعيد النشطة فقط)، لكن التعديل
-  ///   والحذف لم يكونا محميَّين إطلاقاً. هذا الحارس يسدّ الثغرة في كل المسارات.
-  Future<void> _ensurePeriodActive(int fiscalPeriodId) async {
-    final period = await _db.fiscalPeriodsDao.getPeriodById(fiscalPeriodId);
-    if (period != null && period.status != 'active') {
-      throw StateError(
-        'الفترة المالية "${period.name}" مُقفَلة — لا يمكن تعديل أو إضافة '
-        'سندات فيها. أعد فتح الفترة أولاً إذا لزم الأمر.',
-      );
-    }
+  /// المنطق انتقل إلى [FiscalPeriodGuard] لمّا صار مستودع السلف يحتاجه أيضاً،
+  /// فبقيت هذه الدالة غلافاً رفيعاً حفاظاً على مواضع الاستدعاء الأربعة أدناه.
+  Future<void> _ensurePeriodActive(int fiscalPeriodId) {
+    return FiscalPeriodGuard.ensureActive(_db, fiscalPeriodId);
   }
 
   @override

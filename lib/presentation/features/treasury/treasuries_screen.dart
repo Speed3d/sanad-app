@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../domain/models/treasury_model.dart';
+import '../../providers/advance_providers.dart';
 import '../../providers/treasury_providers.dart';
 
 // ── ثوابت الفلاتر ────────────────────────────────────────────────────────────
@@ -639,6 +640,71 @@ class _FilterRow extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// _PendingDraftWarning — تحذير المسودات المعلّقة على خزينة المشروع
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// يعرض ما ينتظر الاعتماد على هذه الخزينة، وما سيصير إليه رصيدها بعده
+///
+/// لماذا هذا التحذير؟
+///   مسودة السلفة لا تمسّ الرصيد (وهذا مقصود — لا شيء يمسّ الدفاتر قبل
+///   الاعتماد). لكن ذلك يعني أن الخزينة تبدو ممتلئة بينما مصاريفها وصلت
+///   فعلاً وتنتظر الاعتماد فقط. عرض «المتاح بعد الاعتماد» يكشف العجز
+///   **قبل** لحظة الاعتماد لا بعدها، فيتاح للمالك تحويل مبلغ تكميلي مبكراً.
+class _PendingDraftWarning extends ConsumerWidget {
+  const _PendingDraftWarning({
+    required this.treasuryId,
+    required this.balanceIqd,
+  });
+
+  final int treasuryId;
+  final double balanceIqd;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(pendingDraftTotalsProvider);
+    final pending = async.valueOrNull?[treasuryId] ?? 0.0;
+    if (pending <= 0) return const SizedBox.shrink();
+
+    final fmt = NumberFormat('#,###', 'en_US');
+    final after = balanceIqd - pending;
+    final willBeNegative = after < 0;
+    final color = willBeNegative ? Colors.red.shade700 : Colors.orange.shade800;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.pending_actions_outlined, size: 14, color: color),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'معلّق في مسودات ${fmt.format(pending)} د.ع · '
+                'المتاح بعد الاعتماد ${fmt.format(after.abs())} د.ع'
+                '${willBeNegative ? ' (عجز)' : ''}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: color,
+                  fontWeight:
+                      willBeNegative ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // _TreasuryCard — بطاقة الخزينة
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -786,6 +852,12 @@ class _TreasuryCard extends StatelessWidget {
                       ),
                     ],
                   ],
+                ),
+
+                // ── تحذير المسودات المعلّقة ────────────────────────
+                _PendingDraftWarning(
+                  treasuryId: balance.treasuryId,
+                  balanceIqd: balance.balanceIqd,
                 ),
 
                 const SizedBox(height: 12),

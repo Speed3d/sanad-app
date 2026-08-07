@@ -67,13 +67,14 @@ void main() {
       AppPermission.deleteVoucher,
       AppPermission.manageTreasuries,
       AppPermission.manageExchangeRate,
-      AppPermission.importExcel,
       AppPermission.createBackup,
       AppPermission.viewAudit,
       AppPermission.closeFiscalPeriod,
       AppPermission.manageUsers,
       AppPermission.managePayroll,
       AppPermission.cancelAdvance,
+      AppPermission.postAdvance,
+      AppPermission.postAdvanceWithDeficit,
     ];
 
     test('super_admin و admin يملكانها', () {
@@ -94,6 +95,8 @@ void main() {
     const basicOps = [
       AppPermission.createVoucher,
       AppPermission.manageEntities,
+      AppPermission.importExcel,
+      AppPermission.prepareAdvance,
     ];
 
     test('الأدوار الثلاثة تملكها', () {
@@ -102,6 +105,28 @@ void main() {
         expect(admin.can(p), isTrue);
         expect(user.can(p), isTrue);
       }
+    });
+  });
+
+  // ── فصل الأدوار في نظام السلف (قرار المالك 2026-08-07) ──────────────────
+  group('فصل الأدوار في نظام السلف', () {
+    test('المحاسب (user) يستورد ويجهّز المسودة ويحرّرها', () {
+      expect(user.can(AppPermission.importExcel), isTrue,
+          reason: 'الاستيراد صار يُنتج مسودة لا سندات — لا أثر مالي');
+      expect(user.can(AppPermission.prepareAdvance), isTrue,
+          reason: 'تحرير المسودة بلا أثر مالي');
+    });
+
+    test('لكن المحاسب لا يعتمد — الاعتماد هو الحاجز الحقيقي', () {
+      expect(user.can(AppPermission.postAdvance), isFalse,
+          reason: 'الاعتماد هو اللحظة الوحيدة التي تتأثر فيها الخزينة');
+      expect(user.can(AppPermission.postAdvanceWithDeficit), isFalse);
+      expect(user.can(AppPermission.cancelAdvance), isFalse);
+    });
+
+    test('المدير يعتمد ويعتمد بعجز', () {
+      expect(admin.can(AppPermission.postAdvance), isTrue);
+      expect(admin.can(AppPermission.postAdvanceWithDeficit), isTrue);
     });
   });
 

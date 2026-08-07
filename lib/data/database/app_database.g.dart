@@ -2521,6 +2521,12 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
   late final GeneratedColumn<String> advanceNumber = GeneratedColumn<String>(
       'advance_number', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _advanceIdMeta =
+      const VerificationMeta('advanceId');
+  @override
+  late final GeneratedColumn<int> advanceId = GeneratedColumn<int>(
+      'advance_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _transferGroupIdMeta =
       const VerificationMeta('transferGroupId');
   @override
@@ -2601,6 +2607,7 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
         invoiceNumber,
         spentBy,
         advanceNumber,
+        advanceId,
         transferGroupId,
         notes,
         createdByUserId,
@@ -2743,6 +2750,10 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
           advanceNumber.isAcceptableOrUnknown(
               data['advance_number']!, _advanceNumberMeta));
     }
+    if (data.containsKey('advance_id')) {
+      context.handle(_advanceIdMeta,
+          advanceId.isAcceptableOrUnknown(data['advance_id']!, _advanceIdMeta));
+    }
     if (data.containsKey('transfer_group_id')) {
       context.handle(
           _transferGroupIdMeta,
@@ -2832,6 +2843,8 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
           .read(DriftSqlType.string, data['${effectivePrefix}spent_by']),
       advanceNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}advance_number']),
+      advanceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}advance_id']),
       transferGroupId: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}transfer_group_id']),
       notes: attachedDatabase.typeMapping
@@ -2879,6 +2892,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
   final String? invoiceNumber;
   final String? spentBy;
   final String? advanceNumber;
+  final int? advanceId;
   final String? transferGroupId;
   final String notes;
   final int? createdByUserId;
@@ -2909,6 +2923,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       this.invoiceNumber,
       this.spentBy,
       this.advanceNumber,
+      this.advanceId,
       this.transferGroupId,
       required this.notes,
       this.createdByUserId,
@@ -2954,6 +2969,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
     }
     if (!nullToAbsent || advanceNumber != null) {
       map['advance_number'] = Variable<String>(advanceNumber);
+    }
+    if (!nullToAbsent || advanceId != null) {
+      map['advance_id'] = Variable<int>(advanceId);
     }
     if (!nullToAbsent || transferGroupId != null) {
       map['transfer_group_id'] = Variable<String>(transferGroupId);
@@ -3011,6 +3029,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       advanceNumber: advanceNumber == null && nullToAbsent
           ? const Value.absent()
           : Value(advanceNumber),
+      advanceId: advanceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceId),
       transferGroupId: transferGroupId == null && nullToAbsent
           ? const Value.absent()
           : Value(transferGroupId),
@@ -3055,6 +3076,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       invoiceNumber: serializer.fromJson<String?>(json['invoiceNumber']),
       spentBy: serializer.fromJson<String?>(json['spentBy']),
       advanceNumber: serializer.fromJson<String?>(json['advanceNumber']),
+      advanceId: serializer.fromJson<int?>(json['advanceId']),
       transferGroupId: serializer.fromJson<String?>(json['transferGroupId']),
       notes: serializer.fromJson<String>(json['notes']),
       createdByUserId: serializer.fromJson<int?>(json['createdByUserId']),
@@ -3090,6 +3112,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       'invoiceNumber': serializer.toJson<String?>(invoiceNumber),
       'spentBy': serializer.toJson<String?>(spentBy),
       'advanceNumber': serializer.toJson<String?>(advanceNumber),
+      'advanceId': serializer.toJson<int?>(advanceId),
       'transferGroupId': serializer.toJson<String?>(transferGroupId),
       'notes': serializer.toJson<String>(notes),
       'createdByUserId': serializer.toJson<int?>(createdByUserId),
@@ -3123,6 +3146,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           Value<String?> invoiceNumber = const Value.absent(),
           Value<String?> spentBy = const Value.absent(),
           Value<String?> advanceNumber = const Value.absent(),
+          Value<int?> advanceId = const Value.absent(),
           Value<String?> transferGroupId = const Value.absent(),
           String? notes,
           Value<int?> createdByUserId = const Value.absent(),
@@ -3160,6 +3184,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
         spentBy: spentBy.present ? spentBy.value : this.spentBy,
         advanceNumber:
             advanceNumber.present ? advanceNumber.value : this.advanceNumber,
+        advanceId: advanceId.present ? advanceId.value : this.advanceId,
         transferGroupId: transferGroupId.present
             ? transferGroupId.value
             : this.transferGroupId,
@@ -3221,6 +3246,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       advanceNumber: data.advanceNumber.present
           ? data.advanceNumber.value
           : this.advanceNumber,
+      advanceId: data.advanceId.present ? data.advanceId.value : this.advanceId,
       transferGroupId: data.transferGroupId.present
           ? data.transferGroupId.value
           : this.transferGroupId,
@@ -3262,6 +3288,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           ..write('invoiceNumber: $invoiceNumber, ')
           ..write('spentBy: $spentBy, ')
           ..write('advanceNumber: $advanceNumber, ')
+          ..write('advanceId: $advanceId, ')
           ..write('transferGroupId: $transferGroupId, ')
           ..write('notes: $notes, ')
           ..write('createdByUserId: $createdByUserId, ')
@@ -3297,6 +3324,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
         invoiceNumber,
         spentBy,
         advanceNumber,
+        advanceId,
         transferGroupId,
         notes,
         createdByUserId,
@@ -3331,6 +3359,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           other.invoiceNumber == this.invoiceNumber &&
           other.spentBy == this.spentBy &&
           other.advanceNumber == this.advanceNumber &&
+          other.advanceId == this.advanceId &&
           other.transferGroupId == this.transferGroupId &&
           other.notes == this.notes &&
           other.createdByUserId == this.createdByUserId &&
@@ -3363,6 +3392,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
   final Value<String?> invoiceNumber;
   final Value<String?> spentBy;
   final Value<String?> advanceNumber;
+  final Value<int?> advanceId;
   final Value<String?> transferGroupId;
   final Value<String> notes;
   final Value<int?> createdByUserId;
@@ -3393,6 +3423,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     this.invoiceNumber = const Value.absent(),
     this.spentBy = const Value.absent(),
     this.advanceNumber = const Value.absent(),
+    this.advanceId = const Value.absent(),
     this.transferGroupId = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdByUserId = const Value.absent(),
@@ -3424,6 +3455,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     this.invoiceNumber = const Value.absent(),
     this.spentBy = const Value.absent(),
     this.advanceNumber = const Value.absent(),
+    this.advanceId = const Value.absent(),
     this.transferGroupId = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdByUserId = const Value.absent(),
@@ -3460,6 +3492,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     Expression<String>? invoiceNumber,
     Expression<String>? spentBy,
     Expression<String>? advanceNumber,
+    Expression<int>? advanceId,
     Expression<String>? transferGroupId,
     Expression<String>? notes,
     Expression<int>? createdByUserId,
@@ -3491,6 +3524,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       if (invoiceNumber != null) 'invoice_number': invoiceNumber,
       if (spentBy != null) 'spent_by': spentBy,
       if (advanceNumber != null) 'advance_number': advanceNumber,
+      if (advanceId != null) 'advance_id': advanceId,
       if (transferGroupId != null) 'transfer_group_id': transferGroupId,
       if (notes != null) 'notes': notes,
       if (createdByUserId != null) 'created_by_user_id': createdByUserId,
@@ -3524,6 +3558,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       Value<String?>? invoiceNumber,
       Value<String?>? spentBy,
       Value<String?>? advanceNumber,
+      Value<int?>? advanceId,
       Value<String?>? transferGroupId,
       Value<String>? notes,
       Value<int?>? createdByUserId,
@@ -3554,6 +3589,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       spentBy: spentBy ?? this.spentBy,
       advanceNumber: advanceNumber ?? this.advanceNumber,
+      advanceId: advanceId ?? this.advanceId,
       transferGroupId: transferGroupId ?? this.transferGroupId,
       notes: notes ?? this.notes,
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -3631,6 +3667,9 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     if (advanceNumber.present) {
       map['advance_number'] = Variable<String>(advanceNumber.value);
     }
+    if (advanceId.present) {
+      map['advance_id'] = Variable<int>(advanceId.value);
+    }
     if (transferGroupId.present) {
       map['transfer_group_id'] = Variable<String>(transferGroupId.value);
     }
@@ -3682,6 +3721,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
           ..write('invoiceNumber: $invoiceNumber, ')
           ..write('spentBy: $spentBy, ')
           ..write('advanceNumber: $advanceNumber, ')
+          ..write('advanceId: $advanceId, ')
           ..write('transferGroupId: $transferGroupId, ')
           ..write('notes: $notes, ')
           ..write('createdByUserId: $createdByUserId, ')
@@ -6943,6 +6983,2075 @@ class PartnersCompanion extends UpdateCompanion<Partner> {
   }
 }
 
+class $AdvancesTable extends Advances with TableInfo<$AdvancesTable, Advance> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AdvancesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _advanceNumberMeta =
+      const VerificationMeta('advanceNumber');
+  @override
+  late final GeneratedColumn<String> advanceNumber = GeneratedColumn<String>(
+      'advance_number', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _projectTreasuryIdMeta =
+      const VerificationMeta('projectTreasuryId');
+  @override
+  late final GeneratedColumn<int> projectTreasuryId = GeneratedColumn<int>(
+      'project_treasury_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES treasuries (id)'));
+  static const VerificationMeta _fiscalPeriodIdMeta =
+      const VerificationMeta('fiscalPeriodId');
+  @override
+  late final GeneratedColumn<int> fiscalPeriodId = GeneratedColumn<int>(
+      'fiscal_period_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES fiscal_periods (id)'));
+  static const VerificationMeta _projectNameMeta =
+      const VerificationMeta('projectName');
+  @override
+  late final GeneratedColumn<String> projectName = GeneratedColumn<String>(
+      'project_name', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _advanceDateMeta =
+      const VerificationMeta('advanceDate');
+  @override
+  late final GeneratedColumn<DateTime> advanceDate = GeneratedColumn<DateTime>(
+      'advance_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('open'));
+  static const VerificationMeta _excelTotalMeta =
+      const VerificationMeta('excelTotal');
+  @override
+  late final GeneratedColumn<double> excelTotal = GeneratedColumn<double>(
+      'excel_total', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _sourceFileNameMeta =
+      const VerificationMeta('sourceFileName');
+  @override
+  late final GeneratedColumn<String> sourceFileName = GeneratedColumn<String>(
+      'source_file_name', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _sourceFileHashMeta =
+      const VerificationMeta('sourceFileHash');
+  @override
+  late final GeneratedColumn<String> sourceFileHash = GeneratedColumn<String>(
+      'source_file_hash', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deficitAmountMeta =
+      const VerificationMeta('deficitAmount');
+  @override
+  late final GeneratedColumn<double> deficitAmount = GeneratedColumn<double>(
+      'deficit_amount', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _deficitCoveredByMeta =
+      const VerificationMeta('deficitCoveredBy');
+  @override
+  late final GeneratedColumn<String> deficitCoveredBy = GeneratedColumn<String>(
+      'deficit_covered_by', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdByUserIdMeta =
+      const VerificationMeta('createdByUserId');
+  @override
+  late final GeneratedColumn<int> createdByUserId = GeneratedColumn<int>(
+      'created_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _postedByUserIdMeta =
+      const VerificationMeta('postedByUserId');
+  @override
+  late final GeneratedColumn<int> postedByUserId = GeneratedColumn<int>(
+      'posted_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _postedAtMeta =
+      const VerificationMeta('postedAt');
+  @override
+  late final GeneratedColumn<DateTime> postedAt = GeneratedColumn<DateTime>(
+      'posted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _cancelledByUserIdMeta =
+      const VerificationMeta('cancelledByUserId');
+  @override
+  late final GeneratedColumn<int> cancelledByUserId = GeneratedColumn<int>(
+      'cancelled_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _cancelledAtMeta =
+      const VerificationMeta('cancelledAt');
+  @override
+  late final GeneratedColumn<DateTime> cancelledAt = GeneratedColumn<DateTime>(
+      'cancelled_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        advanceNumber,
+        projectTreasuryId,
+        fiscalPeriodId,
+        projectName,
+        advanceDate,
+        status,
+        excelTotal,
+        sourceFileName,
+        sourceFileHash,
+        deficitAmount,
+        deficitCoveredBy,
+        notes,
+        createdByUserId,
+        createdAt,
+        postedByUserId,
+        postedAt,
+        cancelledByUserId,
+        cancelledAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'advances';
+  @override
+  VerificationContext validateIntegrity(Insertable<Advance> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('advance_number')) {
+      context.handle(
+          _advanceNumberMeta,
+          advanceNumber.isAcceptableOrUnknown(
+              data['advance_number']!, _advanceNumberMeta));
+    } else if (isInserting) {
+      context.missing(_advanceNumberMeta);
+    }
+    if (data.containsKey('project_treasury_id')) {
+      context.handle(
+          _projectTreasuryIdMeta,
+          projectTreasuryId.isAcceptableOrUnknown(
+              data['project_treasury_id']!, _projectTreasuryIdMeta));
+    } else if (isInserting) {
+      context.missing(_projectTreasuryIdMeta);
+    }
+    if (data.containsKey('fiscal_period_id')) {
+      context.handle(
+          _fiscalPeriodIdMeta,
+          fiscalPeriodId.isAcceptableOrUnknown(
+              data['fiscal_period_id']!, _fiscalPeriodIdMeta));
+    } else if (isInserting) {
+      context.missing(_fiscalPeriodIdMeta);
+    }
+    if (data.containsKey('project_name')) {
+      context.handle(
+          _projectNameMeta,
+          projectName.isAcceptableOrUnknown(
+              data['project_name']!, _projectNameMeta));
+    }
+    if (data.containsKey('advance_date')) {
+      context.handle(
+          _advanceDateMeta,
+          advanceDate.isAcceptableOrUnknown(
+              data['advance_date']!, _advanceDateMeta));
+    } else if (isInserting) {
+      context.missing(_advanceDateMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('excel_total')) {
+      context.handle(
+          _excelTotalMeta,
+          excelTotal.isAcceptableOrUnknown(
+              data['excel_total']!, _excelTotalMeta));
+    }
+    if (data.containsKey('source_file_name')) {
+      context.handle(
+          _sourceFileNameMeta,
+          sourceFileName.isAcceptableOrUnknown(
+              data['source_file_name']!, _sourceFileNameMeta));
+    }
+    if (data.containsKey('source_file_hash')) {
+      context.handle(
+          _sourceFileHashMeta,
+          sourceFileHash.isAcceptableOrUnknown(
+              data['source_file_hash']!, _sourceFileHashMeta));
+    }
+    if (data.containsKey('deficit_amount')) {
+      context.handle(
+          _deficitAmountMeta,
+          deficitAmount.isAcceptableOrUnknown(
+              data['deficit_amount']!, _deficitAmountMeta));
+    }
+    if (data.containsKey('deficit_covered_by')) {
+      context.handle(
+          _deficitCoveredByMeta,
+          deficitCoveredBy.isAcceptableOrUnknown(
+              data['deficit_covered_by']!, _deficitCoveredByMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('created_by_user_id')) {
+      context.handle(
+          _createdByUserIdMeta,
+          createdByUserId.isAcceptableOrUnknown(
+              data['created_by_user_id']!, _createdByUserIdMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('posted_by_user_id')) {
+      context.handle(
+          _postedByUserIdMeta,
+          postedByUserId.isAcceptableOrUnknown(
+              data['posted_by_user_id']!, _postedByUserIdMeta));
+    }
+    if (data.containsKey('posted_at')) {
+      context.handle(_postedAtMeta,
+          postedAt.isAcceptableOrUnknown(data['posted_at']!, _postedAtMeta));
+    }
+    if (data.containsKey('cancelled_by_user_id')) {
+      context.handle(
+          _cancelledByUserIdMeta,
+          cancelledByUserId.isAcceptableOrUnknown(
+              data['cancelled_by_user_id']!, _cancelledByUserIdMeta));
+    }
+    if (data.containsKey('cancelled_at')) {
+      context.handle(
+          _cancelledAtMeta,
+          cancelledAt.isAcceptableOrUnknown(
+              data['cancelled_at']!, _cancelledAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Advance map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Advance(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      advanceNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}advance_number'])!,
+      projectTreasuryId: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}project_treasury_id'])!,
+      fiscalPeriodId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}fiscal_period_id'])!,
+      projectName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}project_name'])!,
+      advanceDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}advance_date'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      excelTotal: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}excel_total'])!,
+      sourceFileName: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}source_file_name'])!,
+      sourceFileHash: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}source_file_hash'])!,
+      deficitAmount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}deficit_amount'])!,
+      deficitCoveredBy: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}deficit_covered_by']),
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      createdByUserId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_by_user_id']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      postedByUserId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}posted_by_user_id']),
+      postedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}posted_at']),
+      cancelledByUserId: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}cancelled_by_user_id']),
+      cancelledAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}cancelled_at']),
+    );
+  }
+
+  @override
+  $AdvancesTable createAlias(String alias) {
+    return $AdvancesTable(attachedDatabase, alias);
+  }
+}
+
+class Advance extends DataClass implements Insertable<Advance> {
+  final int id;
+  final String advanceNumber;
+  final int projectTreasuryId;
+  final int fiscalPeriodId;
+  final String projectName;
+  final DateTime advanceDate;
+  final String status;
+  final double excelTotal;
+  final String sourceFileName;
+  final String sourceFileHash;
+  final double deficitAmount;
+  final String? deficitCoveredBy;
+  final String notes;
+  final int? createdByUserId;
+  final DateTime createdAt;
+  final int? postedByUserId;
+  final DateTime? postedAt;
+  final int? cancelledByUserId;
+  final DateTime? cancelledAt;
+  const Advance(
+      {required this.id,
+      required this.advanceNumber,
+      required this.projectTreasuryId,
+      required this.fiscalPeriodId,
+      required this.projectName,
+      required this.advanceDate,
+      required this.status,
+      required this.excelTotal,
+      required this.sourceFileName,
+      required this.sourceFileHash,
+      required this.deficitAmount,
+      this.deficitCoveredBy,
+      required this.notes,
+      this.createdByUserId,
+      required this.createdAt,
+      this.postedByUserId,
+      this.postedAt,
+      this.cancelledByUserId,
+      this.cancelledAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['advance_number'] = Variable<String>(advanceNumber);
+    map['project_treasury_id'] = Variable<int>(projectTreasuryId);
+    map['fiscal_period_id'] = Variable<int>(fiscalPeriodId);
+    map['project_name'] = Variable<String>(projectName);
+    map['advance_date'] = Variable<DateTime>(advanceDate);
+    map['status'] = Variable<String>(status);
+    map['excel_total'] = Variable<double>(excelTotal);
+    map['source_file_name'] = Variable<String>(sourceFileName);
+    map['source_file_hash'] = Variable<String>(sourceFileHash);
+    map['deficit_amount'] = Variable<double>(deficitAmount);
+    if (!nullToAbsent || deficitCoveredBy != null) {
+      map['deficit_covered_by'] = Variable<String>(deficitCoveredBy);
+    }
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || createdByUserId != null) {
+      map['created_by_user_id'] = Variable<int>(createdByUserId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || postedByUserId != null) {
+      map['posted_by_user_id'] = Variable<int>(postedByUserId);
+    }
+    if (!nullToAbsent || postedAt != null) {
+      map['posted_at'] = Variable<DateTime>(postedAt);
+    }
+    if (!nullToAbsent || cancelledByUserId != null) {
+      map['cancelled_by_user_id'] = Variable<int>(cancelledByUserId);
+    }
+    if (!nullToAbsent || cancelledAt != null) {
+      map['cancelled_at'] = Variable<DateTime>(cancelledAt);
+    }
+    return map;
+  }
+
+  AdvancesCompanion toCompanion(bool nullToAbsent) {
+    return AdvancesCompanion(
+      id: Value(id),
+      advanceNumber: Value(advanceNumber),
+      projectTreasuryId: Value(projectTreasuryId),
+      fiscalPeriodId: Value(fiscalPeriodId),
+      projectName: Value(projectName),
+      advanceDate: Value(advanceDate),
+      status: Value(status),
+      excelTotal: Value(excelTotal),
+      sourceFileName: Value(sourceFileName),
+      sourceFileHash: Value(sourceFileHash),
+      deficitAmount: Value(deficitAmount),
+      deficitCoveredBy: deficitCoveredBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deficitCoveredBy),
+      notes: Value(notes),
+      createdByUserId: createdByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdByUserId),
+      createdAt: Value(createdAt),
+      postedByUserId: postedByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postedByUserId),
+      postedAt: postedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postedAt),
+      cancelledByUserId: cancelledByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cancelledByUserId),
+      cancelledAt: cancelledAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cancelledAt),
+    );
+  }
+
+  factory Advance.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Advance(
+      id: serializer.fromJson<int>(json['id']),
+      advanceNumber: serializer.fromJson<String>(json['advanceNumber']),
+      projectTreasuryId: serializer.fromJson<int>(json['projectTreasuryId']),
+      fiscalPeriodId: serializer.fromJson<int>(json['fiscalPeriodId']),
+      projectName: serializer.fromJson<String>(json['projectName']),
+      advanceDate: serializer.fromJson<DateTime>(json['advanceDate']),
+      status: serializer.fromJson<String>(json['status']),
+      excelTotal: serializer.fromJson<double>(json['excelTotal']),
+      sourceFileName: serializer.fromJson<String>(json['sourceFileName']),
+      sourceFileHash: serializer.fromJson<String>(json['sourceFileHash']),
+      deficitAmount: serializer.fromJson<double>(json['deficitAmount']),
+      deficitCoveredBy: serializer.fromJson<String?>(json['deficitCoveredBy']),
+      notes: serializer.fromJson<String>(json['notes']),
+      createdByUserId: serializer.fromJson<int?>(json['createdByUserId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      postedByUserId: serializer.fromJson<int?>(json['postedByUserId']),
+      postedAt: serializer.fromJson<DateTime?>(json['postedAt']),
+      cancelledByUserId: serializer.fromJson<int?>(json['cancelledByUserId']),
+      cancelledAt: serializer.fromJson<DateTime?>(json['cancelledAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'advanceNumber': serializer.toJson<String>(advanceNumber),
+      'projectTreasuryId': serializer.toJson<int>(projectTreasuryId),
+      'fiscalPeriodId': serializer.toJson<int>(fiscalPeriodId),
+      'projectName': serializer.toJson<String>(projectName),
+      'advanceDate': serializer.toJson<DateTime>(advanceDate),
+      'status': serializer.toJson<String>(status),
+      'excelTotal': serializer.toJson<double>(excelTotal),
+      'sourceFileName': serializer.toJson<String>(sourceFileName),
+      'sourceFileHash': serializer.toJson<String>(sourceFileHash),
+      'deficitAmount': serializer.toJson<double>(deficitAmount),
+      'deficitCoveredBy': serializer.toJson<String?>(deficitCoveredBy),
+      'notes': serializer.toJson<String>(notes),
+      'createdByUserId': serializer.toJson<int?>(createdByUserId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'postedByUserId': serializer.toJson<int?>(postedByUserId),
+      'postedAt': serializer.toJson<DateTime?>(postedAt),
+      'cancelledByUserId': serializer.toJson<int?>(cancelledByUserId),
+      'cancelledAt': serializer.toJson<DateTime?>(cancelledAt),
+    };
+  }
+
+  Advance copyWith(
+          {int? id,
+          String? advanceNumber,
+          int? projectTreasuryId,
+          int? fiscalPeriodId,
+          String? projectName,
+          DateTime? advanceDate,
+          String? status,
+          double? excelTotal,
+          String? sourceFileName,
+          String? sourceFileHash,
+          double? deficitAmount,
+          Value<String?> deficitCoveredBy = const Value.absent(),
+          String? notes,
+          Value<int?> createdByUserId = const Value.absent(),
+          DateTime? createdAt,
+          Value<int?> postedByUserId = const Value.absent(),
+          Value<DateTime?> postedAt = const Value.absent(),
+          Value<int?> cancelledByUserId = const Value.absent(),
+          Value<DateTime?> cancelledAt = const Value.absent()}) =>
+      Advance(
+        id: id ?? this.id,
+        advanceNumber: advanceNumber ?? this.advanceNumber,
+        projectTreasuryId: projectTreasuryId ?? this.projectTreasuryId,
+        fiscalPeriodId: fiscalPeriodId ?? this.fiscalPeriodId,
+        projectName: projectName ?? this.projectName,
+        advanceDate: advanceDate ?? this.advanceDate,
+        status: status ?? this.status,
+        excelTotal: excelTotal ?? this.excelTotal,
+        sourceFileName: sourceFileName ?? this.sourceFileName,
+        sourceFileHash: sourceFileHash ?? this.sourceFileHash,
+        deficitAmount: deficitAmount ?? this.deficitAmount,
+        deficitCoveredBy: deficitCoveredBy.present
+            ? deficitCoveredBy.value
+            : this.deficitCoveredBy,
+        notes: notes ?? this.notes,
+        createdByUserId: createdByUserId.present
+            ? createdByUserId.value
+            : this.createdByUserId,
+        createdAt: createdAt ?? this.createdAt,
+        postedByUserId:
+            postedByUserId.present ? postedByUserId.value : this.postedByUserId,
+        postedAt: postedAt.present ? postedAt.value : this.postedAt,
+        cancelledByUserId: cancelledByUserId.present
+            ? cancelledByUserId.value
+            : this.cancelledByUserId,
+        cancelledAt: cancelledAt.present ? cancelledAt.value : this.cancelledAt,
+      );
+  Advance copyWithCompanion(AdvancesCompanion data) {
+    return Advance(
+      id: data.id.present ? data.id.value : this.id,
+      advanceNumber: data.advanceNumber.present
+          ? data.advanceNumber.value
+          : this.advanceNumber,
+      projectTreasuryId: data.projectTreasuryId.present
+          ? data.projectTreasuryId.value
+          : this.projectTreasuryId,
+      fiscalPeriodId: data.fiscalPeriodId.present
+          ? data.fiscalPeriodId.value
+          : this.fiscalPeriodId,
+      projectName:
+          data.projectName.present ? data.projectName.value : this.projectName,
+      advanceDate:
+          data.advanceDate.present ? data.advanceDate.value : this.advanceDate,
+      status: data.status.present ? data.status.value : this.status,
+      excelTotal:
+          data.excelTotal.present ? data.excelTotal.value : this.excelTotal,
+      sourceFileName: data.sourceFileName.present
+          ? data.sourceFileName.value
+          : this.sourceFileName,
+      sourceFileHash: data.sourceFileHash.present
+          ? data.sourceFileHash.value
+          : this.sourceFileHash,
+      deficitAmount: data.deficitAmount.present
+          ? data.deficitAmount.value
+          : this.deficitAmount,
+      deficitCoveredBy: data.deficitCoveredBy.present
+          ? data.deficitCoveredBy.value
+          : this.deficitCoveredBy,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdByUserId: data.createdByUserId.present
+          ? data.createdByUserId.value
+          : this.createdByUserId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      postedByUserId: data.postedByUserId.present
+          ? data.postedByUserId.value
+          : this.postedByUserId,
+      postedAt: data.postedAt.present ? data.postedAt.value : this.postedAt,
+      cancelledByUserId: data.cancelledByUserId.present
+          ? data.cancelledByUserId.value
+          : this.cancelledByUserId,
+      cancelledAt:
+          data.cancelledAt.present ? data.cancelledAt.value : this.cancelledAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Advance(')
+          ..write('id: $id, ')
+          ..write('advanceNumber: $advanceNumber, ')
+          ..write('projectTreasuryId: $projectTreasuryId, ')
+          ..write('fiscalPeriodId: $fiscalPeriodId, ')
+          ..write('projectName: $projectName, ')
+          ..write('advanceDate: $advanceDate, ')
+          ..write('status: $status, ')
+          ..write('excelTotal: $excelTotal, ')
+          ..write('sourceFileName: $sourceFileName, ')
+          ..write('sourceFileHash: $sourceFileHash, ')
+          ..write('deficitAmount: $deficitAmount, ')
+          ..write('deficitCoveredBy: $deficitCoveredBy, ')
+          ..write('notes: $notes, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('postedByUserId: $postedByUserId, ')
+          ..write('postedAt: $postedAt, ')
+          ..write('cancelledByUserId: $cancelledByUserId, ')
+          ..write('cancelledAt: $cancelledAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      advanceNumber,
+      projectTreasuryId,
+      fiscalPeriodId,
+      projectName,
+      advanceDate,
+      status,
+      excelTotal,
+      sourceFileName,
+      sourceFileHash,
+      deficitAmount,
+      deficitCoveredBy,
+      notes,
+      createdByUserId,
+      createdAt,
+      postedByUserId,
+      postedAt,
+      cancelledByUserId,
+      cancelledAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Advance &&
+          other.id == this.id &&
+          other.advanceNumber == this.advanceNumber &&
+          other.projectTreasuryId == this.projectTreasuryId &&
+          other.fiscalPeriodId == this.fiscalPeriodId &&
+          other.projectName == this.projectName &&
+          other.advanceDate == this.advanceDate &&
+          other.status == this.status &&
+          other.excelTotal == this.excelTotal &&
+          other.sourceFileName == this.sourceFileName &&
+          other.sourceFileHash == this.sourceFileHash &&
+          other.deficitAmount == this.deficitAmount &&
+          other.deficitCoveredBy == this.deficitCoveredBy &&
+          other.notes == this.notes &&
+          other.createdByUserId == this.createdByUserId &&
+          other.createdAt == this.createdAt &&
+          other.postedByUserId == this.postedByUserId &&
+          other.postedAt == this.postedAt &&
+          other.cancelledByUserId == this.cancelledByUserId &&
+          other.cancelledAt == this.cancelledAt);
+}
+
+class AdvancesCompanion extends UpdateCompanion<Advance> {
+  final Value<int> id;
+  final Value<String> advanceNumber;
+  final Value<int> projectTreasuryId;
+  final Value<int> fiscalPeriodId;
+  final Value<String> projectName;
+  final Value<DateTime> advanceDate;
+  final Value<String> status;
+  final Value<double> excelTotal;
+  final Value<String> sourceFileName;
+  final Value<String> sourceFileHash;
+  final Value<double> deficitAmount;
+  final Value<String?> deficitCoveredBy;
+  final Value<String> notes;
+  final Value<int?> createdByUserId;
+  final Value<DateTime> createdAt;
+  final Value<int?> postedByUserId;
+  final Value<DateTime?> postedAt;
+  final Value<int?> cancelledByUserId;
+  final Value<DateTime?> cancelledAt;
+  const AdvancesCompanion({
+    this.id = const Value.absent(),
+    this.advanceNumber = const Value.absent(),
+    this.projectTreasuryId = const Value.absent(),
+    this.fiscalPeriodId = const Value.absent(),
+    this.projectName = const Value.absent(),
+    this.advanceDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.excelTotal = const Value.absent(),
+    this.sourceFileName = const Value.absent(),
+    this.sourceFileHash = const Value.absent(),
+    this.deficitAmount = const Value.absent(),
+    this.deficitCoveredBy = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.postedByUserId = const Value.absent(),
+    this.postedAt = const Value.absent(),
+    this.cancelledByUserId = const Value.absent(),
+    this.cancelledAt = const Value.absent(),
+  });
+  AdvancesCompanion.insert({
+    this.id = const Value.absent(),
+    required String advanceNumber,
+    required int projectTreasuryId,
+    required int fiscalPeriodId,
+    this.projectName = const Value.absent(),
+    required DateTime advanceDate,
+    this.status = const Value.absent(),
+    this.excelTotal = const Value.absent(),
+    this.sourceFileName = const Value.absent(),
+    this.sourceFileHash = const Value.absent(),
+    this.deficitAmount = const Value.absent(),
+    this.deficitCoveredBy = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.postedByUserId = const Value.absent(),
+    this.postedAt = const Value.absent(),
+    this.cancelledByUserId = const Value.absent(),
+    this.cancelledAt = const Value.absent(),
+  })  : advanceNumber = Value(advanceNumber),
+        projectTreasuryId = Value(projectTreasuryId),
+        fiscalPeriodId = Value(fiscalPeriodId),
+        advanceDate = Value(advanceDate);
+  static Insertable<Advance> custom({
+    Expression<int>? id,
+    Expression<String>? advanceNumber,
+    Expression<int>? projectTreasuryId,
+    Expression<int>? fiscalPeriodId,
+    Expression<String>? projectName,
+    Expression<DateTime>? advanceDate,
+    Expression<String>? status,
+    Expression<double>? excelTotal,
+    Expression<String>? sourceFileName,
+    Expression<String>? sourceFileHash,
+    Expression<double>? deficitAmount,
+    Expression<String>? deficitCoveredBy,
+    Expression<String>? notes,
+    Expression<int>? createdByUserId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? postedByUserId,
+    Expression<DateTime>? postedAt,
+    Expression<int>? cancelledByUserId,
+    Expression<DateTime>? cancelledAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (advanceNumber != null) 'advance_number': advanceNumber,
+      if (projectTreasuryId != null) 'project_treasury_id': projectTreasuryId,
+      if (fiscalPeriodId != null) 'fiscal_period_id': fiscalPeriodId,
+      if (projectName != null) 'project_name': projectName,
+      if (advanceDate != null) 'advance_date': advanceDate,
+      if (status != null) 'status': status,
+      if (excelTotal != null) 'excel_total': excelTotal,
+      if (sourceFileName != null) 'source_file_name': sourceFileName,
+      if (sourceFileHash != null) 'source_file_hash': sourceFileHash,
+      if (deficitAmount != null) 'deficit_amount': deficitAmount,
+      if (deficitCoveredBy != null) 'deficit_covered_by': deficitCoveredBy,
+      if (notes != null) 'notes': notes,
+      if (createdByUserId != null) 'created_by_user_id': createdByUserId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (postedByUserId != null) 'posted_by_user_id': postedByUserId,
+      if (postedAt != null) 'posted_at': postedAt,
+      if (cancelledByUserId != null) 'cancelled_by_user_id': cancelledByUserId,
+      if (cancelledAt != null) 'cancelled_at': cancelledAt,
+    });
+  }
+
+  AdvancesCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? advanceNumber,
+      Value<int>? projectTreasuryId,
+      Value<int>? fiscalPeriodId,
+      Value<String>? projectName,
+      Value<DateTime>? advanceDate,
+      Value<String>? status,
+      Value<double>? excelTotal,
+      Value<String>? sourceFileName,
+      Value<String>? sourceFileHash,
+      Value<double>? deficitAmount,
+      Value<String?>? deficitCoveredBy,
+      Value<String>? notes,
+      Value<int?>? createdByUserId,
+      Value<DateTime>? createdAt,
+      Value<int?>? postedByUserId,
+      Value<DateTime?>? postedAt,
+      Value<int?>? cancelledByUserId,
+      Value<DateTime?>? cancelledAt}) {
+    return AdvancesCompanion(
+      id: id ?? this.id,
+      advanceNumber: advanceNumber ?? this.advanceNumber,
+      projectTreasuryId: projectTreasuryId ?? this.projectTreasuryId,
+      fiscalPeriodId: fiscalPeriodId ?? this.fiscalPeriodId,
+      projectName: projectName ?? this.projectName,
+      advanceDate: advanceDate ?? this.advanceDate,
+      status: status ?? this.status,
+      excelTotal: excelTotal ?? this.excelTotal,
+      sourceFileName: sourceFileName ?? this.sourceFileName,
+      sourceFileHash: sourceFileHash ?? this.sourceFileHash,
+      deficitAmount: deficitAmount ?? this.deficitAmount,
+      deficitCoveredBy: deficitCoveredBy ?? this.deficitCoveredBy,
+      notes: notes ?? this.notes,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
+      createdAt: createdAt ?? this.createdAt,
+      postedByUserId: postedByUserId ?? this.postedByUserId,
+      postedAt: postedAt ?? this.postedAt,
+      cancelledByUserId: cancelledByUserId ?? this.cancelledByUserId,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (advanceNumber.present) {
+      map['advance_number'] = Variable<String>(advanceNumber.value);
+    }
+    if (projectTreasuryId.present) {
+      map['project_treasury_id'] = Variable<int>(projectTreasuryId.value);
+    }
+    if (fiscalPeriodId.present) {
+      map['fiscal_period_id'] = Variable<int>(fiscalPeriodId.value);
+    }
+    if (projectName.present) {
+      map['project_name'] = Variable<String>(projectName.value);
+    }
+    if (advanceDate.present) {
+      map['advance_date'] = Variable<DateTime>(advanceDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (excelTotal.present) {
+      map['excel_total'] = Variable<double>(excelTotal.value);
+    }
+    if (sourceFileName.present) {
+      map['source_file_name'] = Variable<String>(sourceFileName.value);
+    }
+    if (sourceFileHash.present) {
+      map['source_file_hash'] = Variable<String>(sourceFileHash.value);
+    }
+    if (deficitAmount.present) {
+      map['deficit_amount'] = Variable<double>(deficitAmount.value);
+    }
+    if (deficitCoveredBy.present) {
+      map['deficit_covered_by'] = Variable<String>(deficitCoveredBy.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdByUserId.present) {
+      map['created_by_user_id'] = Variable<int>(createdByUserId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (postedByUserId.present) {
+      map['posted_by_user_id'] = Variable<int>(postedByUserId.value);
+    }
+    if (postedAt.present) {
+      map['posted_at'] = Variable<DateTime>(postedAt.value);
+    }
+    if (cancelledByUserId.present) {
+      map['cancelled_by_user_id'] = Variable<int>(cancelledByUserId.value);
+    }
+    if (cancelledAt.present) {
+      map['cancelled_at'] = Variable<DateTime>(cancelledAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AdvancesCompanion(')
+          ..write('id: $id, ')
+          ..write('advanceNumber: $advanceNumber, ')
+          ..write('projectTreasuryId: $projectTreasuryId, ')
+          ..write('fiscalPeriodId: $fiscalPeriodId, ')
+          ..write('projectName: $projectName, ')
+          ..write('advanceDate: $advanceDate, ')
+          ..write('status: $status, ')
+          ..write('excelTotal: $excelTotal, ')
+          ..write('sourceFileName: $sourceFileName, ')
+          ..write('sourceFileHash: $sourceFileHash, ')
+          ..write('deficitAmount: $deficitAmount, ')
+          ..write('deficitCoveredBy: $deficitCoveredBy, ')
+          ..write('notes: $notes, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('postedByUserId: $postedByUserId, ')
+          ..write('postedAt: $postedAt, ')
+          ..write('cancelledByUserId: $cancelledByUserId, ')
+          ..write('cancelledAt: $cancelledAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AdvanceLinesTable extends AdvanceLines
+    with TableInfo<$AdvanceLinesTable, AdvanceLine> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AdvanceLinesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _advanceIdMeta =
+      const VerificationMeta('advanceId');
+  @override
+  late final GeneratedColumn<int> advanceId = GeneratedColumn<int>(
+      'advance_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES advances (id)'));
+  static const VerificationMeta _rowNumberMeta =
+      const VerificationMeta('rowNumber');
+  @override
+  late final GeneratedColumn<int> rowNumber = GeneratedColumn<int>(
+      'row_number', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _voucherDateMeta =
+      const VerificationMeta('voucherDate');
+  @override
+  late final GeneratedColumn<DateTime> voucherDate = GeneratedColumn<DateTime>(
+      'voucher_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL CHECK(amount > 0)');
+  static const VerificationMeta _itemTypeMeta =
+      const VerificationMeta('itemType');
+  @override
+  late final GeneratedColumn<String> itemType = GeneratedColumn<String>(
+      'item_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+      'reason', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _personNameMeta =
+      const VerificationMeta('personName');
+  @override
+  late final GeneratedColumn<String> personName = GeneratedColumn<String>(
+      'person_name', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _projectNameMeta =
+      const VerificationMeta('projectName');
+  @override
+  late final GeneratedColumn<String> projectName = GeneratedColumn<String>(
+      'project_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _invoiceNumberMeta =
+      const VerificationMeta('invoiceNumber');
+  @override
+  late final GeneratedColumn<String> invoiceNumber = GeneratedColumn<String>(
+      'invoice_number', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _spentByMeta =
+      const VerificationMeta('spentBy');
+  @override
+  late final GeneratedColumn<String> spentBy = GeneratedColumn<String>(
+      'spent_by', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _originalAmountMeta =
+      const VerificationMeta('originalAmount');
+  @override
+  late final GeneratedColumn<double> originalAmount = GeneratedColumn<double>(
+      'original_amount', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _originalItemTypeMeta =
+      const VerificationMeta('originalItemType');
+  @override
+  late final GeneratedColumn<String> originalItemType = GeneratedColumn<String>(
+      'original_item_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originalDateMeta =
+      const VerificationMeta('originalDate');
+  @override
+  late final GeneratedColumn<DateTime> originalDate = GeneratedColumn<DateTime>(
+      'original_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _isEditedMeta =
+      const VerificationMeta('isEdited');
+  @override
+  late final GeneratedColumn<bool> isEdited = GeneratedColumn<bool>(
+      'is_edited', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_edited" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isExcludedMeta =
+      const VerificationMeta('isExcluded');
+  @override
+  late final GeneratedColumn<bool> isExcluded = GeneratedColumn<bool>(
+      'is_excluded', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_excluded" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _excludeReasonMeta =
+      const VerificationMeta('excludeReason');
+  @override
+  late final GeneratedColumn<String> excludeReason = GeneratedColumn<String>(
+      'exclude_reason', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _voucherIdMeta =
+      const VerificationMeta('voucherId');
+  @override
+  late final GeneratedColumn<int> voucherId = GeneratedColumn<int>(
+      'voucher_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        advanceId,
+        rowNumber,
+        voucherDate,
+        amount,
+        itemType,
+        reason,
+        personName,
+        projectName,
+        invoiceNumber,
+        spentBy,
+        originalAmount,
+        originalItemType,
+        originalDate,
+        isEdited,
+        isExcluded,
+        excludeReason,
+        voucherId
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'advance_lines';
+  @override
+  VerificationContext validateIntegrity(Insertable<AdvanceLine> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('advance_id')) {
+      context.handle(_advanceIdMeta,
+          advanceId.isAcceptableOrUnknown(data['advance_id']!, _advanceIdMeta));
+    } else if (isInserting) {
+      context.missing(_advanceIdMeta);
+    }
+    if (data.containsKey('row_number')) {
+      context.handle(_rowNumberMeta,
+          rowNumber.isAcceptableOrUnknown(data['row_number']!, _rowNumberMeta));
+    }
+    if (data.containsKey('voucher_date')) {
+      context.handle(
+          _voucherDateMeta,
+          voucherDate.isAcceptableOrUnknown(
+              data['voucher_date']!, _voucherDateMeta));
+    } else if (isInserting) {
+      context.missing(_voucherDateMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('item_type')) {
+      context.handle(_itemTypeMeta,
+          itemType.isAcceptableOrUnknown(data['item_type']!, _itemTypeMeta));
+    }
+    if (data.containsKey('reason')) {
+      context.handle(_reasonMeta,
+          reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta));
+    }
+    if (data.containsKey('person_name')) {
+      context.handle(
+          _personNameMeta,
+          personName.isAcceptableOrUnknown(
+              data['person_name']!, _personNameMeta));
+    }
+    if (data.containsKey('project_name')) {
+      context.handle(
+          _projectNameMeta,
+          projectName.isAcceptableOrUnknown(
+              data['project_name']!, _projectNameMeta));
+    }
+    if (data.containsKey('invoice_number')) {
+      context.handle(
+          _invoiceNumberMeta,
+          invoiceNumber.isAcceptableOrUnknown(
+              data['invoice_number']!, _invoiceNumberMeta));
+    }
+    if (data.containsKey('spent_by')) {
+      context.handle(_spentByMeta,
+          spentBy.isAcceptableOrUnknown(data['spent_by']!, _spentByMeta));
+    }
+    if (data.containsKey('original_amount')) {
+      context.handle(
+          _originalAmountMeta,
+          originalAmount.isAcceptableOrUnknown(
+              data['original_amount']!, _originalAmountMeta));
+    } else if (isInserting) {
+      context.missing(_originalAmountMeta);
+    }
+    if (data.containsKey('original_item_type')) {
+      context.handle(
+          _originalItemTypeMeta,
+          originalItemType.isAcceptableOrUnknown(
+              data['original_item_type']!, _originalItemTypeMeta));
+    }
+    if (data.containsKey('original_date')) {
+      context.handle(
+          _originalDateMeta,
+          originalDate.isAcceptableOrUnknown(
+              data['original_date']!, _originalDateMeta));
+    } else if (isInserting) {
+      context.missing(_originalDateMeta);
+    }
+    if (data.containsKey('is_edited')) {
+      context.handle(_isEditedMeta,
+          isEdited.isAcceptableOrUnknown(data['is_edited']!, _isEditedMeta));
+    }
+    if (data.containsKey('is_excluded')) {
+      context.handle(
+          _isExcludedMeta,
+          isExcluded.isAcceptableOrUnknown(
+              data['is_excluded']!, _isExcludedMeta));
+    }
+    if (data.containsKey('exclude_reason')) {
+      context.handle(
+          _excludeReasonMeta,
+          excludeReason.isAcceptableOrUnknown(
+              data['exclude_reason']!, _excludeReasonMeta));
+    }
+    if (data.containsKey('voucher_id')) {
+      context.handle(_voucherIdMeta,
+          voucherId.isAcceptableOrUnknown(data['voucher_id']!, _voucherIdMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AdvanceLine map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AdvanceLine(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      advanceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}advance_id'])!,
+      rowNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}row_number'])!,
+      voucherDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}voucher_date'])!,
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      itemType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}item_type'])!,
+      reason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reason'])!,
+      personName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}person_name'])!,
+      projectName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}project_name']),
+      invoiceNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}invoice_number']),
+      spentBy: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}spent_by']),
+      originalAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}original_amount'])!,
+      originalItemType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}original_item_type'])!,
+      originalDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}original_date'])!,
+      isEdited: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_edited'])!,
+      isExcluded: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_excluded'])!,
+      excludeReason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}exclude_reason'])!,
+      voucherId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}voucher_id']),
+    );
+  }
+
+  @override
+  $AdvanceLinesTable createAlias(String alias) {
+    return $AdvanceLinesTable(attachedDatabase, alias);
+  }
+}
+
+class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
+  final int id;
+  final int advanceId;
+  final int rowNumber;
+  final DateTime voucherDate;
+  final double amount;
+  final String itemType;
+  final String reason;
+  final String personName;
+  final String? projectName;
+  final String? invoiceNumber;
+  final String? spentBy;
+  final double originalAmount;
+  final String originalItemType;
+  final DateTime originalDate;
+  final bool isEdited;
+  final bool isExcluded;
+  final String excludeReason;
+  final int? voucherId;
+  const AdvanceLine(
+      {required this.id,
+      required this.advanceId,
+      required this.rowNumber,
+      required this.voucherDate,
+      required this.amount,
+      required this.itemType,
+      required this.reason,
+      required this.personName,
+      this.projectName,
+      this.invoiceNumber,
+      this.spentBy,
+      required this.originalAmount,
+      required this.originalItemType,
+      required this.originalDate,
+      required this.isEdited,
+      required this.isExcluded,
+      required this.excludeReason,
+      this.voucherId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['advance_id'] = Variable<int>(advanceId);
+    map['row_number'] = Variable<int>(rowNumber);
+    map['voucher_date'] = Variable<DateTime>(voucherDate);
+    map['amount'] = Variable<double>(amount);
+    map['item_type'] = Variable<String>(itemType);
+    map['reason'] = Variable<String>(reason);
+    map['person_name'] = Variable<String>(personName);
+    if (!nullToAbsent || projectName != null) {
+      map['project_name'] = Variable<String>(projectName);
+    }
+    if (!nullToAbsent || invoiceNumber != null) {
+      map['invoice_number'] = Variable<String>(invoiceNumber);
+    }
+    if (!nullToAbsent || spentBy != null) {
+      map['spent_by'] = Variable<String>(spentBy);
+    }
+    map['original_amount'] = Variable<double>(originalAmount);
+    map['original_item_type'] = Variable<String>(originalItemType);
+    map['original_date'] = Variable<DateTime>(originalDate);
+    map['is_edited'] = Variable<bool>(isEdited);
+    map['is_excluded'] = Variable<bool>(isExcluded);
+    map['exclude_reason'] = Variable<String>(excludeReason);
+    if (!nullToAbsent || voucherId != null) {
+      map['voucher_id'] = Variable<int>(voucherId);
+    }
+    return map;
+  }
+
+  AdvanceLinesCompanion toCompanion(bool nullToAbsent) {
+    return AdvanceLinesCompanion(
+      id: Value(id),
+      advanceId: Value(advanceId),
+      rowNumber: Value(rowNumber),
+      voucherDate: Value(voucherDate),
+      amount: Value(amount),
+      itemType: Value(itemType),
+      reason: Value(reason),
+      personName: Value(personName),
+      projectName: projectName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectName),
+      invoiceNumber: invoiceNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(invoiceNumber),
+      spentBy: spentBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(spentBy),
+      originalAmount: Value(originalAmount),
+      originalItemType: Value(originalItemType),
+      originalDate: Value(originalDate),
+      isEdited: Value(isEdited),
+      isExcluded: Value(isExcluded),
+      excludeReason: Value(excludeReason),
+      voucherId: voucherId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voucherId),
+    );
+  }
+
+  factory AdvanceLine.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AdvanceLine(
+      id: serializer.fromJson<int>(json['id']),
+      advanceId: serializer.fromJson<int>(json['advanceId']),
+      rowNumber: serializer.fromJson<int>(json['rowNumber']),
+      voucherDate: serializer.fromJson<DateTime>(json['voucherDate']),
+      amount: serializer.fromJson<double>(json['amount']),
+      itemType: serializer.fromJson<String>(json['itemType']),
+      reason: serializer.fromJson<String>(json['reason']),
+      personName: serializer.fromJson<String>(json['personName']),
+      projectName: serializer.fromJson<String?>(json['projectName']),
+      invoiceNumber: serializer.fromJson<String?>(json['invoiceNumber']),
+      spentBy: serializer.fromJson<String?>(json['spentBy']),
+      originalAmount: serializer.fromJson<double>(json['originalAmount']),
+      originalItemType: serializer.fromJson<String>(json['originalItemType']),
+      originalDate: serializer.fromJson<DateTime>(json['originalDate']),
+      isEdited: serializer.fromJson<bool>(json['isEdited']),
+      isExcluded: serializer.fromJson<bool>(json['isExcluded']),
+      excludeReason: serializer.fromJson<String>(json['excludeReason']),
+      voucherId: serializer.fromJson<int?>(json['voucherId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'advanceId': serializer.toJson<int>(advanceId),
+      'rowNumber': serializer.toJson<int>(rowNumber),
+      'voucherDate': serializer.toJson<DateTime>(voucherDate),
+      'amount': serializer.toJson<double>(amount),
+      'itemType': serializer.toJson<String>(itemType),
+      'reason': serializer.toJson<String>(reason),
+      'personName': serializer.toJson<String>(personName),
+      'projectName': serializer.toJson<String?>(projectName),
+      'invoiceNumber': serializer.toJson<String?>(invoiceNumber),
+      'spentBy': serializer.toJson<String?>(spentBy),
+      'originalAmount': serializer.toJson<double>(originalAmount),
+      'originalItemType': serializer.toJson<String>(originalItemType),
+      'originalDate': serializer.toJson<DateTime>(originalDate),
+      'isEdited': serializer.toJson<bool>(isEdited),
+      'isExcluded': serializer.toJson<bool>(isExcluded),
+      'excludeReason': serializer.toJson<String>(excludeReason),
+      'voucherId': serializer.toJson<int?>(voucherId),
+    };
+  }
+
+  AdvanceLine copyWith(
+          {int? id,
+          int? advanceId,
+          int? rowNumber,
+          DateTime? voucherDate,
+          double? amount,
+          String? itemType,
+          String? reason,
+          String? personName,
+          Value<String?> projectName = const Value.absent(),
+          Value<String?> invoiceNumber = const Value.absent(),
+          Value<String?> spentBy = const Value.absent(),
+          double? originalAmount,
+          String? originalItemType,
+          DateTime? originalDate,
+          bool? isEdited,
+          bool? isExcluded,
+          String? excludeReason,
+          Value<int?> voucherId = const Value.absent()}) =>
+      AdvanceLine(
+        id: id ?? this.id,
+        advanceId: advanceId ?? this.advanceId,
+        rowNumber: rowNumber ?? this.rowNumber,
+        voucherDate: voucherDate ?? this.voucherDate,
+        amount: amount ?? this.amount,
+        itemType: itemType ?? this.itemType,
+        reason: reason ?? this.reason,
+        personName: personName ?? this.personName,
+        projectName: projectName.present ? projectName.value : this.projectName,
+        invoiceNumber:
+            invoiceNumber.present ? invoiceNumber.value : this.invoiceNumber,
+        spentBy: spentBy.present ? spentBy.value : this.spentBy,
+        originalAmount: originalAmount ?? this.originalAmount,
+        originalItemType: originalItemType ?? this.originalItemType,
+        originalDate: originalDate ?? this.originalDate,
+        isEdited: isEdited ?? this.isEdited,
+        isExcluded: isExcluded ?? this.isExcluded,
+        excludeReason: excludeReason ?? this.excludeReason,
+        voucherId: voucherId.present ? voucherId.value : this.voucherId,
+      );
+  AdvanceLine copyWithCompanion(AdvanceLinesCompanion data) {
+    return AdvanceLine(
+      id: data.id.present ? data.id.value : this.id,
+      advanceId: data.advanceId.present ? data.advanceId.value : this.advanceId,
+      rowNumber: data.rowNumber.present ? data.rowNumber.value : this.rowNumber,
+      voucherDate:
+          data.voucherDate.present ? data.voucherDate.value : this.voucherDate,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      itemType: data.itemType.present ? data.itemType.value : this.itemType,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      personName:
+          data.personName.present ? data.personName.value : this.personName,
+      projectName:
+          data.projectName.present ? data.projectName.value : this.projectName,
+      invoiceNumber: data.invoiceNumber.present
+          ? data.invoiceNumber.value
+          : this.invoiceNumber,
+      spentBy: data.spentBy.present ? data.spentBy.value : this.spentBy,
+      originalAmount: data.originalAmount.present
+          ? data.originalAmount.value
+          : this.originalAmount,
+      originalItemType: data.originalItemType.present
+          ? data.originalItemType.value
+          : this.originalItemType,
+      originalDate: data.originalDate.present
+          ? data.originalDate.value
+          : this.originalDate,
+      isEdited: data.isEdited.present ? data.isEdited.value : this.isEdited,
+      isExcluded:
+          data.isExcluded.present ? data.isExcluded.value : this.isExcluded,
+      excludeReason: data.excludeReason.present
+          ? data.excludeReason.value
+          : this.excludeReason,
+      voucherId: data.voucherId.present ? data.voucherId.value : this.voucherId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AdvanceLine(')
+          ..write('id: $id, ')
+          ..write('advanceId: $advanceId, ')
+          ..write('rowNumber: $rowNumber, ')
+          ..write('voucherDate: $voucherDate, ')
+          ..write('amount: $amount, ')
+          ..write('itemType: $itemType, ')
+          ..write('reason: $reason, ')
+          ..write('personName: $personName, ')
+          ..write('projectName: $projectName, ')
+          ..write('invoiceNumber: $invoiceNumber, ')
+          ..write('spentBy: $spentBy, ')
+          ..write('originalAmount: $originalAmount, ')
+          ..write('originalItemType: $originalItemType, ')
+          ..write('originalDate: $originalDate, ')
+          ..write('isEdited: $isEdited, ')
+          ..write('isExcluded: $isExcluded, ')
+          ..write('excludeReason: $excludeReason, ')
+          ..write('voucherId: $voucherId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      advanceId,
+      rowNumber,
+      voucherDate,
+      amount,
+      itemType,
+      reason,
+      personName,
+      projectName,
+      invoiceNumber,
+      spentBy,
+      originalAmount,
+      originalItemType,
+      originalDate,
+      isEdited,
+      isExcluded,
+      excludeReason,
+      voucherId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AdvanceLine &&
+          other.id == this.id &&
+          other.advanceId == this.advanceId &&
+          other.rowNumber == this.rowNumber &&
+          other.voucherDate == this.voucherDate &&
+          other.amount == this.amount &&
+          other.itemType == this.itemType &&
+          other.reason == this.reason &&
+          other.personName == this.personName &&
+          other.projectName == this.projectName &&
+          other.invoiceNumber == this.invoiceNumber &&
+          other.spentBy == this.spentBy &&
+          other.originalAmount == this.originalAmount &&
+          other.originalItemType == this.originalItemType &&
+          other.originalDate == this.originalDate &&
+          other.isEdited == this.isEdited &&
+          other.isExcluded == this.isExcluded &&
+          other.excludeReason == this.excludeReason &&
+          other.voucherId == this.voucherId);
+}
+
+class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
+  final Value<int> id;
+  final Value<int> advanceId;
+  final Value<int> rowNumber;
+  final Value<DateTime> voucherDate;
+  final Value<double> amount;
+  final Value<String> itemType;
+  final Value<String> reason;
+  final Value<String> personName;
+  final Value<String?> projectName;
+  final Value<String?> invoiceNumber;
+  final Value<String?> spentBy;
+  final Value<double> originalAmount;
+  final Value<String> originalItemType;
+  final Value<DateTime> originalDate;
+  final Value<bool> isEdited;
+  final Value<bool> isExcluded;
+  final Value<String> excludeReason;
+  final Value<int?> voucherId;
+  const AdvanceLinesCompanion({
+    this.id = const Value.absent(),
+    this.advanceId = const Value.absent(),
+    this.rowNumber = const Value.absent(),
+    this.voucherDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.itemType = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.personName = const Value.absent(),
+    this.projectName = const Value.absent(),
+    this.invoiceNumber = const Value.absent(),
+    this.spentBy = const Value.absent(),
+    this.originalAmount = const Value.absent(),
+    this.originalItemType = const Value.absent(),
+    this.originalDate = const Value.absent(),
+    this.isEdited = const Value.absent(),
+    this.isExcluded = const Value.absent(),
+    this.excludeReason = const Value.absent(),
+    this.voucherId = const Value.absent(),
+  });
+  AdvanceLinesCompanion.insert({
+    this.id = const Value.absent(),
+    required int advanceId,
+    this.rowNumber = const Value.absent(),
+    required DateTime voucherDate,
+    required double amount,
+    this.itemType = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.personName = const Value.absent(),
+    this.projectName = const Value.absent(),
+    this.invoiceNumber = const Value.absent(),
+    this.spentBy = const Value.absent(),
+    required double originalAmount,
+    this.originalItemType = const Value.absent(),
+    required DateTime originalDate,
+    this.isEdited = const Value.absent(),
+    this.isExcluded = const Value.absent(),
+    this.excludeReason = const Value.absent(),
+    this.voucherId = const Value.absent(),
+  })  : advanceId = Value(advanceId),
+        voucherDate = Value(voucherDate),
+        amount = Value(amount),
+        originalAmount = Value(originalAmount),
+        originalDate = Value(originalDate);
+  static Insertable<AdvanceLine> custom({
+    Expression<int>? id,
+    Expression<int>? advanceId,
+    Expression<int>? rowNumber,
+    Expression<DateTime>? voucherDate,
+    Expression<double>? amount,
+    Expression<String>? itemType,
+    Expression<String>? reason,
+    Expression<String>? personName,
+    Expression<String>? projectName,
+    Expression<String>? invoiceNumber,
+    Expression<String>? spentBy,
+    Expression<double>? originalAmount,
+    Expression<String>? originalItemType,
+    Expression<DateTime>? originalDate,
+    Expression<bool>? isEdited,
+    Expression<bool>? isExcluded,
+    Expression<String>? excludeReason,
+    Expression<int>? voucherId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (advanceId != null) 'advance_id': advanceId,
+      if (rowNumber != null) 'row_number': rowNumber,
+      if (voucherDate != null) 'voucher_date': voucherDate,
+      if (amount != null) 'amount': amount,
+      if (itemType != null) 'item_type': itemType,
+      if (reason != null) 'reason': reason,
+      if (personName != null) 'person_name': personName,
+      if (projectName != null) 'project_name': projectName,
+      if (invoiceNumber != null) 'invoice_number': invoiceNumber,
+      if (spentBy != null) 'spent_by': spentBy,
+      if (originalAmount != null) 'original_amount': originalAmount,
+      if (originalItemType != null) 'original_item_type': originalItemType,
+      if (originalDate != null) 'original_date': originalDate,
+      if (isEdited != null) 'is_edited': isEdited,
+      if (isExcluded != null) 'is_excluded': isExcluded,
+      if (excludeReason != null) 'exclude_reason': excludeReason,
+      if (voucherId != null) 'voucher_id': voucherId,
+    });
+  }
+
+  AdvanceLinesCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? advanceId,
+      Value<int>? rowNumber,
+      Value<DateTime>? voucherDate,
+      Value<double>? amount,
+      Value<String>? itemType,
+      Value<String>? reason,
+      Value<String>? personName,
+      Value<String?>? projectName,
+      Value<String?>? invoiceNumber,
+      Value<String?>? spentBy,
+      Value<double>? originalAmount,
+      Value<String>? originalItemType,
+      Value<DateTime>? originalDate,
+      Value<bool>? isEdited,
+      Value<bool>? isExcluded,
+      Value<String>? excludeReason,
+      Value<int?>? voucherId}) {
+    return AdvanceLinesCompanion(
+      id: id ?? this.id,
+      advanceId: advanceId ?? this.advanceId,
+      rowNumber: rowNumber ?? this.rowNumber,
+      voucherDate: voucherDate ?? this.voucherDate,
+      amount: amount ?? this.amount,
+      itemType: itemType ?? this.itemType,
+      reason: reason ?? this.reason,
+      personName: personName ?? this.personName,
+      projectName: projectName ?? this.projectName,
+      invoiceNumber: invoiceNumber ?? this.invoiceNumber,
+      spentBy: spentBy ?? this.spentBy,
+      originalAmount: originalAmount ?? this.originalAmount,
+      originalItemType: originalItemType ?? this.originalItemType,
+      originalDate: originalDate ?? this.originalDate,
+      isEdited: isEdited ?? this.isEdited,
+      isExcluded: isExcluded ?? this.isExcluded,
+      excludeReason: excludeReason ?? this.excludeReason,
+      voucherId: voucherId ?? this.voucherId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (advanceId.present) {
+      map['advance_id'] = Variable<int>(advanceId.value);
+    }
+    if (rowNumber.present) {
+      map['row_number'] = Variable<int>(rowNumber.value);
+    }
+    if (voucherDate.present) {
+      map['voucher_date'] = Variable<DateTime>(voucherDate.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (itemType.present) {
+      map['item_type'] = Variable<String>(itemType.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (personName.present) {
+      map['person_name'] = Variable<String>(personName.value);
+    }
+    if (projectName.present) {
+      map['project_name'] = Variable<String>(projectName.value);
+    }
+    if (invoiceNumber.present) {
+      map['invoice_number'] = Variable<String>(invoiceNumber.value);
+    }
+    if (spentBy.present) {
+      map['spent_by'] = Variable<String>(spentBy.value);
+    }
+    if (originalAmount.present) {
+      map['original_amount'] = Variable<double>(originalAmount.value);
+    }
+    if (originalItemType.present) {
+      map['original_item_type'] = Variable<String>(originalItemType.value);
+    }
+    if (originalDate.present) {
+      map['original_date'] = Variable<DateTime>(originalDate.value);
+    }
+    if (isEdited.present) {
+      map['is_edited'] = Variable<bool>(isEdited.value);
+    }
+    if (isExcluded.present) {
+      map['is_excluded'] = Variable<bool>(isExcluded.value);
+    }
+    if (excludeReason.present) {
+      map['exclude_reason'] = Variable<String>(excludeReason.value);
+    }
+    if (voucherId.present) {
+      map['voucher_id'] = Variable<int>(voucherId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AdvanceLinesCompanion(')
+          ..write('id: $id, ')
+          ..write('advanceId: $advanceId, ')
+          ..write('rowNumber: $rowNumber, ')
+          ..write('voucherDate: $voucherDate, ')
+          ..write('amount: $amount, ')
+          ..write('itemType: $itemType, ')
+          ..write('reason: $reason, ')
+          ..write('personName: $personName, ')
+          ..write('projectName: $projectName, ')
+          ..write('invoiceNumber: $invoiceNumber, ')
+          ..write('spentBy: $spentBy, ')
+          ..write('originalAmount: $originalAmount, ')
+          ..write('originalItemType: $originalItemType, ')
+          ..write('originalDate: $originalDate, ')
+          ..write('isEdited: $isEdited, ')
+          ..write('isExcluded: $isExcluded, ')
+          ..write('excludeReason: $excludeReason, ')
+          ..write('voucherId: $voucherId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ItemTypesTable extends ItemTypes
+    with TableInfo<$ItemTypesTable, ItemType> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ItemTypesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 60),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('sarf'));
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  @override
+  List<GeneratedColumn> get $columns => [id, name, kind, isActive, sortOrder];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'item_types';
+  @override
+  VerificationContext validateIntegrity(Insertable<ItemType> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ItemType map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ItemType(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+    );
+  }
+
+  @override
+  $ItemTypesTable createAlias(String alias) {
+    return $ItemTypesTable(attachedDatabase, alias);
+  }
+}
+
+class ItemType extends DataClass implements Insertable<ItemType> {
+  final int id;
+  final String name;
+  final String kind;
+  final bool isActive;
+  final int sortOrder;
+  const ItemType(
+      {required this.id,
+      required this.name,
+      required this.kind,
+      required this.isActive,
+      required this.sortOrder});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['kind'] = Variable<String>(kind);
+    map['is_active'] = Variable<bool>(isActive);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  ItemTypesCompanion toCompanion(bool nullToAbsent) {
+    return ItemTypesCompanion(
+      id: Value(id),
+      name: Value(name),
+      kind: Value(kind),
+      isActive: Value(isActive),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory ItemType.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ItemType(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      kind: serializer.fromJson<String>(json['kind']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'kind': serializer.toJson<String>(kind),
+      'isActive': serializer.toJson<bool>(isActive),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  ItemType copyWith(
+          {int? id,
+          String? name,
+          String? kind,
+          bool? isActive,
+          int? sortOrder}) =>
+      ItemType(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        kind: kind ?? this.kind,
+        isActive: isActive ?? this.isActive,
+        sortOrder: sortOrder ?? this.sortOrder,
+      );
+  ItemType copyWithCompanion(ItemTypesCompanion data) {
+    return ItemType(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ItemType(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('isActive: $isActive, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, kind, isActive, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ItemType &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.kind == this.kind &&
+          other.isActive == this.isActive &&
+          other.sortOrder == this.sortOrder);
+}
+
+class ItemTypesCompanion extends UpdateCompanion<ItemType> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String> kind;
+  final Value<bool> isActive;
+  final Value<int> sortOrder;
+  const ItemTypesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  });
+  ItemTypesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.kind = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<ItemType> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? kind,
+    Expression<bool>? isActive,
+    Expression<int>? sortOrder,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (kind != null) 'kind': kind,
+      if (isActive != null) 'is_active': isActive,
+      if (sortOrder != null) 'sort_order': sortOrder,
+    });
+  }
+
+  ItemTypesCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? name,
+      Value<String>? kind,
+      Value<bool>? isActive,
+      Value<int>? sortOrder}) {
+    return ItemTypesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      kind: kind ?? this.kind,
+      isActive: isActive ?? this.isActive,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ItemTypesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('isActive: $isActive, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ExchangeRatesTable extends ExchangeRates
     with TableInfo<$ExchangeRatesTable, ExchangeRate> {
   @override
@@ -7864,6 +9973,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SalaryPaymentsTable salaryPayments = $SalaryPaymentsTable(this);
   late final $ContractorsTable contractors = $ContractorsTable(this);
   late final $PartnersTable partners = $PartnersTable(this);
+  late final $AdvancesTable advances = $AdvancesTable(this);
+  late final $AdvanceLinesTable advanceLines = $AdvanceLinesTable(this);
+  late final $ItemTypesTable itemTypes = $ItemTypesTable(this);
   late final $ExchangeRatesTable exchangeRates = $ExchangeRatesTable(this);
   late final $AuditLogTable auditLog = $AuditLogTable(this);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
@@ -7880,6 +9992,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AuditLogDao auditLogDao = AuditLogDao(this as AppDatabase);
   late final ExchangeRatesDao exchangeRatesDao =
       ExchangeRatesDao(this as AppDatabase);
+  late final AdvancesDao advancesDao = AdvancesDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7898,6 +10011,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         salaryPayments,
         contractors,
         partners,
+        advances,
+        advanceLines,
+        itemTypes,
         exchangeRates,
         auditLog
       ];
@@ -8539,6 +10655,21 @@ final class $$FiscalPeriodsTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$AdvancesTable, List<Advance>> _advancesRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.advances,
+          aliasName: $_aliasNameGenerator(
+              db.fiscalPeriods.id, db.advances.fiscalPeriodId));
+
+  $$AdvancesTableProcessedTableManager get advancesRefs {
+    final manager = $$AdvancesTableTableManager($_db, $_db.advances)
+        .filter((f) => f.fiscalPeriodId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_advancesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$FiscalPeriodsTableFilterComposer
@@ -8615,6 +10746,27 @@ class $$FiscalPeriodsTableFilterComposer
             $$VouchersTableFilterComposer(
               $db: $db,
               $table: $db.vouchers,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> advancesRefs(
+      Expression<bool> Function($$AdvancesTableFilterComposer f) f) {
+    final $$AdvancesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.fiscalPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableFilterComposer(
+              $db: $db,
+              $table: $db.advances,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -8745,6 +10897,27 @@ class $$FiscalPeriodsTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> advancesRefs<T extends Object>(
+      Expression<T> Function($$AdvancesTableAnnotationComposer a) f) {
+    final $$AdvancesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.fiscalPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.advances,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$FiscalPeriodsTableTableManager extends RootTableManager<
@@ -8758,7 +10931,8 @@ class $$FiscalPeriodsTableTableManager extends RootTableManager<
     $$FiscalPeriodsTableUpdateCompanionBuilder,
     (FiscalPeriod, $$FiscalPeriodsTableReferences),
     FiscalPeriod,
-    PrefetchHooks Function({bool voucherSequencesRefs, bool vouchersRefs})> {
+    PrefetchHooks Function(
+        {bool voucherSequencesRefs, bool vouchersRefs, bool advancesRefs})> {
   $$FiscalPeriodsTableTableManager(_$AppDatabase db, $FiscalPeriodsTable table)
       : super(TableManagerState(
           db: db,
@@ -8824,12 +10998,15 @@ class $$FiscalPeriodsTableTableManager extends RootTableManager<
                   ))
               .toList(),
           prefetchHooksCallback: (
-              {voucherSequencesRefs = false, vouchersRefs = false}) {
+              {voucherSequencesRefs = false,
+              vouchersRefs = false,
+              advancesRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (voucherSequencesRefs) db.voucherSequences,
-                if (vouchersRefs) db.vouchers
+                if (vouchersRefs) db.vouchers,
+                if (advancesRefs) db.advances
               ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
@@ -8859,6 +11036,19 @@ class $$FiscalPeriodsTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.fiscalPeriodId == item.id),
+                        typedResults: items),
+                  if (advancesRefs)
+                    await $_getPrefetchedData<FiscalPeriod, $FiscalPeriodsTable,
+                            Advance>(
+                        currentTable: table,
+                        referencedTable: $$FiscalPeriodsTableReferences
+                            ._advancesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$FiscalPeriodsTableReferences(db, table, p0)
+                                .advancesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.fiscalPeriodId == item.id),
                         typedResults: items)
                 ];
               },
@@ -8878,7 +11068,8 @@ typedef $$FiscalPeriodsTableProcessedTableManager = ProcessedTableManager<
     $$FiscalPeriodsTableUpdateCompanionBuilder,
     (FiscalPeriod, $$FiscalPeriodsTableReferences),
     FiscalPeriod,
-    PrefetchHooks Function({bool voucherSequencesRefs, bool vouchersRefs})>;
+    PrefetchHooks Function(
+        {bool voucherSequencesRefs, bool vouchersRefs, bool advancesRefs})>;
 typedef $$VoucherSequencesTableCreateCompanionBuilder
     = VoucherSequencesCompanion Function({
   required int fiscalPeriodId,
@@ -9213,6 +11404,21 @@ final class $$TreasuriesTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$AdvancesTable, List<Advance>> _advancesRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.advances,
+          aliasName: $_aliasNameGenerator(
+              db.treasuries.id, db.advances.projectTreasuryId));
+
+  $$AdvancesTableProcessedTableManager get advancesRefs {
+    final manager = $$AdvancesTableTableManager($_db, $_db.advances).filter(
+        (f) => f.projectTreasuryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_advancesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$TreasuriesTableFilterComposer
@@ -9327,6 +11533,27 @@ class $$TreasuriesTableFilterComposer
             $$PartnersTableFilterComposer(
               $db: $db,
               $table: $db.partners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> advancesRefs(
+      Expression<bool> Function($$AdvancesTableFilterComposer f) f) {
+    final $$AdvancesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.projectTreasuryId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableFilterComposer(
+              $db: $db,
+              $table: $db.advances,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9492,6 +11719,27 @@ class $$TreasuriesTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> advancesRefs<T extends Object>(
+      Expression<T> Function($$AdvancesTableAnnotationComposer a) f) {
+    final $$AdvancesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.projectTreasuryId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.advances,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$TreasuriesTableTableManager extends RootTableManager<
@@ -9509,7 +11757,8 @@ class $$TreasuriesTableTableManager extends RootTableManager<
         {bool vouchersRefs,
         bool employeesRefs,
         bool contractorsRefs,
-        bool partnersRefs})> {
+        bool partnersRefs,
+        bool advancesRefs})> {
   $$TreasuriesTableTableManager(_$AppDatabase db, $TreasuriesTable table)
       : super(TableManagerState(
           db: db,
@@ -9574,14 +11823,16 @@ class $$TreasuriesTableTableManager extends RootTableManager<
               {vouchersRefs = false,
               employeesRefs = false,
               contractorsRefs = false,
-              partnersRefs = false}) {
+              partnersRefs = false,
+              advancesRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (vouchersRefs) db.vouchers,
                 if (employeesRefs) db.employees,
                 if (contractorsRefs) db.contractors,
-                if (partnersRefs) db.partners
+                if (partnersRefs) db.partners,
+                if (advancesRefs) db.advances
               ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
@@ -9637,6 +11888,19 @@ class $$TreasuriesTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.treasuryId == item.id),
+                        typedResults: items),
+                  if (advancesRefs)
+                    await $_getPrefetchedData<Treasury, $TreasuriesTable,
+                            Advance>(
+                        currentTable: table,
+                        referencedTable:
+                            $$TreasuriesTableReferences._advancesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$TreasuriesTableReferences(db, table, p0)
+                                .advancesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.projectTreasuryId == item.id),
                         typedResults: items)
                 ];
               },
@@ -9660,7 +11924,8 @@ typedef $$TreasuriesTableProcessedTableManager = ProcessedTableManager<
         {bool vouchersRefs,
         bool employeesRefs,
         bool contractorsRefs,
-        bool partnersRefs})>;
+        bool partnersRefs,
+        bool advancesRefs})>;
 typedef $$VouchersTableCreateCompanionBuilder = VouchersCompanion Function({
   Value<int> id,
   required int voucherNumber,
@@ -9683,6 +11948,7 @@ typedef $$VouchersTableCreateCompanionBuilder = VouchersCompanion Function({
   Value<String?> invoiceNumber,
   Value<String?> spentBy,
   Value<String?> advanceNumber,
+  Value<int?> advanceId,
   Value<String?> transferGroupId,
   Value<String> notes,
   Value<int?> createdByUserId,
@@ -9714,6 +11980,7 @@ typedef $$VouchersTableUpdateCompanionBuilder = VouchersCompanion Function({
   Value<String?> invoiceNumber,
   Value<String?> spentBy,
   Value<String?> advanceNumber,
+  Value<int?> advanceId,
   Value<String?> transferGroupId,
   Value<String> notes,
   Value<int?> createdByUserId,
@@ -9828,6 +12095,9 @@ class $$VouchersTableFilterComposer
 
   ColumnFilters<String> get advanceNumber => $composableBuilder(
       column: $table.advanceNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get advanceId => $composableBuilder(
+      column: $table.advanceId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get transferGroupId => $composableBuilder(
       column: $table.transferGroupId,
@@ -9971,6 +12241,9 @@ class $$VouchersTableOrderingComposer
       column: $table.advanceNumber,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get advanceId => $composableBuilder(
+      column: $table.advanceId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get transferGroupId => $composableBuilder(
       column: $table.transferGroupId,
       builder: (column) => ColumnOrderings(column));
@@ -10105,6 +12378,9 @@ class $$VouchersTableAnnotationComposer
   GeneratedColumn<String> get advanceNumber => $composableBuilder(
       column: $table.advanceNumber, builder: (column) => column);
 
+  GeneratedColumn<int> get advanceId =>
+      $composableBuilder(column: $table.advanceId, builder: (column) => column);
+
   GeneratedColumn<String> get transferGroupId => $composableBuilder(
       column: $table.transferGroupId, builder: (column) => column);
 
@@ -10214,6 +12490,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             Value<String?> invoiceNumber = const Value.absent(),
             Value<String?> spentBy = const Value.absent(),
             Value<String?> advanceNumber = const Value.absent(),
+            Value<int?> advanceId = const Value.absent(),
             Value<String?> transferGroupId = const Value.absent(),
             Value<String> notes = const Value.absent(),
             Value<int?> createdByUserId = const Value.absent(),
@@ -10245,6 +12522,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             invoiceNumber: invoiceNumber,
             spentBy: spentBy,
             advanceNumber: advanceNumber,
+            advanceId: advanceId,
             transferGroupId: transferGroupId,
             notes: notes,
             createdByUserId: createdByUserId,
@@ -10276,6 +12554,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             Value<String?> invoiceNumber = const Value.absent(),
             Value<String?> spentBy = const Value.absent(),
             Value<String?> advanceNumber = const Value.absent(),
+            Value<int?> advanceId = const Value.absent(),
             Value<String?> transferGroupId = const Value.absent(),
             Value<String> notes = const Value.absent(),
             Value<int?> createdByUserId = const Value.absent(),
@@ -10307,6 +12586,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             invoiceNumber: invoiceNumber,
             spentBy: spentBy,
             advanceNumber: advanceNumber,
+            advanceId: advanceId,
             transferGroupId: transferGroupId,
             notes: notes,
             createdByUserId: createdByUserId,
@@ -12761,6 +15041,1278 @@ typedef $$PartnersTableProcessedTableManager = ProcessedTableManager<
     (Partner, $$PartnersTableReferences),
     Partner,
     PrefetchHooks Function({bool treasuryId})>;
+typedef $$AdvancesTableCreateCompanionBuilder = AdvancesCompanion Function({
+  Value<int> id,
+  required String advanceNumber,
+  required int projectTreasuryId,
+  required int fiscalPeriodId,
+  Value<String> projectName,
+  required DateTime advanceDate,
+  Value<String> status,
+  Value<double> excelTotal,
+  Value<String> sourceFileName,
+  Value<String> sourceFileHash,
+  Value<double> deficitAmount,
+  Value<String?> deficitCoveredBy,
+  Value<String> notes,
+  Value<int?> createdByUserId,
+  Value<DateTime> createdAt,
+  Value<int?> postedByUserId,
+  Value<DateTime?> postedAt,
+  Value<int?> cancelledByUserId,
+  Value<DateTime?> cancelledAt,
+});
+typedef $$AdvancesTableUpdateCompanionBuilder = AdvancesCompanion Function({
+  Value<int> id,
+  Value<String> advanceNumber,
+  Value<int> projectTreasuryId,
+  Value<int> fiscalPeriodId,
+  Value<String> projectName,
+  Value<DateTime> advanceDate,
+  Value<String> status,
+  Value<double> excelTotal,
+  Value<String> sourceFileName,
+  Value<String> sourceFileHash,
+  Value<double> deficitAmount,
+  Value<String?> deficitCoveredBy,
+  Value<String> notes,
+  Value<int?> createdByUserId,
+  Value<DateTime> createdAt,
+  Value<int?> postedByUserId,
+  Value<DateTime?> postedAt,
+  Value<int?> cancelledByUserId,
+  Value<DateTime?> cancelledAt,
+});
+
+final class $$AdvancesTableReferences
+    extends BaseReferences<_$AppDatabase, $AdvancesTable, Advance> {
+  $$AdvancesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TreasuriesTable _projectTreasuryIdTable(_$AppDatabase db) =>
+      db.treasuries.createAlias($_aliasNameGenerator(
+          db.advances.projectTreasuryId, db.treasuries.id));
+
+  $$TreasuriesTableProcessedTableManager get projectTreasuryId {
+    final $_column = $_itemColumn<int>('project_treasury_id')!;
+
+    final manager = $$TreasuriesTableTableManager($_db, $_db.treasuries)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectTreasuryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $FiscalPeriodsTable _fiscalPeriodIdTable(_$AppDatabase db) =>
+      db.fiscalPeriods.createAlias($_aliasNameGenerator(
+          db.advances.fiscalPeriodId, db.fiscalPeriods.id));
+
+  $$FiscalPeriodsTableProcessedTableManager get fiscalPeriodId {
+    final $_column = $_itemColumn<int>('fiscal_period_id')!;
+
+    final manager = $$FiscalPeriodsTableTableManager($_db, $_db.fiscalPeriods)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_fiscalPeriodIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$AdvanceLinesTable, List<AdvanceLine>>
+      _advanceLinesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.advanceLines,
+          aliasName:
+              $_aliasNameGenerator(db.advances.id, db.advanceLines.advanceId));
+
+  $$AdvanceLinesTableProcessedTableManager get advanceLinesRefs {
+    final manager = $$AdvanceLinesTableTableManager($_db, $_db.advanceLines)
+        .filter((f) => f.advanceId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_advanceLinesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$AdvancesTableFilterComposer
+    extends Composer<_$AppDatabase, $AdvancesTable> {
+  $$AdvancesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get advanceNumber => $composableBuilder(
+      column: $table.advanceNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get projectName => $composableBuilder(
+      column: $table.projectName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get advanceDate => $composableBuilder(
+      column: $table.advanceDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get excelTotal => $composableBuilder(
+      column: $table.excelTotal, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceFileName => $composableBuilder(
+      column: $table.sourceFileName,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceFileHash => $composableBuilder(
+      column: $table.sourceFileHash,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get deficitAmount => $composableBuilder(
+      column: $table.deficitAmount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deficitCoveredBy => $composableBuilder(
+      column: $table.deficitCoveredBy,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get postedByUserId => $composableBuilder(
+      column: $table.postedByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get postedAt => $composableBuilder(
+      column: $table.postedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get cancelledByUserId => $composableBuilder(
+      column: $table.cancelledByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get cancelledAt => $composableBuilder(
+      column: $table.cancelledAt, builder: (column) => ColumnFilters(column));
+
+  $$TreasuriesTableFilterComposer get projectTreasuryId {
+    final $$TreasuriesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.projectTreasuryId,
+        referencedTable: $db.treasuries,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TreasuriesTableFilterComposer(
+              $db: $db,
+              $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$FiscalPeriodsTableFilterComposer get fiscalPeriodId {
+    final $$FiscalPeriodsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.fiscalPeriodId,
+        referencedTable: $db.fiscalPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FiscalPeriodsTableFilterComposer(
+              $db: $db,
+              $table: $db.fiscalPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> advanceLinesRefs(
+      Expression<bool> Function($$AdvanceLinesTableFilterComposer f) f) {
+    final $$AdvanceLinesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advanceLines,
+        getReferencedColumn: (t) => t.advanceId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvanceLinesTableFilterComposer(
+              $db: $db,
+              $table: $db.advanceLines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$AdvancesTableOrderingComposer
+    extends Composer<_$AppDatabase, $AdvancesTable> {
+  $$AdvancesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get advanceNumber => $composableBuilder(
+      column: $table.advanceNumber,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get projectName => $composableBuilder(
+      column: $table.projectName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get advanceDate => $composableBuilder(
+      column: $table.advanceDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get excelTotal => $composableBuilder(
+      column: $table.excelTotal, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceFileName => $composableBuilder(
+      column: $table.sourceFileName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceFileHash => $composableBuilder(
+      column: $table.sourceFileHash,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get deficitAmount => $composableBuilder(
+      column: $table.deficitAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deficitCoveredBy => $composableBuilder(
+      column: $table.deficitCoveredBy,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get postedByUserId => $composableBuilder(
+      column: $table.postedByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get postedAt => $composableBuilder(
+      column: $table.postedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get cancelledByUserId => $composableBuilder(
+      column: $table.cancelledByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get cancelledAt => $composableBuilder(
+      column: $table.cancelledAt, builder: (column) => ColumnOrderings(column));
+
+  $$TreasuriesTableOrderingComposer get projectTreasuryId {
+    final $$TreasuriesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.projectTreasuryId,
+        referencedTable: $db.treasuries,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TreasuriesTableOrderingComposer(
+              $db: $db,
+              $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$FiscalPeriodsTableOrderingComposer get fiscalPeriodId {
+    final $$FiscalPeriodsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.fiscalPeriodId,
+        referencedTable: $db.fiscalPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FiscalPeriodsTableOrderingComposer(
+              $db: $db,
+              $table: $db.fiscalPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$AdvancesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AdvancesTable> {
+  $$AdvancesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get advanceNumber => $composableBuilder(
+      column: $table.advanceNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get projectName => $composableBuilder(
+      column: $table.projectName, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get advanceDate => $composableBuilder(
+      column: $table.advanceDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<double> get excelTotal => $composableBuilder(
+      column: $table.excelTotal, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceFileName => $composableBuilder(
+      column: $table.sourceFileName, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceFileHash => $composableBuilder(
+      column: $table.sourceFileHash, builder: (column) => column);
+
+  GeneratedColumn<double> get deficitAmount => $composableBuilder(
+      column: $table.deficitAmount, builder: (column) => column);
+
+  GeneratedColumn<String> get deficitCoveredBy => $composableBuilder(
+      column: $table.deficitCoveredBy, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get postedByUserId => $composableBuilder(
+      column: $table.postedByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get postedAt =>
+      $composableBuilder(column: $table.postedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get cancelledByUserId => $composableBuilder(
+      column: $table.cancelledByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get cancelledAt => $composableBuilder(
+      column: $table.cancelledAt, builder: (column) => column);
+
+  $$TreasuriesTableAnnotationComposer get projectTreasuryId {
+    final $$TreasuriesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.projectTreasuryId,
+        referencedTable: $db.treasuries,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TreasuriesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$FiscalPeriodsTableAnnotationComposer get fiscalPeriodId {
+    final $$FiscalPeriodsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.fiscalPeriodId,
+        referencedTable: $db.fiscalPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FiscalPeriodsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.fiscalPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<T> advanceLinesRefs<T extends Object>(
+      Expression<T> Function($$AdvanceLinesTableAnnotationComposer a) f) {
+    final $$AdvanceLinesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advanceLines,
+        getReferencedColumn: (t) => t.advanceId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvanceLinesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.advanceLines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$AdvancesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AdvancesTable,
+    Advance,
+    $$AdvancesTableFilterComposer,
+    $$AdvancesTableOrderingComposer,
+    $$AdvancesTableAnnotationComposer,
+    $$AdvancesTableCreateCompanionBuilder,
+    $$AdvancesTableUpdateCompanionBuilder,
+    (Advance, $$AdvancesTableReferences),
+    Advance,
+    PrefetchHooks Function(
+        {bool projectTreasuryId, bool fiscalPeriodId, bool advanceLinesRefs})> {
+  $$AdvancesTableTableManager(_$AppDatabase db, $AdvancesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AdvancesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AdvancesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AdvancesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> advanceNumber = const Value.absent(),
+            Value<int> projectTreasuryId = const Value.absent(),
+            Value<int> fiscalPeriodId = const Value.absent(),
+            Value<String> projectName = const Value.absent(),
+            Value<DateTime> advanceDate = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<double> excelTotal = const Value.absent(),
+            Value<String> sourceFileName = const Value.absent(),
+            Value<String> sourceFileHash = const Value.absent(),
+            Value<double> deficitAmount = const Value.absent(),
+            Value<String?> deficitCoveredBy = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<int?> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int?> postedByUserId = const Value.absent(),
+            Value<DateTime?> postedAt = const Value.absent(),
+            Value<int?> cancelledByUserId = const Value.absent(),
+            Value<DateTime?> cancelledAt = const Value.absent(),
+          }) =>
+              AdvancesCompanion(
+            id: id,
+            advanceNumber: advanceNumber,
+            projectTreasuryId: projectTreasuryId,
+            fiscalPeriodId: fiscalPeriodId,
+            projectName: projectName,
+            advanceDate: advanceDate,
+            status: status,
+            excelTotal: excelTotal,
+            sourceFileName: sourceFileName,
+            sourceFileHash: sourceFileHash,
+            deficitAmount: deficitAmount,
+            deficitCoveredBy: deficitCoveredBy,
+            notes: notes,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+            postedByUserId: postedByUserId,
+            postedAt: postedAt,
+            cancelledByUserId: cancelledByUserId,
+            cancelledAt: cancelledAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String advanceNumber,
+            required int projectTreasuryId,
+            required int fiscalPeriodId,
+            Value<String> projectName = const Value.absent(),
+            required DateTime advanceDate,
+            Value<String> status = const Value.absent(),
+            Value<double> excelTotal = const Value.absent(),
+            Value<String> sourceFileName = const Value.absent(),
+            Value<String> sourceFileHash = const Value.absent(),
+            Value<double> deficitAmount = const Value.absent(),
+            Value<String?> deficitCoveredBy = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<int?> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int?> postedByUserId = const Value.absent(),
+            Value<DateTime?> postedAt = const Value.absent(),
+            Value<int?> cancelledByUserId = const Value.absent(),
+            Value<DateTime?> cancelledAt = const Value.absent(),
+          }) =>
+              AdvancesCompanion.insert(
+            id: id,
+            advanceNumber: advanceNumber,
+            projectTreasuryId: projectTreasuryId,
+            fiscalPeriodId: fiscalPeriodId,
+            projectName: projectName,
+            advanceDate: advanceDate,
+            status: status,
+            excelTotal: excelTotal,
+            sourceFileName: sourceFileName,
+            sourceFileHash: sourceFileHash,
+            deficitAmount: deficitAmount,
+            deficitCoveredBy: deficitCoveredBy,
+            notes: notes,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+            postedByUserId: postedByUserId,
+            postedAt: postedAt,
+            cancelledByUserId: cancelledByUserId,
+            cancelledAt: cancelledAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) =>
+                  (e.readTable(table), $$AdvancesTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: (
+              {projectTreasuryId = false,
+              fiscalPeriodId = false,
+              advanceLinesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (advanceLinesRefs) db.advanceLines],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (projectTreasuryId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.projectTreasuryId,
+                    referencedTable:
+                        $$AdvancesTableReferences._projectTreasuryIdTable(db),
+                    referencedColumn: $$AdvancesTableReferences
+                        ._projectTreasuryIdTable(db)
+                        .id,
+                  ) as T;
+                }
+                if (fiscalPeriodId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.fiscalPeriodId,
+                    referencedTable:
+                        $$AdvancesTableReferences._fiscalPeriodIdTable(db),
+                    referencedColumn:
+                        $$AdvancesTableReferences._fiscalPeriodIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (advanceLinesRefs)
+                    await $_getPrefetchedData<Advance, $AdvancesTable,
+                            AdvanceLine>(
+                        currentTable: table,
+                        referencedTable: $$AdvancesTableReferences
+                            ._advanceLinesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$AdvancesTableReferences(db, table, p0)
+                                .advanceLinesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.advanceId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$AdvancesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $AdvancesTable,
+    Advance,
+    $$AdvancesTableFilterComposer,
+    $$AdvancesTableOrderingComposer,
+    $$AdvancesTableAnnotationComposer,
+    $$AdvancesTableCreateCompanionBuilder,
+    $$AdvancesTableUpdateCompanionBuilder,
+    (Advance, $$AdvancesTableReferences),
+    Advance,
+    PrefetchHooks Function(
+        {bool projectTreasuryId, bool fiscalPeriodId, bool advanceLinesRefs})>;
+typedef $$AdvanceLinesTableCreateCompanionBuilder = AdvanceLinesCompanion
+    Function({
+  Value<int> id,
+  required int advanceId,
+  Value<int> rowNumber,
+  required DateTime voucherDate,
+  required double amount,
+  Value<String> itemType,
+  Value<String> reason,
+  Value<String> personName,
+  Value<String?> projectName,
+  Value<String?> invoiceNumber,
+  Value<String?> spentBy,
+  required double originalAmount,
+  Value<String> originalItemType,
+  required DateTime originalDate,
+  Value<bool> isEdited,
+  Value<bool> isExcluded,
+  Value<String> excludeReason,
+  Value<int?> voucherId,
+});
+typedef $$AdvanceLinesTableUpdateCompanionBuilder = AdvanceLinesCompanion
+    Function({
+  Value<int> id,
+  Value<int> advanceId,
+  Value<int> rowNumber,
+  Value<DateTime> voucherDate,
+  Value<double> amount,
+  Value<String> itemType,
+  Value<String> reason,
+  Value<String> personName,
+  Value<String?> projectName,
+  Value<String?> invoiceNumber,
+  Value<String?> spentBy,
+  Value<double> originalAmount,
+  Value<String> originalItemType,
+  Value<DateTime> originalDate,
+  Value<bool> isEdited,
+  Value<bool> isExcluded,
+  Value<String> excludeReason,
+  Value<int?> voucherId,
+});
+
+final class $$AdvanceLinesTableReferences
+    extends BaseReferences<_$AppDatabase, $AdvanceLinesTable, AdvanceLine> {
+  $$AdvanceLinesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AdvancesTable _advanceIdTable(_$AppDatabase db) =>
+      db.advances.createAlias(
+          $_aliasNameGenerator(db.advanceLines.advanceId, db.advances.id));
+
+  $$AdvancesTableProcessedTableManager get advanceId {
+    final $_column = $_itemColumn<int>('advance_id')!;
+
+    final manager = $$AdvancesTableTableManager($_db, $_db.advances)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_advanceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$AdvanceLinesTableFilterComposer
+    extends Composer<_$AppDatabase, $AdvanceLinesTable> {
+  $$AdvanceLinesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get rowNumber => $composableBuilder(
+      column: $table.rowNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get voucherDate => $composableBuilder(
+      column: $table.voucherDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get itemType => $composableBuilder(
+      column: $table.itemType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get personName => $composableBuilder(
+      column: $table.personName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get projectName => $composableBuilder(
+      column: $table.projectName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get invoiceNumber => $composableBuilder(
+      column: $table.invoiceNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get spentBy => $composableBuilder(
+      column: $table.spentBy, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get originalAmount => $composableBuilder(
+      column: $table.originalAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originalItemType => $composableBuilder(
+      column: $table.originalItemType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get originalDate => $composableBuilder(
+      column: $table.originalDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isEdited => $composableBuilder(
+      column: $table.isEdited, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isExcluded => $composableBuilder(
+      column: $table.isExcluded, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get excludeReason => $composableBuilder(
+      column: $table.excludeReason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get voucherId => $composableBuilder(
+      column: $table.voucherId, builder: (column) => ColumnFilters(column));
+
+  $$AdvancesTableFilterComposer get advanceId {
+    final $$AdvancesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.advanceId,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableFilterComposer(
+              $db: $db,
+              $table: $db.advances,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$AdvanceLinesTableOrderingComposer
+    extends Composer<_$AppDatabase, $AdvanceLinesTable> {
+  $$AdvanceLinesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get rowNumber => $composableBuilder(
+      column: $table.rowNumber, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get voucherDate => $composableBuilder(
+      column: $table.voucherDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get itemType => $composableBuilder(
+      column: $table.itemType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get personName => $composableBuilder(
+      column: $table.personName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get projectName => $composableBuilder(
+      column: $table.projectName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get invoiceNumber => $composableBuilder(
+      column: $table.invoiceNumber,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get spentBy => $composableBuilder(
+      column: $table.spentBy, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get originalAmount => $composableBuilder(
+      column: $table.originalAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originalItemType => $composableBuilder(
+      column: $table.originalItemType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get originalDate => $composableBuilder(
+      column: $table.originalDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isEdited => $composableBuilder(
+      column: $table.isEdited, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isExcluded => $composableBuilder(
+      column: $table.isExcluded, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get excludeReason => $composableBuilder(
+      column: $table.excludeReason,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get voucherId => $composableBuilder(
+      column: $table.voucherId, builder: (column) => ColumnOrderings(column));
+
+  $$AdvancesTableOrderingComposer get advanceId {
+    final $$AdvancesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.advanceId,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableOrderingComposer(
+              $db: $db,
+              $table: $db.advances,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$AdvanceLinesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AdvanceLinesTable> {
+  $$AdvanceLinesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get rowNumber =>
+      $composableBuilder(column: $table.rowNumber, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get voucherDate => $composableBuilder(
+      column: $table.voucherDate, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get itemType =>
+      $composableBuilder(column: $table.itemType, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get personName => $composableBuilder(
+      column: $table.personName, builder: (column) => column);
+
+  GeneratedColumn<String> get projectName => $composableBuilder(
+      column: $table.projectName, builder: (column) => column);
+
+  GeneratedColumn<String> get invoiceNumber => $composableBuilder(
+      column: $table.invoiceNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get spentBy =>
+      $composableBuilder(column: $table.spentBy, builder: (column) => column);
+
+  GeneratedColumn<double> get originalAmount => $composableBuilder(
+      column: $table.originalAmount, builder: (column) => column);
+
+  GeneratedColumn<String> get originalItemType => $composableBuilder(
+      column: $table.originalItemType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get originalDate => $composableBuilder(
+      column: $table.originalDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get isEdited =>
+      $composableBuilder(column: $table.isEdited, builder: (column) => column);
+
+  GeneratedColumn<bool> get isExcluded => $composableBuilder(
+      column: $table.isExcluded, builder: (column) => column);
+
+  GeneratedColumn<String> get excludeReason => $composableBuilder(
+      column: $table.excludeReason, builder: (column) => column);
+
+  GeneratedColumn<int> get voucherId =>
+      $composableBuilder(column: $table.voucherId, builder: (column) => column);
+
+  $$AdvancesTableAnnotationComposer get advanceId {
+    final $$AdvancesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.advanceId,
+        referencedTable: $db.advances,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvancesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.advances,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$AdvanceLinesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AdvanceLinesTable,
+    AdvanceLine,
+    $$AdvanceLinesTableFilterComposer,
+    $$AdvanceLinesTableOrderingComposer,
+    $$AdvanceLinesTableAnnotationComposer,
+    $$AdvanceLinesTableCreateCompanionBuilder,
+    $$AdvanceLinesTableUpdateCompanionBuilder,
+    (AdvanceLine, $$AdvanceLinesTableReferences),
+    AdvanceLine,
+    PrefetchHooks Function({bool advanceId})> {
+  $$AdvanceLinesTableTableManager(_$AppDatabase db, $AdvanceLinesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AdvanceLinesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AdvanceLinesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AdvanceLinesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> advanceId = const Value.absent(),
+            Value<int> rowNumber = const Value.absent(),
+            Value<DateTime> voucherDate = const Value.absent(),
+            Value<double> amount = const Value.absent(),
+            Value<String> itemType = const Value.absent(),
+            Value<String> reason = const Value.absent(),
+            Value<String> personName = const Value.absent(),
+            Value<String?> projectName = const Value.absent(),
+            Value<String?> invoiceNumber = const Value.absent(),
+            Value<String?> spentBy = const Value.absent(),
+            Value<double> originalAmount = const Value.absent(),
+            Value<String> originalItemType = const Value.absent(),
+            Value<DateTime> originalDate = const Value.absent(),
+            Value<bool> isEdited = const Value.absent(),
+            Value<bool> isExcluded = const Value.absent(),
+            Value<String> excludeReason = const Value.absent(),
+            Value<int?> voucherId = const Value.absent(),
+          }) =>
+              AdvanceLinesCompanion(
+            id: id,
+            advanceId: advanceId,
+            rowNumber: rowNumber,
+            voucherDate: voucherDate,
+            amount: amount,
+            itemType: itemType,
+            reason: reason,
+            personName: personName,
+            projectName: projectName,
+            invoiceNumber: invoiceNumber,
+            spentBy: spentBy,
+            originalAmount: originalAmount,
+            originalItemType: originalItemType,
+            originalDate: originalDate,
+            isEdited: isEdited,
+            isExcluded: isExcluded,
+            excludeReason: excludeReason,
+            voucherId: voucherId,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int advanceId,
+            Value<int> rowNumber = const Value.absent(),
+            required DateTime voucherDate,
+            required double amount,
+            Value<String> itemType = const Value.absent(),
+            Value<String> reason = const Value.absent(),
+            Value<String> personName = const Value.absent(),
+            Value<String?> projectName = const Value.absent(),
+            Value<String?> invoiceNumber = const Value.absent(),
+            Value<String?> spentBy = const Value.absent(),
+            required double originalAmount,
+            Value<String> originalItemType = const Value.absent(),
+            required DateTime originalDate,
+            Value<bool> isEdited = const Value.absent(),
+            Value<bool> isExcluded = const Value.absent(),
+            Value<String> excludeReason = const Value.absent(),
+            Value<int?> voucherId = const Value.absent(),
+          }) =>
+              AdvanceLinesCompanion.insert(
+            id: id,
+            advanceId: advanceId,
+            rowNumber: rowNumber,
+            voucherDate: voucherDate,
+            amount: amount,
+            itemType: itemType,
+            reason: reason,
+            personName: personName,
+            projectName: projectName,
+            invoiceNumber: invoiceNumber,
+            spentBy: spentBy,
+            originalAmount: originalAmount,
+            originalItemType: originalItemType,
+            originalDate: originalDate,
+            isEdited: isEdited,
+            isExcluded: isExcluded,
+            excludeReason: excludeReason,
+            voucherId: voucherId,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$AdvanceLinesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({advanceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (advanceId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.advanceId,
+                    referencedTable:
+                        $$AdvanceLinesTableReferences._advanceIdTable(db),
+                    referencedColumn:
+                        $$AdvanceLinesTableReferences._advanceIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$AdvanceLinesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $AdvanceLinesTable,
+    AdvanceLine,
+    $$AdvanceLinesTableFilterComposer,
+    $$AdvanceLinesTableOrderingComposer,
+    $$AdvanceLinesTableAnnotationComposer,
+    $$AdvanceLinesTableCreateCompanionBuilder,
+    $$AdvanceLinesTableUpdateCompanionBuilder,
+    (AdvanceLine, $$AdvanceLinesTableReferences),
+    AdvanceLine,
+    PrefetchHooks Function({bool advanceId})>;
+typedef $$ItemTypesTableCreateCompanionBuilder = ItemTypesCompanion Function({
+  Value<int> id,
+  required String name,
+  Value<String> kind,
+  Value<bool> isActive,
+  Value<int> sortOrder,
+});
+typedef $$ItemTypesTableUpdateCompanionBuilder = ItemTypesCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<String> kind,
+  Value<bool> isActive,
+  Value<int> sortOrder,
+});
+
+class $$ItemTypesTableFilterComposer
+    extends Composer<_$AppDatabase, $ItemTypesTable> {
+  $$ItemTypesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+}
+
+class $$ItemTypesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ItemTypesTable> {
+  $$ItemTypesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ItemTypesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ItemTypesTable> {
+  $$ItemTypesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$ItemTypesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ItemTypesTable,
+    ItemType,
+    $$ItemTypesTableFilterComposer,
+    $$ItemTypesTableOrderingComposer,
+    $$ItemTypesTableAnnotationComposer,
+    $$ItemTypesTableCreateCompanionBuilder,
+    $$ItemTypesTableUpdateCompanionBuilder,
+    (ItemType, BaseReferences<_$AppDatabase, $ItemTypesTable, ItemType>),
+    ItemType,
+    PrefetchHooks Function()> {
+  $$ItemTypesTableTableManager(_$AppDatabase db, $ItemTypesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ItemTypesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ItemTypesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ItemTypesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String> kind = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+          }) =>
+              ItemTypesCompanion(
+            id: id,
+            name: name,
+            kind: kind,
+            isActive: isActive,
+            sortOrder: sortOrder,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String name,
+            Value<String> kind = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+          }) =>
+              ItemTypesCompanion.insert(
+            id: id,
+            name: name,
+            kind: kind,
+            isActive: isActive,
+            sortOrder: sortOrder,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ItemTypesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ItemTypesTable,
+    ItemType,
+    $$ItemTypesTableFilterComposer,
+    $$ItemTypesTableOrderingComposer,
+    $$ItemTypesTableAnnotationComposer,
+    $$ItemTypesTableCreateCompanionBuilder,
+    $$ItemTypesTableUpdateCompanionBuilder,
+    (ItemType, BaseReferences<_$AppDatabase, $ItemTypesTable, ItemType>),
+    ItemType,
+    PrefetchHooks Function()>;
 typedef $$ExchangeRatesTableCreateCompanionBuilder = ExchangeRatesCompanion
     Function({
   Value<int> id,
@@ -13227,6 +16779,12 @@ class $AppDatabaseManager {
       $$ContractorsTableTableManager(_db, _db.contractors);
   $$PartnersTableTableManager get partners =>
       $$PartnersTableTableManager(_db, _db.partners);
+  $$AdvancesTableTableManager get advances =>
+      $$AdvancesTableTableManager(_db, _db.advances);
+  $$AdvanceLinesTableTableManager get advanceLines =>
+      $$AdvanceLinesTableTableManager(_db, _db.advanceLines);
+  $$ItemTypesTableTableManager get itemTypes =>
+      $$ItemTypesTableTableManager(_db, _db.itemTypes);
   $$ExchangeRatesTableTableManager get exchangeRates =>
       $$ExchangeRatesTableTableManager(_db, _db.exchangeRates);
   $$AuditLogTableTableManager get auditLog =>

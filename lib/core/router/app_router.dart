@@ -44,6 +44,8 @@ import '../../presentation/features/contractors/contractors_screen.dart';
 import '../../presentation/features/partners/partners_screen.dart';
 import '../../presentation/features/reports/reports_screen.dart';
 import '../../presentation/features/excel/excel_import_screen.dart';
+import '../../presentation/features/advances/advances_list_screen.dart';
+import '../../presentation/features/advances/advance_review_screen.dart';
 import '../../presentation/features/fiscal/fiscal_screen.dart';
 import '../../presentation/features/backup/backup_screen.dart';
 import '../../presentation/features/settings/settings_screen.dart';
@@ -126,6 +128,12 @@ class _RouterNotifier extends ChangeNotifier {
     // نستخدم startsWith لتغطية المسارات الفرعية (مثل /reports/excel-import)
     if (location.startsWith(AppRoutes.excelImport)) {
       return AppPermission.importExcel;
+    }
+    // شاشات السلف: العرض والتحرير بلا أثر مالي — الحاجز الحقيقي على الاعتماد
+    // نفسه داخل AdvanceNotifier (postAdvance / postAdvanceWithDeficit)، لا على
+    // المسار. حجب المسار كان سيمنع المحاسب من تجهيز المسودة أصلاً.
+    if (location.startsWith(AppRoutes.advances)) {
+      return AppPermission.prepareAdvance;
     }
     if (location.startsWith(AppRoutes.backup)) {
       return AppPermission.createBackup;
@@ -287,6 +295,29 @@ GoRouter appRouter(ProviderRef<GoRouter> ref) {
             path: AppRoutes.excelImport,
             name: 'excel-import',
             builder: (context, state) => const ExcelImportScreen(),
+          ),
+
+          /// سلف المشاريع — القائمة ومراجعة المسودة
+          GoRoute(
+            path: AppRoutes.advances,
+            name: 'advances',
+            builder: (context, state) => const AdvancesListScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                name: 'advance-detail',
+                builder: (context, state) {
+                  final id = int.tryParse(state.pathParameters['id'] ?? '');
+                  if (id == null) {
+                    return const ErrorScreen(
+                      error: 'معرّف السلفة غير صحيح',
+                      is404: true,
+                    );
+                  }
+                  return AdvanceReviewScreen(advanceId: id);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoutes.fiscal,
