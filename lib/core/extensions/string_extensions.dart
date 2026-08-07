@@ -135,12 +135,13 @@ extension StringExtensions on String {
   /// مثال: 'sarf' → 'صرف' | 'kabd' → 'قبض' | 'opening_balance' → 'رصيد افتتاحي'
   String toArabicVoucherType() {
     return switch (this) {
-      'sarf'            => 'صرف',
-      'kabd'            => 'قبض',
-      'opening_balance' => 'رصيد افتتاحي',
-      'transfer_out'    => 'تحويل (صادر)',
-      'transfer_in'     => 'تحويل (وارد)',
-      _                 => this,
+      'sarf'                  => 'صرف',
+      'kabd'                  => 'قبض',
+      'opening_balance'       => 'رصيد افتتاحي',
+      'opening_balance_debit' => 'رصيد افتتاحي مدين',
+      'transfer_out'          => 'تحويل (صادر)',
+      'transfer_in'           => 'تحويل (وارد)',
+      _                       => this,
     };
   }
 

@@ -115,7 +115,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -162,6 +162,16 @@ class AppDatabase extends _$AppDatabase {
       // ── الترقية إلى الإصدار 3 (رباط موثوق لسندَي التحويل) ──────────────
       if (from < 3) {
         await m.addColumn(vouchers, vouchers.transferGroupId);
+      }
+
+      // ── الترقية إلى الإصدار 4 (قيد CHECK على تسديد السلف) ─────────────
+      if (from < 4) {
+        // إضافة قيد CHECK(total_repaid <= amount) يتطلب إعادة بناء الجدول
+        // في SQLite. alterTable مع TableMigration تُعيد بناءه مع الحفاظ على
+        // البيانات. (نوع الرصيد الافتتاحي المدين وتغيير VIEW يُطبَّقان تلقائياً
+        // عبر إعادة بناء الـ VIEW أدناه — لا يحتاجان تغييراً في الجداول.)
+        // ignore: experimental_member_use
+        await m.alterTable(TableMigration(cashAdvances));
       }
 
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────

@@ -341,7 +341,8 @@ class FiscalNotifier extends _$FiscalNotifier {
             delta = v.amount; // دائن +
           case 'sarf':
           case 'transfer_out':
-            delta = -v.amount; // مدين -
+          case 'opening_balance_debit':
+            delta = -v.amount; // مدين - (يشمل الرصيد الافتتاحي المدين)
           default:
             continue; // نوع غير معروف — تجاهل
         }
@@ -369,51 +370,50 @@ class FiscalNotifier extends _$FiscalNotifier {
       int localCounter = 0;
 
       await db.transaction(() async {
+        // دالة مساعدة تُدرج سند افتتاح بالنوع الصحيح حسب إشارة الرصيد
+        //   الرصيد الموجب → opening_balance (دائن)
+        //   الرصيد السالب → opening_balance_debit (مدين، مبلغ موجب) ← إصلاح H9
+        // بهذا لا يختفي دَين الخزينة المدينة عند بداية السنة الجديدة.
+        Future<void> insertOpening({
+          required int treasuryId,
+          required double balance,
+          required String currency,
+        }) async {
+          if (balance.abs() <= 0.001) return; // رصيد صفري — لا سند
+          localCounter++;
+          final isDebit = balance < 0;
+          await db.vouchersDao.insertVoucher(
+            VouchersCompanion.insert(
+              voucherNumber: localCounter,
+              voucherType:
+                  isDebit ? 'opening_balance_debit' : 'opening_balance',
+              treasuryId: treasuryId,
+              fiscalPeriodId: pendingPeriodId,
+              amount: balance.abs(), // دائماً موجب (قيد CHECK)
+              currency: Value(currency),
+              exchangeRate:
+                  currency == 'USD' ? Value(exchangeRate) : const Value(1.0),
+              voucherDate: pendingPeriod.startDate,
+              notes: Value(
+                '${isDebit ? 'رصيد افتتاحي مدين' : 'رصيد افتتاحي'} '
+                'منقول من فترة: ${previousPeriod.name}',
+              ),
+              createdByUserId: Value(userId),
+            ),
+          );
+        }
+
         for (final treasuryId in allTreasuryIds) {
-          final iqdBal = closingIqd[treasuryId] ?? 0.0;
-          final usdBal = closingUsd[treasuryId] ?? 0.0;
-
-          // سند افتتاح بالدينار العراقي (إذا كان الرصيد موجباً)
-          // ملاحظة: الأرصدة السالبة تعني خزينة مدينة — تُعالَج يدوياً
-          if (iqdBal > 0.001) {
-            localCounter++;
-            await db.vouchersDao.insertVoucher(
-              VouchersCompanion.insert(
-                voucherNumber: localCounter,
-                voucherType: 'opening_balance',
-                treasuryId: treasuryId,
-                fiscalPeriodId: pendingPeriodId,
-                amount: iqdBal,
-                currency: const Value('IQD'),
-                voucherDate: pendingPeriod.startDate,
-                notes: Value(
-                  'رصيد افتتاحي منقول من فترة: ${previousPeriod.name}',
-                ),
-                createdByUserId: Value(userId),
-              ),
-            );
-          }
-
-          // سند افتتاح بالدولار الأمريكي
-          if (usdBal > 0.001) {
-            localCounter++;
-            await db.vouchersDao.insertVoucher(
-              VouchersCompanion.insert(
-                voucherNumber: localCounter,
-                voucherType: 'opening_balance',
-                treasuryId: treasuryId,
-                fiscalPeriodId: pendingPeriodId,
-                amount: usdBal,
-                currency: const Value('USD'),
-                exchangeRate: Value(exchangeRate),
-                voucherDate: pendingPeriod.startDate,
-                notes: Value(
-                  'رصيد افتتاحي بالدولار منقول من فترة: ${previousPeriod.name}',
-                ),
-                createdByUserId: Value(userId),
-              ),
-            );
-          }
+          await insertOpening(
+            treasuryId: treasuryId,
+            balance: closingIqd[treasuryId] ?? 0.0,
+            currency: 'IQD',
+          );
+          await insertOpening(
+            treasuryId: treasuryId,
+            balance: closingUsd[treasuryId] ?? 0.0,
+            currency: 'USD',
+          );
         }
       });
 

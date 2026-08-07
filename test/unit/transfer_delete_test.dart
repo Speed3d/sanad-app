@@ -21,7 +21,7 @@ void main() {
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    expect(db.schemaVersion, equals(3));
+    expect(db.schemaVersion, equals(4));
     periodId = await db.fiscalPeriodsDao.insertPeriod(
       FiscalPeriodsCompanion.insert(
         name: '2026',

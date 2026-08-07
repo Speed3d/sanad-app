@@ -65,9 +65,12 @@ class Vouchers extends Table {
   // السبب / البيان
   TextColumn get reason => text().withDefault(const Constant(''))();
 
-  // نوع البند: 'expense' | 'revenue' | 'loan' | 'salary' | 'other'
+  // نوع البند بالعربية (موحّد على العربية — تدقيق 2026-08-06):
+  //   صرف: راتب | سلفة | إيجار | مشتريات | مصاريف تشغيل | رسوم وضرائب | أخرى
+  //   قبض: دفعة عميل | إيراد بيع | قرض وارد | رأس مال | مرتجع صرف | إيرادات أخرى
+  //   '' = غير محدد. لا نفرض قيد CHECK صارماً لإتاحة إضافة فئات مستقبلاً.
   TextColumn get itemType =>
-      text().named('item_type').withDefault(const Constant('other'))();
+      text().named('item_type').withDefault(const Constant(''))();
 
   // رقم المرجع (مثل: رقم شيك، رقم حوالة)
   TextColumn get referenceNumber =>

@@ -112,6 +112,12 @@ class CashAdvances extends Table {
   // حذف ناعم
   BoolColumn get isDeleted =>
       boolean().named('is_deleted').withDefault(const Constant(false))();
+
+  // قيد على مستوى الجدول: المسدَّد لا يتجاوز مبلغ السلفة أبداً (دفاع في العمق)
+  // الإصلاح التراكمي في repayAdvance يمنع التجاوز منطقياً، وهذا القيد يمنعه
+  // على مستوى قاعدة البيانات نفسها. راجع تدقيق 2026-08-06 (H1/H7).
+  @override
+  List<String> get customConstraints => ['CHECK(total_repaid <= amount)'];
 }
 
 /// جدول أقساط سداد السلف

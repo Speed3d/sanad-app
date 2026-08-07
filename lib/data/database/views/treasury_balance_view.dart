@@ -47,7 +47,7 @@ SELECT
   COALESCE(
     SUM(
       CASE
-        WHEN v.voucher_type IN ('sarf', 'transfer_out')
+        WHEN v.voucher_type IN ('sarf', 'transfer_out', 'opening_balance_debit')
              AND v.currency = 'IQD'
              AND v.is_deleted = 0
         THEN v.amount
@@ -71,7 +71,7 @@ SELECT
   COALESCE(
     SUM(
       CASE
-        WHEN v.voucher_type IN ('sarf', 'transfer_out')
+        WHEN v.voucher_type IN ('sarf', 'transfer_out', 'opening_balance_debit')
              AND v.currency = 'USD'
              AND v.is_deleted = 0
         THEN v.amount

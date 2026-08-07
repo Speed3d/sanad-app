@@ -2460,7 +2460,7 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
       'item_type', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant('other'));
+      defaultValue: const Constant(''));
   static const VerificationMeta _referenceNumberMeta =
       const VerificationMeta('referenceNumber');
   @override
