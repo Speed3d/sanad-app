@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/models/contractor_model.dart';
 import '../../providers/contractor_providers.dart';
+import '../../widgets/common/app_components.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ContractorsScreen — الشاشة الرئيسية
@@ -171,7 +172,7 @@ class _ContractorsList extends ConsumerWidget {
             ? all
             : all.where((c) => c.contractorType == typeFilter).toList();
         if (list.isEmpty) {
-          return _EmptyState(
+          return AppEmptyState(
             icon: Icons.construction_outlined,
             message: typeFilter == null
                 ? 'لا يوجد مقاولون مسجّلون بعد'
@@ -209,7 +210,7 @@ class _SearchResults extends ConsumerWidget {
             ? all
             : all.where((c) => c.contractorType == typeFilter).toList();
         if (list.isEmpty) {
-          return const _EmptyState(
+          return const AppEmptyState(
             icon: Icons.search_off_outlined,
             message: 'لا توجد نتائج مطابقة',
           );
@@ -905,33 +906,4 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 72,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
+// (أُزيل _EmptyState المحلي — يستخدم AppEmptyState المشترك الآن)

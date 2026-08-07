@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/models/partner_model.dart';
 import '../../providers/partner_providers.dart';
+import '../../widgets/common/app_components.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // PartnersScreen — الشاشة الرئيسية
@@ -211,7 +212,7 @@ class _PartnersList extends ConsumerWidget {
       error: (e, _) => Center(child: Text('خطأ: $e')),
       data: (list) {
         if (list.isEmpty) {
-          return const _EmptyState(
+          return const AppEmptyState(
             icon: Icons.handshake_outlined,
             message: 'لا يوجد شركاء مسجّلون بعد',
           );
@@ -243,7 +244,7 @@ class _SearchResults extends ConsumerWidget {
       error: (e, _) => Center(child: Text('خطأ: $e')),
       data: (list) {
         if (list.isEmpty) {
-          return const _EmptyState(
+          return const AppEmptyState(
             icon: Icons.search_off_outlined,
             message: 'لا توجد نتائج مطابقة',
           );
@@ -950,33 +951,4 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 72,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
+// (أُزيل _EmptyState المحلي — يستخدم AppEmptyState المشترك الآن)
