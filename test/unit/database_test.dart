@@ -29,7 +29,7 @@ void main() {
 
   group('اختبارات قاعدة البيانات (Drift DB Tests)', () {
     test('يجب إنشاء قاعدة البيانات بالأدوار والمخطط الصحيح', () async {
-      expect(db.schemaVersion, equals(2));
+      expect(db.schemaVersion, equals(3));
     });
 
     test('إدراج واستعلام خزينة جديدة', () async {
