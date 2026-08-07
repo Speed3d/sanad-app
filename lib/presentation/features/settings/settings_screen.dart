@@ -21,7 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'tabs/company_tab.dart';
 import 'tabs/appearance_tab.dart';
-import 'tabs/language_tab.dart';
+// import 'tabs/language_tab.dart'; // مُعطَّل مؤقتاً — انظر ملاحظة قسم اللغة أدناه
 import 'tabs/currency_tab.dart';
 import 'tabs/security_tab.dart';
 import 'tabs/users_tab.dart';
@@ -59,12 +59,10 @@ final List<_SettingsSection> _sections = [
     icon: Icons.palette_outlined,
     builder: () => const AppearanceTab(),
   ),
-  _SettingsSection(
-    title: 'اللغة والتنسيق',
-    subtitle: 'العربية / الإنجليزية',
-    icon: Icons.language_outlined,
-    builder: () => const LanguageTab(),
-  ),
+  // ملاحظة: أُزيل قسم "اللغة والتنسيق" مؤقتاً (قرار المالك 2026-08-07).
+  //   نظام الترجمة (l10n) مبنيّ لكنه غير موصول — كان التبويب يَعِد بترجمة
+  //   إنجليزية فورية لا تحدث، وتبديل اللغة يقلب التخطيط لـ LTR بينما تبقى
+  //   كل النصوص عربية = واجهة مكسورة. يُعاد عند ربط الترجمة فعلياً.
   _SettingsSection(
     title: 'العملة والأسعار',
     subtitle: 'IQD / USD وسعر الصرف',
