@@ -1,36 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="ar">
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    إذا كنت تقدم تطبيق الويب من مسار غير الجذر، عدّل قيمة href
+    المسار يجب أن يبدأ وينتهي بـ "/"
+    هذا عنصر مؤقت سيُستبدل بقيمة --base-href عند البناء
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="سند — نظام إدارة المبيعات والخزينة">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="sales_management">
+  <meta name="apple-mobile-web-app-title" content="سند">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>sales_management</title>
+  <title>سند — نظام إدارة المبيعات والخزينة</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // ─────────────────────────────────────────────────────────────
+    // تسجيل خدمة عامل العزل (COI Service Worker)
+    // الغرض: إضافة ترويسات COOP/COEP لتفعيل OPFS و SharedArrayBuffer
+    // بدون هذا، قاعدة البيانات تعمل في الذاكرة المؤقتة وتُفقد عند الإغلاق
+    // ─────────────────────────────────────────────────────────────
+    if ("serviceWorker" in navigator) {
+      // تحميل ملف الـ Service Worker الذي يضيف ترويسات العزل
+      navigator.serviceWorker.register("coi-serviceworker.js");
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // طلب التخزين الدائم (Persistent Storage)
+    // الغرض: منع المتصفح من حذف بيانات OPFS/IndexedDB تلقائياً
+    // عندما تقترب مساحة القرص من الامتلاء
+    // ─────────────────────────────────────────────────────────────
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(function(granted) {
+        if (granted) {
+          console.log("✅ التخزين الدائم: تمت الموافقة — البيانات محمية من الحذف التلقائي");
+        } else {
+          console.warn("⚠️ التخزين الدائم: لم تتم الموافقة — المتصفح قد يحذف البيانات");
+        }
+      });
+    }
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

@@ -139,8 +139,8 @@ flutter:
     - assets/fonts/
     # الصور والأيقونات الثابتة
     - assets/images/
-    # ملفات WASM لـ SQLite على الويب
-    - assets/sqlite/
+    # ملاحظة: ملفات WASM لـ SQLite (sqlite3.wasm و drift_worker.js)
+    # موجودة في مجلد web/ مباشرة ولا تحتاج تسجيل هنا
 
   # ── تعريف الخطوط ──────────────────────────────────────────────────────────
   fonts:
