@@ -15,6 +15,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/employee_model.dart';
@@ -239,6 +240,11 @@ class SalaryNotifier extends _$SalaryNotifier {
     return s is AuthAuthenticated ? s.user.id : null;
   }
 
+  String get _username {
+    final s = ref.read(authNotifierProvider);
+    return s is AuthAuthenticated ? s.user.username : 'system';
+  }
+
   /// صرف راتب موظف مع إنشاء سند صرف تلقائي
   Future<bool> paySalary({
     required int employeeId,
@@ -272,44 +278,61 @@ class SalaryNotifier extends _$SalaryNotifier {
         return false;
       }
 
-      // 2. رقم السند التالي
-      final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
-        fiscalPeriodId: period.id,
-        voucherType: 'sarf',
-      );
-
-      // 3. إنشاء سند الصرف
-      final voucherId = await _db.vouchersDao.insertVoucher(
-        VouchersCompanion.insert(
-          voucherNumber: voucherNumber,
-          voucherType: 'sarf',
-          treasuryId: treasuryId,
+      // ⚠️ خطوات 2–4 داخل معاملة واحدة (إصلاح السند اليتيم):
+      //   سابقاً كان السند يُكتب في معاملة والراتب في أخرى، فلو فشلت
+      //   الخطوة الثانية يبقى السند (المال) بلا سجل راتب مقابل. لفّها في
+      //   db.transaction يجعلها ذرّية: إما تنجح كلها أو تتراجع كلها.
+      final voucherId = await _db.transaction(() async {
+        // 2. رقم السند التالي
+        final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
           fiscalPeriodId: period.id,
-          amount: netAmount,
-          currency: const Value('IQD'),
-          voucherDate: paymentDate,
-          personName: Value(employeeName),
-          reason: Value('راتب $periodLabel'),
-          itemType: const Value('راتب'),
-          linkedEntityId: Value(employeeId),
-          createdByUserId: Value(_userId),
-        ),
-      );
+          voucherType: 'sarf',
+        );
 
-      // 4. تسجيل دفعة الراتب مرتبطة بالسند
-      await _db.employeesDao.insertSalaryPayment(
-        SalaryPaymentsCompanion.insert(
-          employeeId: employeeId,
-          paymentDate: paymentDate,
-          periodLabel: Value(periodLabel),
-          basicSalary: Value(basicSalary),
-          additions: Value(additions),
-          deductions: Value(deductions),
-          netAmount: Value(netAmount),
-          voucherId: Value(voucherId),
-          notes: Value(notes.trim()),
-        ),
-      );
+        // 3. إنشاء سند الصرف
+        final vid = await _db.vouchersDao.insertVoucher(
+          VouchersCompanion.insert(
+            voucherNumber: voucherNumber,
+            voucherType: 'sarf',
+            treasuryId: treasuryId,
+            fiscalPeriodId: period.id,
+            amount: netAmount,
+            currency: const Value('IQD'),
+            voucherDate: paymentDate,
+            personName: Value(employeeName),
+            reason: Value('راتب $periodLabel'),
+            itemType: const Value('راتب'),
+            linkedEntityId: Value(employeeId),
+            createdByUserId: Value(_userId),
+          ),
+        );
+
+        // 4. تسجيل دفعة الراتب مرتبطة بالسند
+        await _db.employeesDao.insertSalaryPayment(
+          SalaryPaymentsCompanion.insert(
+            employeeId: employeeId,
+            paymentDate: paymentDate,
+            periodLabel: Value(periodLabel),
+            basicSalary: Value(basicSalary),
+            additions: Value(additions),
+            deductions: Value(deductions),
+            netAmount: Value(netAmount),
+            voucherId: Value(vid),
+            notes: Value(notes.trim()),
+          ),
+        );
+        return vid;
+      });
+
+      // توثيق صرف الراتب في سجل التدقيق
+      await ref.read(auditLoggerProvider).logVoucherCreated(
+            userId: _userId ?? 0,
+            username: _username,
+            voucherId: voucherId,
+            voucherType: 'sarf',
+            amount: netAmount,
+            treasuryId: treasuryId,
+          );
 
       state = const AsyncData('تم صرف الراتب بنجاح ✓');
       return true;
@@ -345,6 +368,11 @@ class AdvanceNotifier extends _$AdvanceNotifier {
     return s is AuthAuthenticated ? s.user.id : null;
   }
 
+  String get _username {
+    final s = ref.read(authNotifierProvider);
+    return s is AuthAuthenticated ? s.user.username : 'system';
+  }
+
   // ── منح سلفة ───────────────────────────────────────────────────────────
 
   /// منح سلفة لموظف مع إنشاء سند صرف تلقائي
@@ -377,43 +405,61 @@ class AdvanceNotifier extends _$AdvanceNotifier {
         return false;
       }
 
-      // 2. رقم السند التالي
-      final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
-        fiscalPeriodId: period.id,
-        voucherType: 'sarf',
-      );
-
-      // 3. إنشاء سند الصرف
-      final voucherId = await _db.vouchersDao.insertVoucher(
-        VouchersCompanion.insert(
-          voucherNumber: voucherNumber,
-          voucherType: 'sarf',
-          treasuryId: treasuryId,
+      // ⚠️ خطوات 2–4 داخل معاملة واحدة (إصلاح السند اليتيم):
+      //   السند وسجل السلفة يجب أن يُكتبا معاً أو لا يُكتبا، وإلا يبقى
+      //   المال قد خرج من الخزينة بلا سلفة مسجَّلة مقابلة.
+      final voucherId = await _db.transaction(() async {
+        // 2. رقم السند التالي
+        final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
           fiscalPeriodId: period.id,
-          amount: amount,
-          currency: Value(currency),
-          voucherDate: advanceDate,
-          personName: Value(employeeName),
-          reason: Value(
-            reason.isNotEmpty ? reason : 'سلفة للموظف $employeeName',
-          ),
-          itemType: const Value('سلفة'),
-          linkedEntityId: Value(employeeId),
-          createdByUserId: Value(_userId),
-        ),
-      );
+          voucherType: 'sarf',
+        );
 
-      // 4. تسجيل السلفة
-      await _db.employeesDao.insertAdvance(
-        CashAdvancesCompanion.insert(
-          amount: amount,
-          advanceDate: advanceDate,
-          employeeId: Value(employeeId),
-          currency: Value(currency),
-          reason: Value(reason.trim()),
-          voucherId: Value(voucherId),
-        ),
-      );
+        // 3. إنشاء سند الصرف
+        final vid = await _db.vouchersDao.insertVoucher(
+          VouchersCompanion.insert(
+            voucherNumber: voucherNumber,
+            voucherType: 'sarf',
+            treasuryId: treasuryId,
+            fiscalPeriodId: period.id,
+            amount: amount,
+            currency: Value(currency),
+            voucherDate: advanceDate,
+            personName: Value(employeeName),
+            reason: Value(
+              reason.isNotEmpty ? reason : 'سلفة للموظف $employeeName',
+            ),
+            itemType: const Value('سلفة'),
+            linkedEntityId: Value(employeeId),
+            createdByUserId: Value(_userId),
+          ),
+        );
+
+        // 4. تسجيل السلفة
+        await _db.employeesDao.insertAdvance(
+          CashAdvancesCompanion.insert(
+            amount: amount,
+            advanceDate: advanceDate,
+            employeeId: Value(employeeId),
+            currency: Value(currency),
+            reason: Value(reason.trim()),
+            voucherId: Value(vid),
+          ),
+        );
+        return vid;
+      });
+
+      // تحديث مبلغ السلف القائمة في الواجهة + توثيق العملية
+      ref.invalidate(pendingAdvancesAmountProvider(employeeId));
+      await ref.read(auditLoggerProvider).logVoucherCreated(
+            userId: _userId ?? 0,
+            username: _username,
+            voucherId: voucherId,
+            voucherType: 'sarf',
+            amount: amount,
+            currency: currency,
+            treasuryId: treasuryId,
+          );
 
       state = const AsyncData('تم منح السلفة بنجاح ✓');
       return true;
@@ -443,6 +489,7 @@ class AdvanceNotifier extends _$AdvanceNotifier {
       );
       return false;
     }
+    // فحص أوّلي سريع للواجهة (غير مُلزِم) — الفحص المُلزِم داخل المعاملة
     final remaining = advance.remainingAmount;
     if (repaymentAmount > remaining + 0.001) {
       state = AsyncError(
@@ -470,49 +517,84 @@ class AdvanceNotifier extends _$AdvanceNotifier {
           : null;
       final empName = emp?.fullName ?? 'موظف';
 
-      // 3. رقم سند القبض التالي
-      final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
-        fiscalPeriodId: period.id,
-        voucherType: 'kabd',
-      );
+      // ⚠️ خطوات 3–6 داخل معاملة واحدة مع إعادة قراءة السلفة (إصلاح H7):
+      //   الفحص القديم كان يعتمد على نسخة السلفة الملتقطة في الواجهة، فلو
+      //   فُتحت نافذتا سداد على نفس السلفة يمرّان معاً وتُدهَس إحداهما.
+      //   هنا نُعيد قراءة total_repaid الطازج داخل المعاملة، ونحسب المجموع
+      //   تراكمياً، ونرفض التجاوز — فلا يمكن لسدادين متزامنين أن يتجاوزا المبلغ.
+      final voucherId = await _db.transaction(() async {
+        // إعادة قراءة السلفة الطازجة داخل المعاملة
+        final fresh = await _db.employeesDao.getAdvanceById(advance.id);
+        if (fresh == null) {
+          throw Exception('لم يُعثَر على السلفة');
+        }
+        final freshRemaining = fresh.amount - fresh.totalRepaid;
+        if (repaymentAmount > freshRemaining + 0.001) {
+          throw Exception(
+            'مبلغ السداد أكبر من المبلغ المتبقي (${freshRemaining.toStringAsFixed(0)})',
+          );
+        }
 
-      // 4. إنشاء سند القبض
-      final voucherId = await _db.vouchersDao.insertVoucher(
-        VouchersCompanion.insert(
-          voucherNumber: voucherNumber,
-          voucherType: 'kabd',
-          treasuryId: treasuryId,
+        // 3. رقم سند القبض التالي
+        final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
           fiscalPeriodId: period.id,
-          amount: repaymentAmount,
-          currency: Value(advance.currency),
-          voucherDate: repaymentDate,
-          personName: Value(empName),
-          reason: const Value('سداد سلفة'),
-          itemType: const Value('مرتجع صرف'),
-          linkedEntityId: Value(advance.employeeId),
-          createdByUserId: Value(_userId),
-        ),
-      );
+          voucherType: 'kabd',
+        );
 
-      // 5. احتساب الحالة الجديدة
-      final newRepaid = advance.totalRepaid + repaymentAmount;
-      final newStatus =
-          newRepaid >= advance.amount - 0.001 ? 'paid' : 'partial';
+        // 4. إنشاء سند القبض
+        final vid = await _db.vouchersDao.insertVoucher(
+          VouchersCompanion.insert(
+            voucherNumber: voucherNumber,
+            voucherType: 'kabd',
+            treasuryId: treasuryId,
+            fiscalPeriodId: period.id,
+            amount: repaymentAmount,
+            currency: Value(advance.currency),
+            voucherDate: repaymentDate,
+            personName: Value(empName),
+            reason: const Value('سداد سلفة'),
+            itemType: const Value('مرتجع صرف'),
+            linkedEntityId: Value(advance.employeeId),
+            createdByUserId: Value(_userId),
+          ),
+        );
 
-      // 6. إدراج القسط + تحديث السلفة ذرياً
-      await _db.employeesDao.insertRepayment(
-        repayment: CashAdvanceRepaymentsCompanion.insert(
-          cashAdvanceId: advance.id,
-          amount: repaymentAmount,
-          repaymentDate: repaymentDate,
-          method: Value(method),
-          voucherId: Value(voucherId),
-          notes: Value(notes.trim()),
-        ),
-        advanceId: advance.id,
-        newTotalRepaid: newRepaid,
-        newStatus: newStatus,
-      );
+        // 5. احتساب الحالة الجديدة من البيانات الطازجة
+        final newRepaid = fresh.totalRepaid + repaymentAmount;
+        final newStatus =
+            newRepaid >= fresh.amount - 0.001 ? 'paid' : 'partial';
+
+        // 6. إدراج القسط + تحديث السلفة (insertRepayment له معاملته الداخلية
+        //    التي تصبح Savepoint ضمن هذه المعاملة الخارجية)
+        await _db.employeesDao.insertRepayment(
+          repayment: CashAdvanceRepaymentsCompanion.insert(
+            cashAdvanceId: advance.id,
+            amount: repaymentAmount,
+            repaymentDate: repaymentDate,
+            method: Value(method),
+            voucherId: Value(vid),
+            notes: Value(notes.trim()),
+          ),
+          advanceId: advance.id,
+          newTotalRepaid: newRepaid,
+          newStatus: newStatus,
+        );
+        return vid;
+      });
+
+      // تحديث الواجهة + توثيق السداد
+      if (advance.employeeId != null) {
+        ref.invalidate(pendingAdvancesAmountProvider(advance.employeeId!));
+      }
+      await ref.read(auditLoggerProvider).logVoucherCreated(
+            userId: _userId ?? 0,
+            username: _username,
+            voucherId: voucherId,
+            voucherType: 'kabd',
+            amount: repaymentAmount,
+            currency: advance.currency,
+            treasuryId: treasuryId,
+          );
 
       state = const AsyncData('تم تسجيل السداد بنجاح ✓');
       return true;

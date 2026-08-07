@@ -26,9 +26,13 @@ import 'settings_shared.dart';
 // ── أدوار المستخدمين المتاحة للتعيين ──────────────────────────────────────────
 
 /// الأدوار التي يمكن تعيينها لمستخدم جديد (لا يمكن إنشاء super_admin من هنا)
+///
+/// ملاحظة: التسميات تطابق roleDisplayName في user_model.dart.
+/// حُذف دور 'accountant' لأنه لم يكن معرّفاً في النظام (بلا صلاحيات
+/// وبلا اسم عربي)، وصُحِّحت تسمية 'admin' من 'مدير النظام' (وهي تسمية
+/// super_admin) إلى 'مدير'.
 const List<_RoleOption> _assignableRoles = [
-  _RoleOption(value: 'admin', label: 'مدير النظام'),
-  _RoleOption(value: 'accountant', label: 'محاسب'),
+  _RoleOption(value: 'admin', label: 'مدير'),
   _RoleOption(value: 'user', label: 'مستخدم عادي'),
 ];
 
@@ -422,7 +426,6 @@ class _RoleBadge extends StatelessWidget {
     final color = switch (role) {
       'super_admin' => theme.colorScheme.error,
       'admin' => theme.colorScheme.primary,
-      'accountant' => Colors.teal,
       _ => theme.colorScheme.onSurfaceVariant,
     };
 
@@ -492,7 +495,7 @@ class _AddUserDialogState extends ConsumerState<_AddUserDialog> {
   final _passwordCtrl = TextEditingController();
 
   // DropdownButtonFormField يستخدم initialValue بدلاً من value (منذ Flutter 3.33)
-  String _selectedRole = 'accountant';
+  String _selectedRole = 'user';
   bool _obscurePassword = true;
   bool _isSaving = false;
   String? _errorMessage;
