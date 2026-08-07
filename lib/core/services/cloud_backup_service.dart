@@ -1,18 +1,34 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// cloud_backup_service.dart — خدمة النسخ الاحتياطي السحابي (Google Drive Sync)
+// cloud_backup_service.dart — خدمة النسخة الاحتياطية الإضافية
 //
-// الغرض:
-//   يوفر هذا الملف خدمة مركزية لإدارة النسخ الاحتياطي السحابي، بما في ذلك:
-//   - التزامن مع Google Drive / المجلدات السحابية
-//   - التحقق من حالة النسخ المرفوعة وحجمها وتاريخ آخر مزامنة
-//   - رفع الملفات المشفَّرة b"SMBAK1" تلقائياً بعد كل عملية تصدير
+// ⚠️ توضيح صادق (تصحيح تدقيق 2026-08-06):
+//   هذه الخدمة **لا تتصل بأي سحابة**. كانت تُسمّى "مزامنة Google Drive"
+//   وتدّعي الواجهة نجاح الرفع، بينما هي في الحقيقة تنسخ الملف إلى مجلد
+//   مجاور على **نفس الجهاز ونفس القرص** — فعطل قرص واحد يمحو الأصل والنسخة.
 //
+//   الوضع الحالي: "نسخة محلية إضافية" (local) فقط.
+//   الوضع 'drive' محجوز للمزامنة الفعلية مع Google Drive، ويتطلب إعداد
+//   OAuth في Google Cloud (Client ID + شاشة موافقة) لم يُنجَز بعد. عند
+//   اختياره تُعيد الخدمة حالة notConfigured بدل ادعاء نجاح كاذب.
+//
+// الغرض الحالي:
+//   - حفظ نسخة إضافية من ملف .smbak في مجلد منفصل على الجهاز
+//   - تتبع حجم آخر نسخة وتاريخها وحالتها
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:io' as io;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+
+/// نمط النسخ الإضافي
+enum CloudSyncMode {
+  /// نسخة محلية إضافية على الجهاز (المتاح حالياً)
+  localCopy,
+
+  /// مزامنة فعلية مع Google Drive (غير مُنجَز — يحتاج إعداد OAuth)
+  googleDrive,
+}
 
 /// حالة النسخ الاحتياطي السحابي
 enum CloudSyncStatus {
@@ -82,10 +98,22 @@ class CloudBackupService {
         status: _currentStatus,
       );
 
-  /// رفع وتزامن ملف النسخة الاحتياطية المشفَّرة إلى المجلد السحابي المحاكي / Google Drive
+  /// حفظ نسخة إضافية من ملف النسخة الاحتياطية
   ///
   /// [backupFilePath] — المسار المحلي لملف النسخة الاحتياطية .smbak
-  Future<bool> uploadBackupToCloud(String backupFilePath) async {
+  /// [mode] — نمط النسخ: نسخة محلية (المتاح) أو Google Drive (غير مُنجَز)
+  ///
+  /// يُعيد: true إذا حُفظت النسخة الإضافية بنجاح، false خلاف ذلك.
+  Future<bool> uploadBackupToCloud(
+    String backupFilePath, {
+    CloudSyncMode mode = CloudSyncMode.localCopy,
+  }) async {
+    // وضع Google Drive غير مُنجَز — لا ندّعي نجاحاً كاذباً
+    if (mode == CloudSyncMode.googleDrive) {
+      _currentStatus = CloudSyncStatus.notConfigured;
+      return false;
+    }
+
     _currentStatus = CloudSyncStatus.syncing;
     try {
       final file = io.File(backupFilePath);
@@ -97,14 +125,14 @@ class CloudBackupService {
       final size = await file.length();
       final name = file.path.split(io.Platform.pathSeparator).last;
 
-      // محاكاة رفع الملف وحفظ النسخة المزامنة في المجلد السحابي المخصص
+      // حفظ نسخة إضافية في مجلد منفصل على نفس الجهاز
       final docDir = await getApplicationDocumentsDirectory();
-      final cloudDir = io.Directory('${docDir.path}/cloud_sync');
-      if (!await cloudDir.exists()) {
-        await cloudDir.create(recursive: true);
+      final extraDir = io.Directory('${docDir.path}/extra_backups');
+      if (!await extraDir.exists()) {
+        await extraDir.create(recursive: true);
       }
 
-      final targetPath = '${cloudDir.path}/$name';
+      final targetPath = '${extraDir.path}/$name';
       await file.copy(targetPath);
 
       _lastSync = DateTime.now();
@@ -118,11 +146,11 @@ class CloudBackupService {
     }
   }
 
-  /// استرجاع قائمة النسخ الاحتياطية المتاحة في السحابة
+  /// استرجاع قائمة النسخ الإضافية المحفوظة على الجهاز
   Future<List<String>> listCloudBackups() async {
     try {
       final docDir = await getApplicationDocumentsDirectory();
-      final cloudDir = io.Directory('${docDir.path}/cloud_sync');
+      final cloudDir = io.Directory('${docDir.path}/extra_backups');
       if (!await cloudDir.exists()) return [];
 
       final files = await cloudDir.list().toList();

@@ -30,7 +30,10 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/repository_providers.dart';
+import '../../providers/settings_provider.dart';
 import '../../../core/auth/permissions.dart';
+import '../../../core/constants/app_settings_keys.dart';
 import '../../../core/services/backup_crypto_service.dart';
 import '../../../core/services/cloud_backup_service.dart';
 import '../../../core/utils/audit_logger.dart';
@@ -148,13 +151,25 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             );
       }
 
-      // 4. المزمنة السحابية التلقائية إلى Google Drive
+      // 4. حفظ نسخة إضافية حسب النمط المختار في الإعدادات
+      final modeStr =
+          ref.read(cloudSyncModeProvider).valueOrNull ?? 'local';
+      final mode = modeStr == 'drive'
+          ? CloudSyncMode.googleDrive
+          : CloudSyncMode.localCopy;
       final cloudService = ref.read(cloudBackupServiceProvider);
-      final synced = await cloudService.uploadBackupToCloud(savePath);
+      final synced = await cloudService.uploadBackupToCloud(savePath, mode: mode);
 
-      final syncMsg = synced
-          ? '\n☁️ تم الرفع والمزامنة التلقائية مع Google Drive بنجاح.'
-          : '\n⚠️ تعذر التزامن مع السحابة، تم الحفظ محلياً فقط.';
+      // رسائل صادقة: نسخة محلية إضافية (لا ادعاء سحابي كاذب)
+      final String syncMsg;
+      if (mode == CloudSyncMode.googleDrive) {
+        syncMsg = '\nℹ️ مزامنة Google Drive غير مُفعَّلة بعد (تحتاج إعداداً). '
+            'حُفظت النسخة محلياً فقط.';
+      } else if (synced) {
+        syncMsg = '\n🗂️ حُفظت نسخة إضافية على الجهاز أيضاً.';
+      } else {
+        syncMsg = '\n⚠️ تعذّر حفظ النسخة الإضافية، تم الحفظ الأساسي فقط.';
+      }
 
       _setStatus('✅ تم حفظ النسخة الاحتياطية:\n$savePath$syncMsg');
     } catch (e) {
@@ -523,7 +538,9 @@ class _InstructionItem extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// _CloudSyncStatusCard — ودجت حالة التزامن السحابي مع Google Drive
+// _CloudSyncStatusCard — بطاقة النسخة الإضافية (نسخة محلية / Google Drive)
+//
+// صادقة: تعرض النمط الحالي بوضوح ولا تدّعي اتصالاً سحابياً غير موجود.
 // ════════════════════════════════════════════════════════════════════════════
 
 class _CloudSyncStatusCard extends ConsumerWidget {
@@ -535,13 +552,12 @@ class _CloudSyncStatusCard extends ConsumerWidget {
     final cloudService = ref.watch(cloudBackupServiceProvider);
     final info = cloudService.info;
 
-    final isSynced = info.status == CloudSyncStatus.synced;
-    final statusText = isSynced
-        ? 'متصل ومُتزامن مع Google Drive'
-        : 'جاهز للمزامنة السحابية تلقائياً';
+    // النمط المختار من الإعدادات
+    final modeStr = ref.watch(cloudSyncModeProvider).valueOrNull ?? 'local';
+    final isDriveMode = modeStr == 'drive';
 
     return Card(
-      color: isSynced ? Colors.teal.shade50 : theme.colorScheme.surfaceContainerHigh,
+      color: theme.colorScheme.surfaceContainerHigh,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -550,30 +566,88 @@ class _CloudSyncStatusCard extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  Icons.cloud_done_outlined,
-                  color: isSynced ? Colors.teal.shade700 : theme.colorScheme.primary,
+                  isDriveMode ? Icons.cloud_outlined : Icons.save_alt_outlined,
+                  color: theme.colorScheme.primary,
                   size: 22,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'المزامنة السحابية (Google Drive)',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'نسخة احتياطية إضافية',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              statusText,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isSynced ? Colors.teal.shade900 : theme.colorScheme.onSurfaceVariant,
+
+            // ── مبدّل النمط ──────────────────────────────────────────────
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: 'local',
+                  label: Text('نسخة محلية'),
+                  icon: Icon(Icons.save_alt_outlined, size: 16),
+                ),
+                ButtonSegment(
+                  value: 'drive',
+                  label: Text('Google Drive'),
+                  icon: Icon(Icons.cloud_outlined, size: 16),
+                ),
+              ],
+              selected: {modeStr},
+              onSelectionChanged: (sel) async {
+                await ref
+                    .read(settingsRepositoryProvider)
+                    .setString(AppSettingsKeys.cloudSyncMode, sel.first);
+              },
+              showSelectedIcon: false,
+            ),
+            const SizedBox(height: 10),
+
+            // ── وصف صادق للنمط الحالي ────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    isDriveMode
+                        ? Icons.info_outline
+                        : Icons.check_circle_outline,
+                    size: 18,
+                    color: isDriveMode
+                        ? theme.colorScheme.tertiary
+                        : theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isDriveMode
+                          ? 'مزامنة Google Drive غير مُفعَّلة بعد — تحتاج إعداد '
+                              'حساب Google لاحقاً. حالياً تُحفَظ نسخة محلية فقط.'
+                          : 'تُحفَظ نسخة إضافية على هذا الجهاز في مجلد منفصل. '
+                              'للحماية من تعطّل الجهاز، انسخ ملف .smbak إلى '
+                              'وسيط خارجي أيضاً.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+
             if (info.lastSyncTime != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
-                'آخر رفع سحابي: ${info.lastSyncTime.toString().split('.')[0]} (${info.formattedSize})',
+                'آخر نسخة إضافية: ${info.lastSyncTime.toString().split('.')[0]} (${info.formattedSize})',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.outline,
                 ),
