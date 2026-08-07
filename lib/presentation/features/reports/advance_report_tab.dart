@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show NumberFormat, DateFormat;
 
+import '../../../core/auth/permissions.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/voucher_providers.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -139,6 +141,10 @@ class _AdvanceReportResults extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    // إلغاء السلفة عملية مدمّرة (حذف + عكس أرصدة) → admin فأعلى
+    final currentUser = ref.watch(authNotifierProvider.notifier).currentUser;
+    final canCancel =
+        currentUser != null && currentUser.can(AppPermission.cancelAdvance);
     final resultsAsync = ref.watch(
       advanceReportsProvider(
         advanceNumber: filters.advanceNumber,
@@ -200,7 +206,9 @@ class _AdvanceReportResults extends ConsumerWidget {
                         ),
                       ),
                       // زر التراجع عن السلفة إذا تم البحث برقم سلفة محدد فقط
-                      if (filters.advanceNumber != null &&
+                      // ويملك المستخدم صلاحية الإلغاء (admin فأعلى)
+                      if (canCancel &&
+                          filters.advanceNumber != null &&
                           filters.projectName == null &&
                           filters.invoiceNumber == null)
                         FilledButton.icon(

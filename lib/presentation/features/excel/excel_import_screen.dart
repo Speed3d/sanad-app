@@ -20,7 +20,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/audit_logger.dart';
 import '../../../data/database/app_database.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
@@ -240,6 +242,10 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     final data = _dataRows;
     final List<VouchersCompanion> batchList = [];
 
+    // المستخدم الحالي — لإسناد السندات المستوردة إليه (كانت بلا إسناد)
+    final currentUser = ref.read(authNotifierProvider.notifier).currentUser;
+    final currentUserId = currentUser?.id;
+
     for (int i = 0; i < data.length; i++) {
       final row = data[i];
       try {
@@ -313,6 +319,7 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
             invoiceNumber: Value(invoiceNumber.isEmpty ? null : invoiceNumber),
             spentBy: Value(spentBy.isEmpty ? null : spentBy),
             advanceNumber: Value(_advanceNumber.isEmpty ? null : _advanceNumber),
+            createdByUserId: Value(currentUserId),
           ),
         );
       } catch (e) {
@@ -323,11 +330,26 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
       }
     }
 
-    // التنفيذ המجمّع (Batch Insert)
+    // التنفيذ المجمّع (Batch Insert)
     if (batchList.isNotEmpty && _failedCount == 0) {
       try {
         await db.vouchersDao.insertVouchersBatch(batchList);
         setState(() => _importedCount = batchList.length);
+
+        // توثيق عملية الاستيراد الجماعي في سجل التدقيق
+        if (currentUser != null) {
+          final totalAmount =
+              batchList.fold<double>(0, (sum, c) => sum + c.amount.value);
+          final treasury = await db.treasuriesDao.getTreasuryById(treasuryId);
+          await ref.read(auditLoggerProvider).logExcelImport(
+                userId: currentUser.id,
+                username: currentUser.username,
+                rowCount: batchList.length,
+                treasuryId: treasuryId,
+                treasuryName: treasury?.name ?? '#$treasuryId',
+                totalAmount: totalAmount,
+              );
+        }
       } catch (e) {
         setState(() {
           _failedCount = batchList.length;

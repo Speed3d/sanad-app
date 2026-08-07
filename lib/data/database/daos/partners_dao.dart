@@ -107,9 +107,14 @@ class PartnersDao extends DatabaseAccessor<AppDatabase>
     return into(partners).insert(partner);
   }
 
-  /// تحديث بيانات شريك (بما فيها نسبة الحصة)
-  Future<bool> updatePartner(PartnersCompanion partner) {
-    return update(partners).replace(partner);
+  /// تحديث بيانات شريك (بما فيها نسبة الحصة) — تحديث جزئي للحقول الحاضرة فقط
+  ///
+  /// write بدل replace: يمنع إعادة is_deleted/created_at إلى قيمها الافتراضية.
+  Future<bool> updatePartner(PartnersCompanion partner) async {
+    final count = await (update(partners)
+          ..where((p) => p.id.equals(partner.id.value)))
+        .write(partner);
+    return count > 0;
   }
 
   /// ربط شريك بخزينة

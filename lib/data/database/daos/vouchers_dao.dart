@@ -20,6 +20,8 @@
 //   getAccountStatement() يُعيد سجل كامل مرتب بالتاريخ مع الرصيد التراكمي
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:math' show Random;
+
 import 'package:drift/drift.dart';
 import '../app_database.dart';
 import '../tables/vouchers_table.dart';
@@ -54,6 +56,9 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     with _$VouchersDaoMixin {
   VouchersDao(super.db);
 
+  /// مولّد عشوائي لمعرّفات مجموعات التحويل
+  static final _random = Random();
+
   // ── استعلامات القراءة الأساسية ────────────────────────────────────────────
 
   /// سندات خزينة محددة مرتبة بالتاريخ — Reactive Stream
@@ -69,11 +74,25 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
         .watch();
   }
 
-  /// سندات حسب نوعها (sarf / kabd) — Reactive Stream
+  /// سندات حسب نوعها — Reactive Stream
+  ///
+  /// قواعد التصنيف:
+  ///   'sarf'     → الصرف + التحويلات الصادرة (transfer_out)
+  ///   'kabd'     → القبض + التحويلات الواردة (transfer_in)
+  ///   'transfer' → كل التحويلات (وارد + صادر) — لتبويب التحويلات المخصّص
+  ///   غير ذلك    → النوع كما هو
   Stream<List<Voucher>> watchVouchersByType(String voucherType) {
-    final types = [voucherType];
-    if (voucherType == 'sarf') types.add('transfer_out');
-    if (voucherType == 'kabd') types.add('transfer_in');
+    final List<String> types;
+    if (voucherType == 'sarf') {
+      types = ['sarf', 'transfer_out'];
+    } else if (voucherType == 'kabd') {
+      types = ['kabd', 'transfer_in'];
+    } else if (voucherType == 'transfer') {
+      // التبويب المخصّص للتحويلات — كان يُعيد قائمة فارغة دائماً (تدقيق 2026-08-06)
+      types = ['transfer_in', 'transfer_out'];
+    } else {
+      types = [voucherType];
+    }
 
     return (select(vouchers)
           ..where(
@@ -272,9 +291,18 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     return into(vouchers).insert(voucher);
   }
 
-  /// تحديث سند موجود
-  Future<bool> updateVoucher(VouchersCompanion voucher) {
-    return update(vouchers).replace(voucher);
+  /// تحديث سند موجود — تحديث جزئي يمسّ الحقول الحاضرة في الـ Companion فقط
+  ///
+  /// ⚠️ لماذا write وليس replace؟ (إصلاح ثغرة تدقيق 2026-08-06)
+  ///   replace يُعيد أي حقل غائب من الـ Companion إلى قيمته الافتراضية.
+  ///   فتعديل سند كان يُعيد is_deleted إلى false (يُحيي سنداً محذوفاً فيدخل
+  ///   حساب الأرصدة!)، ويمسح notes، ويُعيد created_at إلى الآن — تدمير
+  ///   الأثر المحاسبي. write يتجاهل الحقول الغائبة فلا يمسّها إطلاقاً.
+  Future<bool> updateVoucher(VouchersCompanion voucher) async {
+    final count = await (update(vouchers)
+          ..where((v) => v.id.equals(voucher.id.value)))
+        .write(voucher);
+    return count > 0;
   }
 
   /// حذف ناعم — السند لا يُحذَف فعلياً لأسباب محاسبية
@@ -299,24 +327,42 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
         ),
       );
 
-      // 3. إذا كان السند عبارة عن تحويل (وارد أو صادر)، نبحث عن السند التوأم ونحذفه
-      if (target.voucherType == 'transfer_out' || target.voucherType == 'transfer_in') {
-        final oppositeType = target.voucherType == 'transfer_out' ? 'transfer_in' : 'transfer_out';
-        
-        // البحث عن التوأم الذي يملك نفس القيمة والتاريخ وعكس الخزائن
-        final twin = await (select(vouchers)
-          ..where((v) =>
-              v.voucherType.equals(oppositeType) &
-              v.amount.equals(target.amount) &
-              v.voucherDate.equals(target.voucherDate) &
-              v.treasuryId.equals(target.linkedTreasuryId!) &
-              v.linkedTreasuryId.equals(target.treasuryId) &
-              v.isDeleted.equals(false)))
-          .getSingleOrNull();
-
-        if (twin != null) {
-          // حذف السند التوأم لضمان توازن الحسابات
-          await (update(vouchers)..where((v) => v.id.equals(twin.id))).write(
+      // 3. إذا كان السند تحويلاً، نحذف الطرف التوأم لضمان توازن الحسابات
+      if (target.voucherType == 'transfer_out' ||
+          target.voucherType == 'transfer_in') {
+        if (target.transferGroupId != null) {
+          // ✅ الطريقة الموثوقة: حذف كل سندات نفس المجموعة (عدا هذا السند)
+          //    لا مطابقة تخمينية — رباط صريح لا يفشل مع التحويلات المتطابقة.
+          await (update(vouchers)
+                ..where((v) =>
+                    v.transferGroupId.equals(target.transferGroupId!) &
+                    v.id.equals(id).not() &
+                    v.isDeleted.equals(false)))
+              .write(
+            VouchersCompanion(
+              isDeleted: const Value(true),
+              deletedAt: Value(DateTime.now()),
+              updatedByUserId: Value(deletedByUser),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+        } else if (target.linkedTreasuryId != null) {
+          // 🕰️ توافق مع التحويلات القديمة (قبل v3) التي لا تملك group id:
+          //    مطابقة تخمينية مع مراعاة تعدد التوائم (نحذف الجميع، لا getSingle)
+          final oppositeType = target.voucherType == 'transfer_out'
+              ? 'transfer_in'
+              : 'transfer_out';
+          await (update(vouchers)
+                ..where((v) =>
+                    v.voucherType.equals(oppositeType) &
+                    v.amount.equals(target.amount) &
+                    v.voucherDate.equals(target.voucherDate) &
+                    v.treasuryId.equals(target.linkedTreasuryId!) &
+                    v.linkedTreasuryId.equals(target.treasuryId) &
+                    v.currency.equals(target.currency) &
+                    v.transferGroupId.isNull() &
+                    v.isDeleted.equals(false)))
+              .write(
             VouchersCompanion(
               isDeleted: const Value(true),
               deletedAt: Value(DateTime.now()),
@@ -341,8 +387,17 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     required VouchersCompanion inVoucher,
   }) async {
     return db.transaction(() async {
-      final outId = await into(vouchers).insert(outVoucher);
-      final inId = await into(vouchers).insert(inVoucher);
+      // معرّف مجموعة مشترك يربط سندَي التحويل برباط موثوق — يُنشأ هنا
+      // لضمان تطابقه على الطرفين مهما كان المستدعي (راجع H8).
+      final groupId =
+          'tg_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(1 << 32)}';
+
+      final outId = await into(vouchers).insert(
+        outVoucher.copyWith(transferGroupId: Value(groupId)),
+      );
+      final inId = await into(vouchers).insert(
+        inVoucher.copyWith(transferGroupId: Value(groupId)),
+      );
       return (outId: outId, inId: inId);
     });
   }

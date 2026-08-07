@@ -41,6 +41,22 @@ void main() {
     });
 
     test('يجب كشف السُلف المعلقة القديمة إذا تجاوزت 30 يوماً', () async {
+      // سلفة معلّقة (pending) مضى على منحها 35 يوماً
+      await db.employeesDao.insertAdvance(
+        CashAdvancesCompanion.insert(
+          amount: 250000,
+          advanceDate: DateTime.now().subtract(const Duration(days: 35)),
+          externalPersonName: const Value('دائن خارجي'),
+        ),
+      );
+
+      final alerts = await alertService.checkAllAlerts();
+      final overdueAlert = alerts.where((a) => a.id == 'overdue_advances');
+      expect(overdueAlert.isNotEmpty, isTrue);
+      expect(overdueAlert.first.severity, equals(AlertSeverity.warning));
+    });
+
+    test('السند القديم (وليس سلفة) لا يُطلق تنبيه السلف المتأخرة', () async {
       final periodId = await db.fiscalPeriodsDao.insertPeriod(
         FiscalPeriodsCompanion.insert(
           name: '2026',
@@ -48,15 +64,13 @@ void main() {
           endDate: DateTime(2026, 12, 31),
         ),
       );
-
       final tId = await db.treasuriesDao.insertTreasury(
         TreasuriesCompanion.insert(
-          name: 'خزينة التجربة',
+          name: 'خزينة',
           kind: const Value('main'),
         ),
       );
-
-      // إدراج سند قديم (قبل 35 يوماً)
+      // سند صرف قديم — يجب ألا يُحسَب كسلفة متأخرة (كان الخطأ سابقاً)
       await db.vouchersDao.insertVoucher(
         VouchersCompanion.insert(
           voucherNumber: 101,
@@ -70,9 +84,11 @@ void main() {
       );
 
       final alerts = await alertService.checkAllAlerts();
-      final overdueAlert = alerts.where((a) => a.id == 'overdue_advances');
-      expect(overdueAlert.isNotEmpty, isTrue);
-      expect(overdueAlert.first.severity, equals(AlertSeverity.critical));
+      expect(
+        alerts.where((a) => a.id == 'overdue_advances').isEmpty,
+        isTrue,
+        reason: 'السند العادي القديم يجب ألا يُطلق تنبيه السلف',
+      );
     });
   });
 

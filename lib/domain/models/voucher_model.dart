@@ -128,8 +128,10 @@ extension VoucherModelX on VoucherModel {
   bool get isTransfer =>
       voucherType == 'transfer_out' || voucherType == 'transfer_in';
 
-  /// هل هو سند رصيد افتتاحي؟
-  bool get isOpeningBalance => voucherType == 'opening_balance';
+  /// هل هو سند رصيد افتتاحي؟ (دائن أو مدين)
+  bool get isOpeningBalance =>
+      voucherType == 'opening_balance' ||
+      voucherType == 'opening_balance_debit';
 
   /// هل يزيد هذا السند الرصيد؟
   bool get isCredit =>
@@ -138,8 +140,13 @@ extension VoucherModelX on VoucherModel {
       voucherType == 'transfer_in';
 
   /// هل يُخفض هذا السند الرصيد؟
+  ///
+  /// 'opening_balance_debit' = رصيد افتتاحي مدين (خزينة مدينة منقولة من
+  /// السنة السابقة) — يُخزَّن بمبلغ موجب لكنه يُطرَح من الرصيد.
   bool get isDebit =>
-      voucherType == 'sarf' || voucherType == 'transfer_out';
+      voucherType == 'sarf' ||
+      voucherType == 'transfer_out' ||
+      voucherType == 'opening_balance_debit';
 
   /// وصف نوع السند بالعربية
   String get typeDisplayName {
@@ -150,6 +157,8 @@ extension VoucherModelX on VoucherModel {
         return 'سند قبض';
       case 'opening_balance':
         return 'رصيد افتتاحي';
+      case 'opening_balance_debit':
+        return 'رصيد افتتاحي مدين';
       case 'transfer_out':
         return 'تحويل صادر';
       case 'transfer_in':

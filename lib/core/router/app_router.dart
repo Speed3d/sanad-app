@@ -27,6 +27,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../constants/app_routes.dart';
+import '../auth/permissions.dart';
 import '../../domain/models/auth_state.dart';
 import '../../presentation/providers/auth_provider.dart';
 import '../../presentation/features/splash/splash_screen.dart';
@@ -108,7 +109,36 @@ class _RouterNotifier extends ChangeNotifier {
       return AppRoutes.dashboard;
     }
 
+    // ── حماية المسارات الحساسة حسب دور المستخدم (RBAC) ─────────────────
+    // كل مسار حساس يتطلب صلاحية محددة؛ من لا يملكها يُحوَّل لصفحة 403.
+    // هذا هو الحاجز الأقوى لأنه يمنع الوصول للشاشة كاملةً لا مجرد إخفاء زر.
+    final required = _routePermission(currentLocation);
+    if (required != null && !authState.user.can(required)) {
+      return AppRoutes.forbidden;
+    }
+
     // ── السماح لجميع المسارات الأخرى (الشاشات المحمية) ────────────────
+    return null;
+  }
+
+  /// الصلاحية المطلوبة لمسار معيّن — null إذا كان متاحاً لأي مستخدم مصادَق
+  AppPermission? _routePermission(String location) {
+    // نستخدم startsWith لتغطية المسارات الفرعية (مثل /reports/excel-import)
+    if (location.startsWith(AppRoutes.excelImport)) {
+      return AppPermission.importExcel;
+    }
+    if (location.startsWith(AppRoutes.backup)) {
+      return AppPermission.createBackup;
+    }
+    if (location.startsWith(AppRoutes.audit)) {
+      return AppPermission.viewAudit;
+    }
+    if (location.startsWith(AppRoutes.users)) {
+      return AppPermission.manageUsers;
+    }
+    // ملاحظة: /fiscal غير محمي هنا عمداً — شاشة الفترات المالية تُطبّق
+    // صلاحياتها داخلياً بدقة (إغلاق=admin، إعادة فتح/إعادة احتساب=super_admin)،
+    // وعرض الفترات مسموح لأي مستخدم. حجب المسار كان سيُنشئ عنصر تنقل معطوباً.
     return null;
   }
 }

@@ -41,6 +41,7 @@ class DashboardScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(totalTreasuryBalanceProvider);
           ref.invalidate(dailySummaryProvider(today));
+          ref.invalidate(weeklyLiquidityProvider);
           ref.invalidate(treasuryBalancesProvider);
           ref.invalidate(allEmployeesProvider);
           ref.invalidate(allContractorsProvider);
@@ -222,33 +223,8 @@ class _HeroBalanceCard extends ConsumerWidget {
                   ],
                 ),
 
-                // شريط شارة النمو المالي (+4.2%)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0BC66).withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.north_east_rounded,
-                        size: 14,
-                        color: Color(0xFFE0BC66),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        '4.2%',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFE0BC66),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // (أُزيلت شارة النمو "+4.2%" — كانت رقماً ثابتاً مُلفَّقاً بلا
+                //  مقياس واضح. تدقيق 2026-08-06.)
               ],
             ),
           ),
@@ -264,9 +240,29 @@ class _DailyStatCardsRow extends ConsumerWidget {
   final DateTime date;
   const _DailyStatCardsRow({required this.date});
 
+  /// نص التغيّر مقارنةً بأمس — حقيقي، مبني على البيانات الفعلية
+  ///
+  /// [today]     — قيمة اليوم
+  /// [yesterday] — قيمة أمس (null إذا لم تُحمَّل بعد)
+  static String _changeSubtitle(double today, double? yesterday) {
+    if (yesterday == null) return 'مقارنةً بأمس';
+    if (yesterday == 0) {
+      return today > 0 ? 'جديد اليوم' : 'لا نشاط';
+    }
+    final pct = ((today - yesterday) / yesterday) * 100;
+    final rounded = pct.round();
+    if (rounded == 0) return 'كما أمس';
+    final sign = rounded > 0 ? '+' : '';
+    return '$sign$rounded% عن أمس';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(dailySummaryProvider(date));
+    // ملخص أمس — لحساب نسبة التغيّر الحقيقية بدل الأرقام الملفّقة
+    final yesterday = DateTime(date.year, date.month, date.day)
+        .subtract(const Duration(days: 1));
+    final yesterdayAsync = ref.watch(dailySummaryProvider(yesterday));
     final fmt = NumberFormat('#,##0.##');
 
     return summaryAsync.when(
@@ -277,6 +273,9 @@ class _DailyStatCardsRow extends ConsumerWidget {
       error: (e, _) => Text('خطأ: $e'),
       data: (summary) {
         final net = summary.totalKabd - summary.totalSarf;
+        final prev = yesterdayAsync.valueOrNull;
+        final kabdSub = _changeSubtitle(summary.totalKabd, prev?.totalKabd);
+        final sarfSub = _changeSubtitle(summary.totalSarf, prev?.totalSarf);
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -287,7 +286,7 @@ class _DailyStatCardsRow extends ConsumerWidget {
                   _StatTile(
                     label: 'قبض اليوم',
                     value: fmt.format(summary.totalKabd),
-                    subtitle: '+12% عن أمس',
+                    subtitle: kabdSub,
                     icon: Icons.south_west_rounded,
                     chipBg: Colors.green.withValues(alpha: 0.12),
                     color: Colors.green.shade600,
@@ -296,7 +295,7 @@ class _DailyStatCardsRow extends ConsumerWidget {
                   _StatTile(
                     label: 'صرف اليوم',
                     value: fmt.format(summary.totalSarf),
-                    subtitle: '-4% عن أمس',
+                    subtitle: sarfSub,
                     icon: Icons.north_east_rounded,
                     chipBg: Colors.red.withValues(alpha: 0.12),
                     color: Colors.red.shade600,
@@ -320,7 +319,7 @@ class _DailyStatCardsRow extends ConsumerWidget {
                   child: _StatTile(
                     label: 'قبض اليوم',
                     value: fmt.format(summary.totalKabd),
-                    subtitle: '+12% عن أمس',
+                    subtitle: kabdSub,
                     icon: Icons.south_west_rounded,
                     chipBg: Colors.green.withValues(alpha: 0.12),
                     color: Colors.green.shade600,
@@ -331,7 +330,7 @@ class _DailyStatCardsRow extends ConsumerWidget {
                   child: _StatTile(
                     label: 'صرف اليوم',
                     value: fmt.format(summary.totalSarf),
-                    subtitle: '-4% عن أمس',
+                    subtitle: sarfSub,
                     icon: Icons.north_east_rounded,
                     chipBg: Colors.red.withValues(alpha: 0.12),
                     color: Colors.red.shade600,
@@ -607,9 +606,10 @@ class _QuickStatsGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final employees = ref.watch(allEmployeesProvider).valueOrNull?.length ?? 14;
-    final contractors = ref.watch(allContractorsProvider).valueOrNull?.length ?? 9;
-    final partners = ref.watch(allPartnersProvider).valueOrNull?.length ?? 5;
+    // قيم افتراضية 0 عند عدم التحميل (كانت 14/9/5 ملفّقة تُعرَض قبل التحميل)
+    final employees = ref.watch(allEmployeesProvider).valueOrNull?.length ?? 0;
+    final contractors = ref.watch(allContractorsProvider).valueOrNull?.length ?? 0;
+    final partners = ref.watch(allPartnersProvider).valueOrNull?.length ?? 0;
 
     return Row(
       children: [

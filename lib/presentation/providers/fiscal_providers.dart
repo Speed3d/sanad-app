@@ -25,6 +25,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
 import 'auth_provider.dart';
@@ -89,6 +90,12 @@ class FiscalNotifier extends _$FiscalNotifier {
   int? get _currentUserId {
     final authState = ref.read(authNotifierProvider);
     return authState is AuthAuthenticated ? authState.user.id : null;
+  }
+
+  /// اسم المستخدم الحالي — 'system' إذا لم يكن مسجَّلاً
+  String get _currentUsername {
+    final authState = ref.read(authNotifierProvider);
+    return authState is AuthAuthenticated ? authState.user.username : 'system';
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -168,6 +175,14 @@ class FiscalNotifier extends _$FiscalNotifier {
     state = const AsyncLoading();
     try {
       await _db.fiscalPeriodsDao.closePeriod(periodId, userId, notes: notes);
+      // توثيق إقفال الفترة في سجل التدقيق (عملية مالية حساسة)
+      final period = await _db.fiscalPeriodsDao.getPeriodById(periodId);
+      await ref.read(auditLoggerProvider).logFiscalClose(
+            userId: userId,
+            username: _currentUsername,
+            fiscalPeriodId: periodId,
+            periodName: period?.name ?? '#$periodId',
+          );
       state = const AsyncData('تم إقفال الفترة المالية بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -214,6 +229,15 @@ class FiscalNotifier extends _$FiscalNotifier {
       }
 
       final affectedCount = subsequentFrozen.length;
+
+      // توثيق إعادة الفتح في سجل التدقيق (عملية مالية حساسة جداً)
+      await ref.read(auditLoggerProvider).logFiscalReopen(
+            userId: _currentUserId ?? 0,
+            username: _currentUsername,
+            fiscalPeriodId: periodId,
+            periodName: reopenedPeriod.name,
+          );
+
       final msg = affectedCount > 0
           ? 'تم إعادة فتح الفترة — $affectedCount فترة تحتاج إعادة احتساب ✓'
           : 'تم إعادة فتح الفترة المالية بنجاح ✓';
@@ -317,7 +341,8 @@ class FiscalNotifier extends _$FiscalNotifier {
             delta = v.amount; // دائن +
           case 'sarf':
           case 'transfer_out':
-            delta = -v.amount; // مدين -
+          case 'opening_balance_debit':
+            delta = -v.amount; // مدين - (يشمل الرصيد الافتتاحي المدين)
           default:
             continue; // نوع غير معروف — تجاهل
         }
@@ -345,51 +370,50 @@ class FiscalNotifier extends _$FiscalNotifier {
       int localCounter = 0;
 
       await db.transaction(() async {
+        // دالة مساعدة تُدرج سند افتتاح بالنوع الصحيح حسب إشارة الرصيد
+        //   الرصيد الموجب → opening_balance (دائن)
+        //   الرصيد السالب → opening_balance_debit (مدين، مبلغ موجب) ← إصلاح H9
+        // بهذا لا يختفي دَين الخزينة المدينة عند بداية السنة الجديدة.
+        Future<void> insertOpening({
+          required int treasuryId,
+          required double balance,
+          required String currency,
+        }) async {
+          if (balance.abs() <= 0.001) return; // رصيد صفري — لا سند
+          localCounter++;
+          final isDebit = balance < 0;
+          await db.vouchersDao.insertVoucher(
+            VouchersCompanion.insert(
+              voucherNumber: localCounter,
+              voucherType:
+                  isDebit ? 'opening_balance_debit' : 'opening_balance',
+              treasuryId: treasuryId,
+              fiscalPeriodId: pendingPeriodId,
+              amount: balance.abs(), // دائماً موجب (قيد CHECK)
+              currency: Value(currency),
+              exchangeRate:
+                  currency == 'USD' ? Value(exchangeRate) : const Value(1.0),
+              voucherDate: pendingPeriod.startDate,
+              notes: Value(
+                '${isDebit ? 'رصيد افتتاحي مدين' : 'رصيد افتتاحي'} '
+                'منقول من فترة: ${previousPeriod.name}',
+              ),
+              createdByUserId: Value(userId),
+            ),
+          );
+        }
+
         for (final treasuryId in allTreasuryIds) {
-          final iqdBal = closingIqd[treasuryId] ?? 0.0;
-          final usdBal = closingUsd[treasuryId] ?? 0.0;
-
-          // سند افتتاح بالدينار العراقي (إذا كان الرصيد موجباً)
-          // ملاحظة: الأرصدة السالبة تعني خزينة مدينة — تُعالَج يدوياً
-          if (iqdBal > 0.001) {
-            localCounter++;
-            await db.vouchersDao.insertVoucher(
-              VouchersCompanion.insert(
-                voucherNumber: localCounter,
-                voucherType: 'opening_balance',
-                treasuryId: treasuryId,
-                fiscalPeriodId: pendingPeriodId,
-                amount: iqdBal,
-                currency: const Value('IQD'),
-                voucherDate: pendingPeriod.startDate,
-                notes: Value(
-                  'رصيد افتتاحي منقول من فترة: ${previousPeriod.name}',
-                ),
-                createdByUserId: Value(userId),
-              ),
-            );
-          }
-
-          // سند افتتاح بالدولار الأمريكي
-          if (usdBal > 0.001) {
-            localCounter++;
-            await db.vouchersDao.insertVoucher(
-              VouchersCompanion.insert(
-                voucherNumber: localCounter,
-                voucherType: 'opening_balance',
-                treasuryId: treasuryId,
-                fiscalPeriodId: pendingPeriodId,
-                amount: usdBal,
-                currency: const Value('USD'),
-                exchangeRate: Value(exchangeRate),
-                voucherDate: pendingPeriod.startDate,
-                notes: Value(
-                  'رصيد افتتاحي بالدولار منقول من فترة: ${previousPeriod.name}',
-                ),
-                createdByUserId: Value(userId),
-              ),
-            );
-          }
+          await insertOpening(
+            treasuryId: treasuryId,
+            balance: closingIqd[treasuryId] ?? 0.0,
+            currency: 'IQD',
+          );
+          await insertOpening(
+            treasuryId: treasuryId,
+            balance: closingUsd[treasuryId] ?? 0.0,
+            currency: 'USD',
+          );
         }
       });
 

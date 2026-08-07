@@ -62,7 +62,11 @@ class _CurrencyTabState extends ConsumerState<CurrencyTab> {
     super.dispose();
   }
 
-  /// تحميل سعر الصرف الحالي (مرة واحدة)
+  /// تحميل سعر الصرف الحالي (مرة واحدة، فقط عند وصول القيمة الحقيقية)
+  ///
+  /// ⚠️ إصلاح H6 (تدقيق 2026-08-06): كان يُستدعى بالقيمة الاحتياطية 1310
+  /// في إطار التحميل الأول فيلتصق بها، فيعرض 1310 حتى لو كان المحفوظ 1450،
+  /// ثم الحفظ يدهس القيمة الحقيقية. الآن يُحمَّل فقط عند توفّر القيمة الفعلية.
   void _loadRate(double rate) {
     if (!_rateLoaded) {
       _rateCtrl.text = rate.toStringAsFixed(0);
@@ -130,9 +134,13 @@ class _CurrencyTabState extends ConsumerState<CurrencyTab> {
         ref.watch(primaryCurrencyProvider).valueOrNull ?? 'IQD';
     final secondaryCurr =
         ref.watch(secondaryCurrencyProvider).valueOrNull ?? 'USD';
-    final currentRate = ref.watch(exchangeRateProvider).valueOrNull ?? 1310.0;
 
-    _loadRate(currentRate);
+    // نُحمّل الحقل فقط عند وصول القيمة الحقيقية من قاعدة البيانات (hasValue)،
+    // لا في إطار التحميل حيث القيمة احتياطية — إصلاح H6.
+    final rateAsync = ref.watch(exchangeRateProvider);
+    if (rateAsync.hasValue) {
+      _loadRate(rateAsync.value!);
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -285,7 +293,7 @@ class _CurrencyTabState extends ConsumerState<CurrencyTab> {
           const SizedBox(height: 24),
 
           // ── عرض السعر الحالي ───────────────────────────────────────────────
-          _RateDisplay(rate: currentRate),
+          _RateDisplay(rate: rateAsync.valueOrNull ?? 1310.0),
         ],
       ),
     );

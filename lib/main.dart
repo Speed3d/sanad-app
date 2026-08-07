@@ -83,10 +83,11 @@ class SalesManagementApp extends ConsumerWidget {
     final colorStr = ref.watch(primaryColorSeedProvider).valueOrNull;
     final seedColor = _parseSeedColor(colorStr);
 
-    // ── اللغة الديناميكية ────────────────────────────────────────────────────
-    // نقرأ اللغة من الإعدادات — الافتراضية العربية (RTL)
-    final langStr = ref.watch(appLanguageProvider).valueOrNull;
-    final locale = (langStr == 'en') ? const Locale('en') : const Locale('ar');
+    // ── اللغة ────────────────────────────────────────────────────────────────
+    // مثبَّتة على العربية (RTL) حالياً — الترجمة الإنجليزية غير موصولة بعد،
+    // وقُفل تبديل اللغة (قرار المالك 2026-08-07) لتفادي واجهة نصفها مقلوب.
+    // يُعاد التبديل عند ربط l10n فعلياً.
+    const locale = Locale('ar');
 
     return MaterialApp.router(
       // ── التوجيه (go_router) ──────────────────────────────────────────────

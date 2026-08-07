@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/auth/permissions.dart';
 import '../../../../domain/models/auth_state.dart';
 import '../../../../domain/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
@@ -205,8 +206,10 @@ class SystemInfoTab extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // ── تصفير الحسابات (للتطوير) ───────────────────────────────────────
-          // ملاحظة: زر خاص بالأدمن / المطور لتصفير أرصدة السندات وبدء التطوير من جديد
-          if (currentUser?.role == 'admin') ...[
+          // عملية كارثية — super_admin فقط عبر نظام الصلاحيات المركزي.
+          // (كان الفحص `role == 'admin'` مقلوباً: يمنع super_admin ويسمح لـ admin)
+          if (currentUser != null &&
+              currentUser.can(AppPermission.resetFinancialData)) ...[
             FilledButton.icon(
               onPressed: () => _confirmResetData(context, ref),
               icon: const Icon(Icons.delete_forever_outlined),

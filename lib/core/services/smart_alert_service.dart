@@ -94,13 +94,16 @@ class SmartAlertService {
       // ابتلاع الأخطاء لعدم إيقاف الشاشة
     }
 
-    // 2. فحص السُلف المعلقة القديمة (Vouchers من نوع advance)
+    // 2. فحص السُلف المعلقة القديمة
+    //
+    // ⚠️ إصلاح H4 (تدقيق 2026-08-06): كان يقرأ *كل* السندات ويعدّ أي سند
+    //    أقدم من 30 يوماً كـ"سلفة متأخرة" — أي أن أي بيانات قديمة تُظهر
+    //    تنبيهاً أحمر دائماً. الآن نقرأ جدول السلف الفعلي (pending/partial).
     try {
       final now = DateTime.now();
-      final allVouchers = await _db.vouchersDao.getAllVouchers();
-      final overdueAdvances = allVouchers.where((v) {
-        if (v.isDeleted) return false;
-        final age = now.difference(v.voucherDate).inDays;
+      final pending = await _db.employeesDao.getPendingAdvances();
+      final overdueAdvances = pending.where((a) {
+        final age = now.difference(a.advanceDate).inDays;
         return age >= kOverdueAdvanceDays;
       }).toList();
 
@@ -108,12 +111,12 @@ class SmartAlertService {
         alerts.add(
           SmartAlert(
             id: 'overdue_advances',
-            title: 'تنبيه: سُلف ومستحقات معلقة قديمة',
+            title: 'تنبيه: سُلف معلقة قديمة',
             description:
-                'يوجد عدد ${overdueAdvances.length} سند/سُلفة مضى على تسجيلها أكثر من $kOverdueAdvanceDays يوماً ولم تُقفل بعد.',
-            severity: AlertSeverity.critical,
+                'يوجد ${overdueAdvances.length} سُلفة لم تُسدَّد بالكامل ومضى على منحها أكثر من $kOverdueAdvanceDays يوماً.',
+            severity: AlertSeverity.warning,
             createdAt: DateTime.now(),
-            actionLabel: 'عرض السندات',
+            actionLabel: 'عرض السلف',
           ),
         );
       }

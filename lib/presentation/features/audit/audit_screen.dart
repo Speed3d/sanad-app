@@ -14,8 +14,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
+import '../../../core/auth/permissions.dart';
+import '../../../core/utils/audit_logger.dart';
 import '../../../data/database/app_database.dart';
 import '../../providers/audit_providers.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
 
 // ── ثوابت ألوان العمليات ─────────────────────────────────────────────────────
@@ -91,16 +94,22 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // حذف/أرشفة سجل التدقيق عملية كارثية → super_admin فقط.
+    final currentUser = ref.read(authNotifierProvider.notifier).currentUser;
+    final canPurge =
+        currentUser != null && currentUser.can(AppPermission.purgeAuditLog);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('سجل المراجعة'),
         actions: [
-          // زر تنظيف السجلات القديمة
-          IconButton(
-            icon: const Icon(Icons.auto_delete_outlined),
-            tooltip: 'أرشفة السجلات القديمة',
-            onPressed: () => _showArchiveDialog(context),
-          ),
+          // زر تنظيف السجلات القديمة — يظهر لمدير النظام فقط
+          if (canPurge)
+            IconButton(
+              icon: const Icon(Icons.auto_delete_outlined),
+              tooltip: 'أرشفة السجلات القديمة',
+              onPressed: () => _showArchiveDialog(context),
+            ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(110),
@@ -180,6 +189,18 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
           final db = ref.read(appDatabaseProvider);
           final cutoff = DateTime.now().subtract(const Duration(days: 365));
           final deleted = await db.auditLogDao.deleteLogsBeforeDate(cutoff);
+
+          // توثيق عملية الحذف نفسها — حتى لا يمحو أحد أثره دون ترك دليل.
+          // نكتب السجل بعد الحذف مباشرةً فيبقى شاهداً على من نفّذ الأرشفة.
+          final actor = ref.read(authNotifierProvider.notifier).currentUser;
+          if (actor != null) {
+            await ref.read(auditLoggerProvider).logAuditPurge(
+                  userId: actor.id,
+                  username: actor.username,
+                  deletedCount: deleted,
+                  cutoffDate: cutoff,
+                );
+          }
           ref.invalidate(recentAuditLogsProvider);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/audit_logger.dart';
 import '../../../../domain/models/auth_state.dart';
 import '../../../../domain/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
@@ -25,9 +26,13 @@ import 'settings_shared.dart';
 // ── أدوار المستخدمين المتاحة للتعيين ──────────────────────────────────────────
 
 /// الأدوار التي يمكن تعيينها لمستخدم جديد (لا يمكن إنشاء super_admin من هنا)
+///
+/// ملاحظة: التسميات تطابق roleDisplayName في user_model.dart.
+/// حُذف دور 'accountant' لأنه لم يكن معرّفاً في النظام (بلا صلاحيات
+/// وبلا اسم عربي)، وصُحِّحت تسمية 'admin' من 'مدير النظام' (وهي تسمية
+/// super_admin) إلى 'مدير'.
 const List<_RoleOption> _assignableRoles = [
-  _RoleOption(value: 'admin', label: 'مدير النظام'),
-  _RoleOption(value: 'accountant', label: 'محاسب'),
+  _RoleOption(value: 'admin', label: 'مدير'),
   _RoleOption(value: 'user', label: 'مستخدم عادي'),
 ];
 
@@ -155,7 +160,7 @@ class UsersTab extends ConsumerWidget {
       BuildContext context, WidgetRef ref, UserModel user) async {
     String selectedRole = user.role;
 
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
@@ -260,7 +265,7 @@ class UsersTab extends ConsumerWidget {
 
   Future<void> _showAddUserDialog(
       BuildContext context, WidgetRef ref) async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _AddUserDialog(ref: ref),
@@ -421,7 +426,6 @@ class _RoleBadge extends StatelessWidget {
     final color = switch (role) {
       'super_admin' => theme.colorScheme.error,
       'admin' => theme.colorScheme.primary,
-      'accountant' => Colors.teal,
       _ => theme.colorScheme.onSurfaceVariant,
     };
 
@@ -491,7 +495,7 @@ class _AddUserDialogState extends ConsumerState<_AddUserDialog> {
   final _passwordCtrl = TextEditingController();
 
   // DropdownButtonFormField يستخدم initialValue بدلاً من value (منذ Flutter 3.33)
-  String _selectedRole = 'accountant';
+  String _selectedRole = 'user';
   bool _obscurePassword = true;
   bool _isSaving = false;
   String? _errorMessage;
@@ -527,12 +531,24 @@ class _AddUserDialogState extends ConsumerState<_AddUserDialog> {
       final service = ref.read(authServiceProvider);
       final hash = await service.hashPassword(_passwordCtrl.text);
 
-      await userRepo.createUser(
+      final newUserId = await userRepo.createUser(
         username: _usernameCtrl.text.trim(),
         passwordHash: hash,
         fullName: _fullNameCtrl.text.trim(),
         role: _selectedRole,
       );
+
+      // توثيق إنشاء المستخدم في سجل التدقيق (من أنشأ ومن أُنشئ وبأي دور)
+      final admin = ref.read(authNotifierProvider.notifier).currentUser;
+      if (admin != null) {
+        await ref.read(auditLoggerProvider).logUserCreated(
+              adminId: admin.id,
+              adminUsername: admin.username,
+              newUserId: newUserId,
+              newUsername: _usernameCtrl.text.trim(),
+              role: _selectedRole,
+            );
+      }
 
       if (mounted) {
         Navigator.pop(context);

@@ -110,7 +110,7 @@ Future<bool> verifyPassword(String storedHash, String inputPassword) async { ...
 
 ### إصدار المشروع الحالي
 - **Flutter**: ≥ 3.22 | **Dart**: ≥ 3.4
-- **Schema Version**: 2
+- **Schema Version**: 4
 - **App Version**: 1.0.0+1
 
 ### ملفات الخطة والمتابعة

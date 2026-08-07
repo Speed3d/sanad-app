@@ -29,8 +29,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/services/auth_service.dart';
+import '../../core/utils/audit_logger.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/user_model.dart';
+import '../../domain/repositories/i_user_repository.dart';
 import 'database_provider.dart';
 import 'repository_providers.dart';
 
@@ -140,7 +142,7 @@ class AuthNotifier extends _$AuthNotifier {
       if (dbUser == null) {
         // تأخير مصطنع لمنع Timing Attack
         // (المهاجم لا يستطيع معرفة إذا كان المستخدم موجوداً من السرعة)
-        await Future.delayed(const Duration(milliseconds: 800));
+        await Future<void>.delayed(const Duration(milliseconds: 800));
         state = const AuthError(
           message: 'اسم المستخدم أو كلمة المرور غير صحيحة',
         );
@@ -174,10 +176,10 @@ class AuthNotifier extends _$AuthNotifier {
       );
 
       if (!isValid) {
-        // كلمة المرور خاطئة — زيادة عداد المحاولات
+        // كلمة المرور خاطئة — زيادة عداد المحاولات (ذرياً داخل قاعدة البيانات)
         await _handleFailedAttempt(
           userId: dbUser.id,
-          currentAttempts: dbUser.failedLoginAttempts,
+          username: dbUser.username,
           userRepo: userRepo,
         );
         return;
@@ -196,6 +198,12 @@ class AuthNotifier extends _$AuthNotifier {
       // تحميل نموذج المستخدم (UserModel) من Repository
       final userModel = await userRepo.getUserById(dbUser.id);
       state = AuthAuthenticated(user: userModel!);
+
+      // تسجيل حدث الدخول الناجح في سجل التدقيق
+      await ref.read(auditLoggerProvider).logLogin(
+            userId: dbUser.id,
+            username: dbUser.username,
+          );
     } catch (e) {
       state = AuthError(message: 'حدث خطأ أثناء تسجيل الدخول. حاول مجدداً');
     }
@@ -206,22 +214,43 @@ class AuthNotifier extends _$AuthNotifier {
   // ══════════════════════════════════════════════════════════════════════════
 
   /// معالجة محاولة دخول فاشلة: زيادة العداد أو القفل
+  ///
+  /// الزيادة والقفل يتمّان ذرياً داخل قاعدة البيانات (registerFailedLogin)،
+  /// وهذه الدالة تكتفي بترجمة النتيجة إلى حالة واجهة.
+  ///
+  /// ⚠️ ملاحظة مهمة: نوع [userRepo] مُصرَّح به صراحةً (IUserRepository).
+  /// كان سابقاً `dynamic` — وهذا عطّل فحص الأنواع تماماً وأخفى الثغرة
+  /// التي جعلت العدّاد يُصفَّر في كل محاولة فيبقى القفل معطّلاً للأبد.
   Future<void> _handleFailedAttempt({
     required int userId,
-    required int currentAttempts,
-    required dynamic userRepo,
+    required String username,
+    required IUserRepository userRepo,
   }) async {
-    final newAttempts = currentAttempts + 1;
+    final result = await userRepo.recordFailedLogin(
+      userId,
+      maxAttempts: _kMaxFailedAttempts,
+      lockDuration: _kLockDuration,
+    );
 
-    if (newAttempts >= _kMaxFailedAttempts) {
-      // تجاوز الحد → قفل الحساب
-      final lockUntil = DateTime.now().add(_kLockDuration);
-      await userRepo.recordFailedLogin(userId, lockUntil: lockUntil);
-      state = AuthLocked(lockedUntil: lockUntil);
+    // تسجيل المحاولة الفاشلة في سجل التدقيق (أساسي للكشف عن هجمات التخمين)
+    final logger = ref.read(auditLoggerProvider);
+    await logger.logLoginFailed(
+      userId: userId,
+      username: username,
+      attempts: result.attempts,
+    );
+
+    if (result.lockedUntil != null) {
+      // بلغ الحد الأقصى → الحساب مقفول الآن
+      await logger.logAccountLocked(
+        userId: userId,
+        username: username,
+        lockedUntil: result.lockedUntil!,
+      );
+      state = AuthLocked(lockedUntil: result.lockedUntil!);
     } else {
-      // لا يزال هناك محاولات
-      await userRepo.recordFailedLogin(userId);
-      final remaining = _kMaxFailedAttempts - newAttempts;
+      // لا يزال هناك محاولات متبقية
+      final remaining = _kMaxFailedAttempts - result.attempts;
       state = AuthError(
         message: 'كلمة المرور غير صحيحة.\nالمحاولات المتبقية: $remaining',
       );
@@ -234,6 +263,15 @@ class AuthNotifier extends _$AuthNotifier {
 
   /// تسجيل الخروج — مسح الجلسة والعودة لحالة غير مصادَق
   Future<void> logout() async {
+    // تسجيل حدث الخروج قبل مسح الجلسة (نحتاج بيانات المستخدم الحالي)
+    final current = currentUser;
+    if (current != null) {
+      await ref.read(auditLoggerProvider).logLogout(
+            userId: current.id,
+            username: current.username,
+          );
+    }
+
     final service = ref.read(authServiceProvider);
     await service.clearSession();
     state = const AuthUnauthenticated();

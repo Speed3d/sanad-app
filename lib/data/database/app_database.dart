@@ -115,7 +115,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -137,8 +137,20 @@ class AppDatabase extends _$AppDatabase {
     },
 
     /// يُنفَّذ عند ترقية الإصدار (schemaVersion تغيّر)
+    ///
+    /// ⚠️ قاعدة إلزامية (درس مستفاد من تدقيق 2026-08-06):
+    ///   كل ما يُنشَأ في onCreate يجب أن يُنشَأ في onUpgrade أيضاً.
+    ///   لو أضفنا جدولاً جديداً ونسينا إنشاءه هنا، فإن المستخدم الذي
+    ///   يُرقّي نسخته القديمة يحصل على قاعدة بيانات ناقصة، ويتعطل
+    ///   التطبيق برسالة "no such table" عند فتح الشاشة المعنية فقط —
+    ///   وهو أصعب أنواع الأعطال في التشخيص.
     onUpgrade: (Migrator m, int from, int to) async {
-      // ── الترقية إلى الإصدار 2 (دعم نظام السلف) ─────────────────────────
+      // ── 1. إنشاء أي جدول جديد لم يكن موجوداً في النسخة القديمة ────────
+      // createAll تُصدر CREATE TABLE IF NOT EXISTS فهي آمنة وقابلة للتكرار،
+      // ولا تمسّ الجداول الموجودة ولا بياناتها إطلاقاً.
+      await m.createAll();
+
+      // ── 2. الترقية إلى الإصدار 2 (دعم نظام السلف) ──────────────────────
       if (from < 2) {
         // إضافة الحقول الجديدة لجدول السندات دون المساس بالبيانات القديمة
         await m.addColumn(vouchers, vouchers.projectName);
@@ -147,7 +159,28 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(vouchers, vouchers.advanceNumber);
       }
 
-      // إعادة بناء الـ VIEW عند كل ترقية (لضمان تحديثه)
+      // ── الترقية إلى الإصدار 3 (رباط موثوق لسندَي التحويل) ──────────────
+      if (from < 3) {
+        await m.addColumn(vouchers, vouchers.transferGroupId);
+      }
+
+      // ── الترقية إلى الإصدار 4 (قيد CHECK على تسديد السلف) ─────────────
+      if (from < 4) {
+        // إضافة قيد CHECK(total_repaid <= amount) يتطلب إعادة بناء الجدول
+        // في SQLite. alterTable مع TableMigration تُعيد بناءه مع الحفاظ على
+        // البيانات. (نوع الرصيد الافتتاحي المدين وتغيير VIEW يُطبَّقان تلقائياً
+        // عبر إعادة بناء الـ VIEW أدناه — لا يحتاجان تغييراً في الجداول.)
+        // ignore: experimental_member_use
+        await m.alterTable(TableMigration(cashAdvances));
+      }
+
+      // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────
+      // كلها CREATE INDEX IF NOT EXISTS — آمنة للتكرار.
+      // بدون هذا السطر تبقى قواعد البيانات المُرقّاة بلا فهارس إلى الأبد
+      // فتتباطأ الاستعلامات تدريجياً مع نمو البيانات.
+      await _createIndexes();
+
+      // ── 4. إعادة بناء الـ VIEW عند كل ترقية (لضمان تحديثه) ────────────
       await customStatement(kDropTreasuryBalancesView);
       await customStatement(kCreateTreasuryBalancesView);
     },
@@ -215,6 +248,19 @@ class AppDatabase extends _$AppDatabase {
       ON cash_advances (status, employee_id)
       WHERE is_deleted = 0
     ''');
+  }
+
+  // ── نقطة تفتيش WAL ──────────────────────────────────────────────────────
+
+  /// دمج سجل WAL في ملف قاعدة البيانات الرئيسي وتفريغه
+  ///
+  /// ⚠️ ضروري قبل أخذ نسخة احتياطية (إصلاح تدقيق 2026-08-06):
+  ///   في وضع WAL تبقى المعاملات المُثبَّتة حديثاً في ملف `-wal` المنفصل،
+  ///   ولا تظهر في `sales_management_db.sqlite` إلا بعد نقطة تفتيش. نسخ
+  ///   الملف الرئيسي وحده كان يفقد آخر السندات المُثبَّتة. TRUNCATE يدمج
+  ///   كل شيء في الملف الرئيسي ثم يُفرّغ الـ WAL.
+  Future<void> checkpointWal() async {
+    await customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
   }
 
   // ── تصفير الحسابات ────────────────────────────────────────────────────────

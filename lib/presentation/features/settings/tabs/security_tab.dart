@@ -22,6 +22,7 @@ import '../../../../domain/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/repository_providers.dart';
+import '../../../providers/settings_provider.dart';
 import 'settings_shared.dart';
 
 /// خيارات القفل التلقائي
@@ -372,6 +373,11 @@ class _SecurityTabState extends ConsumerState<SecurityTab> {
           const Divider(),
           const SizedBox(height: 24),
 
+          // ── سياسة الرصيد المدين ────────────────────────────────────────────
+          const _BalancePolicyCard(),
+
+          const SizedBox(height: 24),
+
           // ── القفل التلقائي ─────────────────────────────────────────────────
           Text(
             'القفل التلقائي',
@@ -412,6 +418,75 @@ class _SecurityTabState extends ConsumerState<SecurityTab> {
               icon: const Icon(Icons.save_outlined),
               label: const Text('حفظ إعداد القفل'),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _BalancePolicyCard — بطاقة سياسة الرصيد المدين
+//
+// تتحكم في إعداد enforce_balance_check: هل يُمنع الصرف فوق رصيد الخزينة
+// منعاً باتّاً، أم يُسمح بالرصيد المدين؟ الافتراضي: منع.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BalancePolicyCard extends ConsumerWidget {
+  const _BalancePolicyCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    // القيمة الحالية — null أو 'true' تعني المنع (الافتراضي)
+    final raw = ref.watch(enforceBalanceCheckProvider).valueOrNull;
+    final enforce = raw == null || raw == 'true';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet_outlined,
+                  size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'سياسة الرصيد المدين',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: enforce,
+            title: Text(
+              enforce ? 'منع الصرف فوق الرصيد' : 'السماح بالرصيد المدين',
+              style: theme.textTheme.bodyLarge,
+            ),
+            subtitle: Text(
+              enforce
+                  ? 'لا يمكن صرف مبلغ يتجاوز رصيد الخزينة المتاح.'
+                  : 'يُسمح بأن يصبح رصيد الخزينة سالباً (مديناً).',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            onChanged: (v) async {
+              // نُخزّن 'true'/'false' نصاً في الإعدادات
+              await ref
+                  .read(settingsRepositoryProvider)
+                  .setString(AppSettingsKeys.enforceBalanceCheck, v.toString());
+            },
           ),
         ],
       ),

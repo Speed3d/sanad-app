@@ -11,8 +11,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/auth/permissions.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_provider.dart';
 import 'global_search_dialog.dart';
@@ -123,13 +125,32 @@ class AppShell extends ConsumerWidget {
     }
   }
 
-  /// حساب index العناصر النشطة
+  /// حساب index العنصر النشط في القائمة — يُعيد -1 إذا لم يطابق أي عنصر
+  ///
+  /// كان يُعيد 0 (لوحة التحكم) لأي مسار غير مُدرَج مثل /audit و /backup،
+  /// فيُضيء العنصر الخطأ ويعرض عنوانه في الشريط العلوي. تدقيق 2026-08-06.
   static int _selectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
+    // نطابق أطول مسار أولاً لتفادي تطابق /vouchers مع /vouchers/sarf خطأً
+    var bestIndex = -1;
+    var bestLen = -1;
     for (var i = 0; i < _navItems.length; i++) {
-      if (location.startsWith(_navItems[i].route)) return i;
+      final route = _navItems[i].route;
+      if (location.startsWith(route) && route.length > bestLen) {
+        bestIndex = i;
+        bestLen = route.length;
+      }
     }
-    return 0;
+    return bestIndex;
+  }
+
+  /// عنوان الشريط العلوي — يدعم المسارات خارج القائمة (سجل المراجعة، النسخ)
+  static String _resolveTitle(BuildContext context, int selectedIndex) {
+    if (selectedIndex >= 0) return _navItems[selectedIndex].label;
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith(AppRoutes.audit)) return 'سجل المراجعة';
+    if (location.startsWith(AppRoutes.backup)) return 'النسخ الاحتياطي';
+    return 'نظام إدارة المبيعات';
   }
 
   /// تنقل آمن يمنع تكرار التنقل لنفس المسار ويُؤجّل التوجيه لإطار ما بعد الرسم
@@ -158,6 +179,11 @@ class _DesktopShell extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final companyNameAsync = ref.watch(companyNameProvider);
     final companyName = companyNameAsync.valueOrNull ?? 'شركة إدارة المبيعات';
+
+    // سجل المراجعة متاح لمن يملك صلاحية عرضه فقط (admin فأعلى)
+    final currentUser = ref.watch(authNotifierProvider.notifier).currentUser;
+    final canViewAudit =
+        currentUser != null && currentUser.can(AppPermission.viewAudit);
 
     return Scaffold(
       body: Row(
@@ -294,36 +320,40 @@ class _DesktopShell extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      // زر سجل المراجعة
-                      InkWell(
-                        onTap: () => AppShell.safeNavigate(context, AppRoutes.audit),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                child: Icon(
-                                  Icons.history_rounded,
-                                  size: 18,
-                                  color: Colors.white.withValues(alpha: 0.72),
+                      // زر سجل المراجعة — يظهر لمن يملك صلاحية العرض فقط
+                      if (canViewAudit) ...[
+                        InkWell(
+                          onTap: () =>
+                              AppShell.safeNavigate(context, AppRoutes.audit),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  child: Icon(
+                                    Icons.history_rounded,
+                                    size: 18,
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'سجل المراجعة',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.72),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'سجل المراجعة',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
+                        const SizedBox(height: 4),
+                      ],
 
                       // مفتاح الوضع الليلي (Dark Mode Switch)
                       Padding(
@@ -387,7 +417,7 @@ class _DesktopShell extends ConsumerWidget {
               children: [
                 // الشريط العلوي (Topbar 72px)
                 _DesktopTopbar(
-                  title: _navItems[selectedIndex].label,
+                  title: AppShell._resolveTitle(context, selectedIndex),
                   isDashboard: selectedIndex == 0,
                 ),
                 // محتوى الشاشة الفعلي

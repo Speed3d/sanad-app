@@ -77,9 +77,18 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
     return into(users).insert(user);
   }
 
-  /// تحديث بيانات مستخدم
-  Future<bool> updateUser(UsersCompanion user) {
-    return update(users).replace(user);
+  /// تحديث بيانات مستخدم — تحديث جزئي للحقول الحاضرة فقط
+  ///
+  /// ⚠️ لماذا write وليس replace؟ (إصلاح ثغرة تدقيق 2026-08-06)
+  ///   replace كان يرمي استثناءً في كل استدعاء! لأنه يستدعي
+  ///   validateIntegrity(isInserting: true) فيشترط حضور password_hash
+  ///   (غير موجود في UserModel)، فيفشل تغيير الدور دائماً بينما تعرض
+  ///   الواجهة نجاحاً كاذباً. write لا يُجري فحص الإدراج، ولا يُعيد
+  ///   is_deleted/created_at/failed_login_attempts إلى قيمها الافتراضية.
+  Future<bool> updateUser(UsersCompanion user) async {
+    final count = await (update(users)..where((u) => u.id.equals(user.id.value)))
+        .write(user);
+    return count > 0;
   }
 
   /// حذف ناعم (Soft Delete) — لا يُحذف من DB لأسباب الـ Audit
@@ -91,22 +100,52 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
 
   // ── عمليات المصادقة ────────────────────────────────────────────────────────
 
-  /// تحديث عدد محاولات الدخول الفاشلة
+  /// تسجيل محاولة دخول فاشلة — يزيد العدّاد ذرياً ويقفل الحساب عند بلوغ الحد
+  ///
+  /// ⚠️ لماذا الزيادة داخل SQL وليس في Dart؟
+  ///   الطريقة القديمة كانت: تقرأ العدّاد في Dart، تزيده بواحد، ثم تكتبه.
+  ///   هذا النمط (read-modify-write) فيه عيبان:
+  ///     1. سباق (race): محاولتان متزامنتان تقرآن نفس القيمة فتضيع إحداهما.
+  ///     2. اعتماد على المستدعي في تمرير القيمة الصحيحة — وهو بالضبط
+  ///        سبب الثغرة التي عُطّل بها القفل بالكامل (كان يُمرَّر 0 دائماً).
+  ///   الحل: `SET failed_login_attempts = failed_login_attempts + 1` داخل
+  ///   قاعدة البيانات نفسها، فلا يمكن لأي مستدعٍ أن يُفسدها.
   ///
   /// [id] — معرّف المستخدم
-  /// [attempts] — العدد الجديد (0 عند النجاح، يزيد بالفشل)
-  /// [lockUntil] — وقت انتهاء القفل إذا وصل لـ 5 محاولات
-  Future<void> updateFailedAttempts(
+  /// [maxAttempts] — الحد الأقصى للمحاولات قبل القفل
+  /// [lockDuration] — مدة القفل عند بلوغ الحد
+  ///
+  /// يُعيد: العدد الجديد للمحاولات، ووقت انتهاء القفل (null إذا لم يُقفَل)
+  Future<({int attempts, DateTime? lockedUntil})> registerFailedLogin(
     int id, {
-    required int attempts,
-    DateTime? lockUntil,
+    required int maxAttempts,
+    required Duration lockDuration,
   }) async {
-    await (update(users)..where((u) => u.id.equals(id))).write(
-      UsersCompanion(
-        failedLoginAttempts: Value(attempts),
-        lockedUntil: Value(lockUntil), // null = إلغاء القفل
-      ),
-    );
+    // كل الخطوات داخل معاملة واحدة حتى لا تتداخل مع محاولة أخرى
+    return transaction(() async {
+      // ── 1. الزيادة الذرية للعدّاد ───────────────────────────────────────
+      await customStatement(
+        'UPDATE users SET failed_login_attempts = failed_login_attempts + 1 '
+        'WHERE id = ?',
+        [id],
+      );
+
+      // ── 2. قراءة العدد الجديد بعد الزيادة ───────────────────────────────
+      final row = await (select(users)..where((u) => u.id.equals(id)))
+          .getSingleOrNull();
+      final newAttempts = row?.failedLoginAttempts ?? 0;
+
+      // ── 3. القفل إذا بلغ العدّاد الحد الأقصى ────────────────────────────
+      DateTime? lockedUntil;
+      if (newAttempts >= maxAttempts) {
+        lockedUntil = DateTime.now().add(lockDuration);
+        await (update(users)..where((u) => u.id.equals(id))).write(
+          UsersCompanion(lockedUntil: Value(lockedUntil)),
+        );
+      }
+
+      return (attempts: newAttempts, lockedUntil: lockedUntil);
+    });
   }
 
   /// تسجيل وقت آخر دخول ناجح وإعادة تعيين محاولات الفشل

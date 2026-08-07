@@ -29,7 +29,7 @@ void main() {
 
   group('اختبارات قاعدة البيانات (Drift DB Tests)', () {
     test('يجب إنشاء قاعدة البيانات بالأدوار والمخطط الصحيح', () async {
-      expect(db.schemaVersion, equals(2));
+      expect(db.schemaVersion, equals(4));
     });
 
     test('إدراج واستعلام خزينة جديدة', () async {
@@ -143,6 +143,78 @@ void main() {
       final balances = await db.treasuriesDao.watchTreasuryBalances().first;
       expect(balances.first.balanceIqd, equals(500000.0)); // يتجاهل الـ 200,000 المحذوفة
       expect(balances.first.totalVouchers, equals(1));
+    });
+
+    // ── اختبارات تحديث السجلات الجزئي (إصلاح CRIT-6) ─────────────────────
+    group('التحديث الجزئي لا يمسّ الحقول الغائبة (CRIT-6)', () {
+      test('تعديل سند محذوف ناعماً لا يُحييه', () async {
+        final periodId = await db.fiscalPeriodsDao.insertPeriod(
+          FiscalPeriodsCompanion.insert(
+            name: '2026',
+            startDate: DateTime(2026, 1, 1),
+            endDate: DateTime(2026, 12, 31),
+          ),
+        );
+        final vaultId = await db.treasuriesDao.insertTreasury(
+          TreasuriesCompanion.insert(name: 'خزينة', kind: const Value('main')),
+        );
+
+        // إدراج سند ثم حذفه ناعماً
+        final voucherId = await db.vouchersDao.insertVoucher(
+          VouchersCompanion.insert(
+            voucherNumber: 1,
+            voucherType: 'sarf',
+            treasuryId: vaultId,
+            fiscalPeriodId: periodId,
+            amount: 100000.0,
+            currency: const Value('IQD'),
+            voucherDate: DateTime.now(),
+            notes: const Value('ملاحظة مهمة'),
+            isDeleted: const Value(true),
+          ),
+        );
+
+        // تعديل جزئي — Companion يحمل المبلغ فقط (وid)، بلا isDeleted/notes
+        await db.vouchersDao.updateVoucher(
+          VouchersCompanion(
+            id: Value(voucherId),
+            amount: const Value(150000.0),
+          ),
+        );
+
+        final after = await db.vouchersDao.getVoucherById(voucherId);
+        expect(after!.amount, equals(150000.0), reason: 'المبلغ يجب أن يتحدث');
+        expect(after.isDeleted, isTrue, reason: 'يجب ألا يُحيا السند المحذوف');
+        expect(after.notes, equals('ملاحظة مهمة'), reason: 'يجب ألا تُمسح الملاحظة');
+      });
+
+      test('تغيير دور مستخدم ينجح ولا يمسّ كلمة المرور أو created_at', () async {
+        final userId = await db.usersDao.insertUser(
+          UsersCompanion.insert(
+            username: 'ahmed',
+            passwordHash: r'$2a$12$originalhashvalue',
+            fullName: 'أحمد',
+            role: const Value('user'),
+          ),
+        );
+        final before = await db.usersDao.getUserById(userId);
+
+        // تغيير الدور فقط — Companion بلا passwordHash (كان يرمي استثناءً)
+        final ok = await db.usersDao.updateUser(
+          UsersCompanion(
+            id: Value(userId),
+            role: const Value('admin'),
+          ),
+        );
+
+        expect(ok, isTrue, reason: 'التحديث يجب أن ينجح لا أن يرمي استثناءً');
+        final after = await db.usersDao.getUserById(userId);
+        expect(after!.role, equals('admin'), reason: 'الدور يجب أن يتغيّر');
+        expect(after.passwordHash, equals(before!.passwordHash),
+            reason: 'كلمة المرور يجب ألا تتأثر');
+        expect(after.createdAt, equals(before.createdAt),
+            reason: 'تاريخ الإنشاء يجب ألا يُعاد');
+      });
     });
   });
 }

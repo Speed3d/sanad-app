@@ -2460,7 +2460,7 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
       'item_type', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant('other'));
+      defaultValue: const Constant(''));
   static const VerificationMeta _referenceNumberMeta =
       const VerificationMeta('referenceNumber');
   @override
@@ -2520,6 +2520,12 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
   @override
   late final GeneratedColumn<String> advanceNumber = GeneratedColumn<String>(
       'advance_number', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _transferGroupIdMeta =
+      const VerificationMeta('transferGroupId');
+  @override
+  late final GeneratedColumn<String> transferGroupId = GeneratedColumn<String>(
+      'transfer_group_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
@@ -2595,6 +2601,7 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
         invoiceNumber,
         spentBy,
         advanceNumber,
+        transferGroupId,
         notes,
         createdByUserId,
         createdAt,
@@ -2736,6 +2743,12 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
           advanceNumber.isAcceptableOrUnknown(
               data['advance_number']!, _advanceNumberMeta));
     }
+    if (data.containsKey('transfer_group_id')) {
+      context.handle(
+          _transferGroupIdMeta,
+          transferGroupId.isAcceptableOrUnknown(
+              data['transfer_group_id']!, _transferGroupIdMeta));
+    }
     if (data.containsKey('notes')) {
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
@@ -2819,6 +2832,8 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
           .read(DriftSqlType.string, data['${effectivePrefix}spent_by']),
       advanceNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}advance_number']),
+      transferGroupId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}transfer_group_id']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
       createdByUserId: attachedDatabase.typeMapping
@@ -2864,6 +2879,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
   final String? invoiceNumber;
   final String? spentBy;
   final String? advanceNumber;
+  final String? transferGroupId;
   final String notes;
   final int? createdByUserId;
   final DateTime createdAt;
@@ -2893,6 +2909,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       this.invoiceNumber,
       this.spentBy,
       this.advanceNumber,
+      this.transferGroupId,
       required this.notes,
       this.createdByUserId,
       required this.createdAt,
@@ -2937,6 +2954,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
     }
     if (!nullToAbsent || advanceNumber != null) {
       map['advance_number'] = Variable<String>(advanceNumber);
+    }
+    if (!nullToAbsent || transferGroupId != null) {
+      map['transfer_group_id'] = Variable<String>(transferGroupId);
     }
     map['notes'] = Variable<String>(notes);
     if (!nullToAbsent || createdByUserId != null) {
@@ -2991,6 +3011,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       advanceNumber: advanceNumber == null && nullToAbsent
           ? const Value.absent()
           : Value(advanceNumber),
+      transferGroupId: transferGroupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transferGroupId),
       notes: Value(notes),
       createdByUserId: createdByUserId == null && nullToAbsent
           ? const Value.absent()
@@ -3032,6 +3055,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       invoiceNumber: serializer.fromJson<String?>(json['invoiceNumber']),
       spentBy: serializer.fromJson<String?>(json['spentBy']),
       advanceNumber: serializer.fromJson<String?>(json['advanceNumber']),
+      transferGroupId: serializer.fromJson<String?>(json['transferGroupId']),
       notes: serializer.fromJson<String>(json['notes']),
       createdByUserId: serializer.fromJson<int?>(json['createdByUserId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -3066,6 +3090,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       'invoiceNumber': serializer.toJson<String?>(invoiceNumber),
       'spentBy': serializer.toJson<String?>(spentBy),
       'advanceNumber': serializer.toJson<String?>(advanceNumber),
+      'transferGroupId': serializer.toJson<String?>(transferGroupId),
       'notes': serializer.toJson<String>(notes),
       'createdByUserId': serializer.toJson<int?>(createdByUserId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -3098,6 +3123,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           Value<String?> invoiceNumber = const Value.absent(),
           Value<String?> spentBy = const Value.absent(),
           Value<String?> advanceNumber = const Value.absent(),
+          Value<String?> transferGroupId = const Value.absent(),
           String? notes,
           Value<int?> createdByUserId = const Value.absent(),
           DateTime? createdAt,
@@ -3134,6 +3160,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
         spentBy: spentBy.present ? spentBy.value : this.spentBy,
         advanceNumber:
             advanceNumber.present ? advanceNumber.value : this.advanceNumber,
+        transferGroupId: transferGroupId.present
+            ? transferGroupId.value
+            : this.transferGroupId,
         notes: notes ?? this.notes,
         createdByUserId: createdByUserId.present
             ? createdByUserId.value
@@ -3192,6 +3221,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       advanceNumber: data.advanceNumber.present
           ? data.advanceNumber.value
           : this.advanceNumber,
+      transferGroupId: data.transferGroupId.present
+          ? data.transferGroupId.value
+          : this.transferGroupId,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdByUserId: data.createdByUserId.present
           ? data.createdByUserId.value
@@ -3230,6 +3262,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           ..write('invoiceNumber: $invoiceNumber, ')
           ..write('spentBy: $spentBy, ')
           ..write('advanceNumber: $advanceNumber, ')
+          ..write('transferGroupId: $transferGroupId, ')
           ..write('notes: $notes, ')
           ..write('createdByUserId: $createdByUserId, ')
           ..write('createdAt: $createdAt, ')
@@ -3264,6 +3297,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
         invoiceNumber,
         spentBy,
         advanceNumber,
+        transferGroupId,
         notes,
         createdByUserId,
         createdAt,
@@ -3297,6 +3331,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           other.invoiceNumber == this.invoiceNumber &&
           other.spentBy == this.spentBy &&
           other.advanceNumber == this.advanceNumber &&
+          other.transferGroupId == this.transferGroupId &&
           other.notes == this.notes &&
           other.createdByUserId == this.createdByUserId &&
           other.createdAt == this.createdAt &&
@@ -3328,6 +3363,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
   final Value<String?> invoiceNumber;
   final Value<String?> spentBy;
   final Value<String?> advanceNumber;
+  final Value<String?> transferGroupId;
   final Value<String> notes;
   final Value<int?> createdByUserId;
   final Value<DateTime> createdAt;
@@ -3357,6 +3393,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     this.invoiceNumber = const Value.absent(),
     this.spentBy = const Value.absent(),
     this.advanceNumber = const Value.absent(),
+    this.transferGroupId = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdByUserId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3387,6 +3424,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     this.invoiceNumber = const Value.absent(),
     this.spentBy = const Value.absent(),
     this.advanceNumber = const Value.absent(),
+    this.transferGroupId = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdByUserId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3422,6 +3460,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     Expression<String>? invoiceNumber,
     Expression<String>? spentBy,
     Expression<String>? advanceNumber,
+    Expression<String>? transferGroupId,
     Expression<String>? notes,
     Expression<int>? createdByUserId,
     Expression<DateTime>? createdAt,
@@ -3452,6 +3491,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       if (invoiceNumber != null) 'invoice_number': invoiceNumber,
       if (spentBy != null) 'spent_by': spentBy,
       if (advanceNumber != null) 'advance_number': advanceNumber,
+      if (transferGroupId != null) 'transfer_group_id': transferGroupId,
       if (notes != null) 'notes': notes,
       if (createdByUserId != null) 'created_by_user_id': createdByUserId,
       if (createdAt != null) 'created_at': createdAt,
@@ -3484,6 +3524,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       Value<String?>? invoiceNumber,
       Value<String?>? spentBy,
       Value<String?>? advanceNumber,
+      Value<String?>? transferGroupId,
       Value<String>? notes,
       Value<int?>? createdByUserId,
       Value<DateTime>? createdAt,
@@ -3513,6 +3554,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       spentBy: spentBy ?? this.spentBy,
       advanceNumber: advanceNumber ?? this.advanceNumber,
+      transferGroupId: transferGroupId ?? this.transferGroupId,
       notes: notes ?? this.notes,
       createdByUserId: createdByUserId ?? this.createdByUserId,
       createdAt: createdAt ?? this.createdAt,
@@ -3589,6 +3631,9 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     if (advanceNumber.present) {
       map['advance_number'] = Variable<String>(advanceNumber.value);
     }
+    if (transferGroupId.present) {
+      map['transfer_group_id'] = Variable<String>(transferGroupId.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -3637,6 +3682,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
           ..write('invoiceNumber: $invoiceNumber, ')
           ..write('spentBy: $spentBy, ')
           ..write('advanceNumber: $advanceNumber, ')
+          ..write('transferGroupId: $transferGroupId, ')
           ..write('notes: $notes, ')
           ..write('createdByUserId: $createdByUserId, ')
           ..write('createdAt: $createdAt, ')
@@ -9637,6 +9683,7 @@ typedef $$VouchersTableCreateCompanionBuilder = VouchersCompanion Function({
   Value<String?> invoiceNumber,
   Value<String?> spentBy,
   Value<String?> advanceNumber,
+  Value<String?> transferGroupId,
   Value<String> notes,
   Value<int?> createdByUserId,
   Value<DateTime> createdAt,
@@ -9667,6 +9714,7 @@ typedef $$VouchersTableUpdateCompanionBuilder = VouchersCompanion Function({
   Value<String?> invoiceNumber,
   Value<String?> spentBy,
   Value<String?> advanceNumber,
+  Value<String?> transferGroupId,
   Value<String> notes,
   Value<int?> createdByUserId,
   Value<DateTime> createdAt,
@@ -9780,6 +9828,10 @@ class $$VouchersTableFilterComposer
 
   ColumnFilters<String> get advanceNumber => $composableBuilder(
       column: $table.advanceNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get transferGroupId => $composableBuilder(
+      column: $table.transferGroupId,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
@@ -9919,6 +9971,10 @@ class $$VouchersTableOrderingComposer
       column: $table.advanceNumber,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get transferGroupId => $composableBuilder(
+      column: $table.transferGroupId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
@@ -10049,6 +10105,9 @@ class $$VouchersTableAnnotationComposer
   GeneratedColumn<String> get advanceNumber => $composableBuilder(
       column: $table.advanceNumber, builder: (column) => column);
 
+  GeneratedColumn<String> get transferGroupId => $composableBuilder(
+      column: $table.transferGroupId, builder: (column) => column);
+
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
@@ -10155,6 +10214,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             Value<String?> invoiceNumber = const Value.absent(),
             Value<String?> spentBy = const Value.absent(),
             Value<String?> advanceNumber = const Value.absent(),
+            Value<String?> transferGroupId = const Value.absent(),
             Value<String> notes = const Value.absent(),
             Value<int?> createdByUserId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -10185,6 +10245,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             invoiceNumber: invoiceNumber,
             spentBy: spentBy,
             advanceNumber: advanceNumber,
+            transferGroupId: transferGroupId,
             notes: notes,
             createdByUserId: createdByUserId,
             createdAt: createdAt,
@@ -10215,6 +10276,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             Value<String?> invoiceNumber = const Value.absent(),
             Value<String?> spentBy = const Value.absent(),
             Value<String?> advanceNumber = const Value.absent(),
+            Value<String?> transferGroupId = const Value.absent(),
             Value<String> notes = const Value.absent(),
             Value<int?> createdByUserId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -10245,6 +10307,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             invoiceNumber: invoiceNumber,
             spentBy: spentBy,
             advanceNumber: advanceNumber,
+            transferGroupId: transferGroupId,
             notes: notes,
             createdByUserId: createdByUserId,
             createdAt: createdAt,

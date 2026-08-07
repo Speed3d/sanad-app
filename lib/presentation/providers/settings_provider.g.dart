@@ -100,6 +100,50 @@ final secondaryCurrencyProvider = AutoDisposeStreamProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SecondaryCurrencyRef = AutoDisposeStreamProviderRef<String?>;
+String _$enforceBalanceCheckHash() =>
+    r'3b0ab4e016ab6e3302d0781c7c3a061f06fb6f85';
+
+/// Provider تفاعلي لسياسة منع الصرف فوق الرصيد
+///
+/// القيمة: 'true' = منع باتّ (الافتراضي) | 'false' = سماح بالرصيد المدين.
+/// null يعني غياب المفتاح، ويُعامَل كـ 'true' (منع) في الواجهة.
+///
+/// Copied from [enforceBalanceCheck].
+@ProviderFor(enforceBalanceCheck)
+final enforceBalanceCheckProvider = AutoDisposeStreamProvider<String?>.internal(
+  enforceBalanceCheck,
+  name: r'enforceBalanceCheckProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$enforceBalanceCheckHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EnforceBalanceCheckRef = AutoDisposeStreamProviderRef<String?>;
+String _$cloudSyncModeHash() => r'f1fa565a6783af76e55680da9d60001751bd9f1d';
+
+/// Provider تفاعلي لنمط المزامنة السحابية
+///
+/// القيمة: 'local' = نسخة محلية إضافية (الافتراضي) | 'drive' = Google Drive.
+///
+/// Copied from [cloudSyncMode].
+@ProviderFor(cloudSyncMode)
+final cloudSyncModeProvider = AutoDisposeStreamProvider<String?>.internal(
+  cloudSyncMode,
+  name: r'cloudSyncModeProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$cloudSyncModeHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CloudSyncModeRef = AutoDisposeStreamProviderRef<String?>;
 String _$exchangeRateHash() => r'da7b4c17ddc549b8cdb1bdefccf6afbc0a952a10';
 
 /// Provider تفاعلي لسعر الصرف كـ double

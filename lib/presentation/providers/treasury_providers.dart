@@ -80,6 +80,16 @@ class TreasuryNotifier extends _$TreasuryNotifier {
 
   ITreasuryRepository get _repo => ref.read(treasuryRepositoryProvider);
 
+  /// إبطال مزوّدات قوائم الخزائن (Future) بعد أي كتابة
+  ///
+  /// ⚠️ بدون هذا لا تظهر الخزينة الجديدة/المعدَّلة في القوائم المنسدلة
+  /// (سندات، رواتب، سلف، تقارير) إلا بعد إعادة تشغيل التطبيق. تدقيق 2026-08-06.
+  void _invalidateTreasuryLists() {
+    ref.invalidate(allTreasuriesProvider);
+    ref.invalidate(treasuriesByKindProvider);
+    ref.invalidate(totalTreasuryBalanceProvider);
+  }
+
   // ── إنشاء خزينة جديدة ────────────────────────────────────────────────
   /// إنشاء خزينة رئيسية جديدة
   ///
@@ -95,6 +105,7 @@ class TreasuryNotifier extends _$TreasuryNotifier {
     state = const AsyncLoading();
     try {
       await _repo.createTreasury(name: name.trim(), kind: kind);
+      _invalidateTreasuryLists();
       state = const AsyncData('تم إنشاء الخزينة بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -117,6 +128,7 @@ class TreasuryNotifier extends _$TreasuryNotifier {
     state = const AsyncLoading();
     try {
       await _repo.updateTreasury(treasury.copyWith(name: newName.trim()));
+      _invalidateTreasuryLists();
       state = const AsyncData('تم تحديث اسم الخزينة بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -131,6 +143,7 @@ class TreasuryNotifier extends _$TreasuryNotifier {
     state = const AsyncLoading();
     try {
       await _repo.setActive(id, isActive: isActive);
+      _invalidateTreasuryLists();
       state = AsyncData(isActive ? 'تم تفعيل الخزينة ✓' : 'تم تعطيل الخزينة ✓');
       return true;
     } catch (e, st) {
@@ -154,6 +167,7 @@ class TreasuryNotifier extends _$TreasuryNotifier {
     state = const AsyncLoading();
     try {
       await _repo.deleteTreasury(id);
+      _invalidateTreasuryLists();
       state = const AsyncData('تم حذف الخزينة بنجاح ✓');
       return true;
     } catch (e, st) {

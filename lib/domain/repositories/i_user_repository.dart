@@ -46,8 +46,17 @@ abstract class IUserRepository {
 
   // ── المصادقة ───────────────────────────────────────────────────────────────
 
-  /// تحديث عدد محاولات الدخول الفاشلة
-  Future<void> recordFailedLogin(int id, {DateTime? lockUntil});
+  /// تسجيل محاولة دخول فاشلة — يزيد العدّاد ذرياً ويقفل عند بلوغ الحد
+  ///
+  /// [maxAttempts] — عدد المحاولات المسموح بها قبل القفل
+  /// [lockDuration] — مدة القفل
+  ///
+  /// يُعيد: العدد الجديد للمحاولات، ووقت انتهاء القفل (null إذا لم يُقفَل)
+  Future<({int attempts, DateTime? lockedUntil})> recordFailedLogin(
+    int id, {
+    required int maxAttempts,
+    required Duration lockDuration,
+  });
 
   /// تسجيل دخول ناجح — يُعيد العداد لصفر ويُسجَّل الوقت
   Future<void> recordSuccessfulLogin(int id);

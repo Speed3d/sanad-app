@@ -96,7 +96,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   // ── حوار إضافة موظف ─────────────────────────────────────────────────────
 
   Future<void> _showCreateDialog() async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _EmployeeFormDialog(
         title: 'إضافة موظف جديد',
@@ -120,7 +120,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   // ── ورقة التفاصيل ────────────────────────────────────────────────────────
 
   void _showDetail(EmployeeModel emp) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -606,7 +606,7 @@ class _EmployeeDetailSheetState
   // ── حوار تعديل الموظف ────────────────────────────────────────────────────
 
   Future<void> _showEditDialog() async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _EmployeeFormDialog(
         title: 'تعديل بيانات ${emp.fullName}',
@@ -691,7 +691,7 @@ class _EmployeeDetailSheetState
       return;
     }
     if (!mounted) return;
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _PaySalaryDialog(
         employee: emp,
@@ -730,7 +730,7 @@ class _EmployeeDetailSheetState
       return;
     }
     if (!mounted) return;
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _GrantAdvanceDialog(
         employee: emp,
@@ -1251,7 +1251,7 @@ class _AdvanceCard extends ConsumerWidget {
       );
       return;
     }
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => _RepayAdvanceDialog(
         advance: advance,
@@ -1558,19 +1558,16 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
                 // تاريخ التعيين
                 GestureDetector(
                   onTap: _pickHireDate,
-                  child: AbsorbPointer(
-                    child: TextFormField(
-                      controller: TextEditingController(
-                        text: _hireDate != null
-                            ? fmtDate.format(_hireDate!)
-                            : '',
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'تاريخ التعيين',
-                        prefixIcon:
-                            Icon(Icons.calendar_today_outlined, size: 20),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
-                      ),
+                  // InputDecorator بدل TextFormField+Controller — بلا تسريب
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'تاريخ التعيين',
+                      prefixIcon:
+                          Icon(Icons.calendar_today_outlined, size: 20),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    ),
+                    child: Text(
+                      _hireDate != null ? fmtDate.format(_hireDate!) : '',
                     ),
                   ),
                 ),
@@ -1839,24 +1836,21 @@ class _PaySalaryDialogState extends State<_PaySalaryDialog> {
                       context: context,
                       initialDate: _paymentDate,
                       firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
+                      lastDate: DateTime.now(),
                       locale: const Locale('ar'),
                     );
                     if (p != null && mounted) {
                       setState(() => _paymentDate = p);
                     }
                   },
-                  child: AbsorbPointer(
-                    child: TextFormField(
-                      controller: TextEditingController(
-                          text: fmtDate.format(_paymentDate)),
-                      decoration: const InputDecoration(
-                        labelText: 'تاريخ الصرف',
-                        prefixIcon:
-                            Icon(Icons.calendar_today_outlined, size: 20),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
-                      ),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'تاريخ الصرف',
+                      prefixIcon:
+                          Icon(Icons.calendar_today_outlined, size: 20),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
+                    child: Text(fmtDate.format(_paymentDate)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2043,24 +2037,21 @@ class _GrantAdvanceDialogState extends State<_GrantAdvanceDialog> {
                       context: context,
                       initialDate: _advanceDate,
                       firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
+                      lastDate: DateTime.now(),
                       locale: const Locale('ar'),
                     );
                     if (p != null && mounted) {
                       setState(() => _advanceDate = p);
                     }
                   },
-                  child: AbsorbPointer(
-                    child: TextFormField(
-                      controller: TextEditingController(
-                          text: fmtDate.format(_advanceDate)),
-                      decoration: const InputDecoration(
-                        labelText: 'تاريخ السلفة',
-                        prefixIcon:
-                            Icon(Icons.calendar_today_outlined, size: 20),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
-                      ),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'تاريخ السلفة',
+                      prefixIcon:
+                          Icon(Icons.calendar_today_outlined, size: 20),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
+                    child: Text(fmtDate.format(_advanceDate)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2280,25 +2271,22 @@ class _RepayAdvanceDialogState extends State<_RepayAdvanceDialog> {
                       context: context,
                       initialDate: _repaymentDate,
                       firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
+                      lastDate: DateTime.now(),
                       locale: const Locale('ar'),
                     );
                     if (p != null && mounted) {
                       setState(() => _repaymentDate = p);
                     }
                   },
-                  child: AbsorbPointer(
-                    child: TextFormField(
-                      controller: TextEditingController(
-                          text: fmtDate.format(_repaymentDate)),
-                      decoration: const InputDecoration(
-                        labelText: 'تاريخ السداد',
-                        prefixIcon: Icon(
-                            Icons.calendar_today_outlined,
-                            size: 20),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
-                      ),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'تاريخ السداد',
+                      prefixIcon: Icon(
+                          Icons.calendar_today_outlined,
+                          size: 20),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
+                    child: Text(fmtDate.format(_repaymentDate)),
                   ),
                 ),
                 const SizedBox(height: 12),

@@ -925,6 +925,30 @@ class _DailySummaryProviderElement extends AutoDisposeFutureProviderElement<
   DateTime get date => (origin as DailySummaryProvider).date;
 }
 
+String _$weeklyLiquidityHash() => r'7deb9ed471d6fa9b692367dafb3d29c2a7eaf218';
+
+/// اتجاه السيولة لآخر 7 أيام — بيانات حقيقية للمخطط في لوحة التحكم
+///
+/// كان المخطط يعرض أرقاماً ثابتة مُلفَّقة (تدقيق 2026-08-06). الآن يجمع
+/// ملخص كل يوم من الأيام السبعة الأخيرة فعلياً من قاعدة البيانات.
+///
+/// Copied from [weeklyLiquidity].
+@ProviderFor(weeklyLiquidity)
+final weeklyLiquidityProvider =
+    AutoDisposeFutureProvider<List<DailyLiquidityPoint>>.internal(
+  weeklyLiquidity,
+  name: r'weeklyLiquidityProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$weeklyLiquidityHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef WeeklyLiquidityRef
+    = AutoDisposeFutureProviderRef<List<DailyLiquidityPoint>>;
 String _$searchVouchersHash() => r'7ca46a6e917e091690dc58d45aa7ca1ff92e1b20';
 
 /// بحث في السندات بنص حر
@@ -1582,7 +1606,7 @@ class _VoucherByIdProviderElement
 }
 
 String _$voucherSarfNotifierHash() =>
-    r'80540c218dda67bfbef3385fa0e2163e74911c66';
+    r'1332cc4171b77582df041cf4ea1430251ef253f4';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف سندات الصرف
 ///
@@ -1607,7 +1631,7 @@ final voucherSarfNotifierProvider = AutoDisposeNotifierProvider<
 
 typedef _$VoucherSarfNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
 String _$voucherKabdNotifierHash() =>
-    r'9a061b1de98e6efffbde88e1493451a0de7378c2';
+    r'0d8376115b36e160bf282f1aa8ee2a23c397004f';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف سندات القبض
 ///
@@ -1649,7 +1673,7 @@ final advanceDeleteNotifierProvider = AutoDisposeNotifierProvider<
 
 typedef _$AdvanceDeleteNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
 String _$voucherTransferNotifierHash() =>
-    r'a3ef29b6a5b827406b4140aa351c3a489ad34712';
+    r'46370f75ce694906eeaa4f09a992a57b4b5d8afe';
 
 /// See also [VoucherTransferNotifier].
 @ProviderFor(VoucherTransferNotifier)

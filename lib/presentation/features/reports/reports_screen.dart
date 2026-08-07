@@ -856,7 +856,7 @@ class _DateField extends StatelessWidget {
           context: context,
           initialDate: value,
           firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
+          lastDate: DateTime.now(),
         );
         if (picked != null) onChanged(picked);
       },
