@@ -125,7 +125,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
       context: context,
       initialDate: _voucherDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      lastDate: DateTime.now(),
       locale: const Locale('ar'),
       helpText: 'اختر تاريخ السند',
       cancelText: 'إلغاء',
@@ -886,22 +886,20 @@ class _DatePickerField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('EEEE، dd MMMM yyyy', 'ar');
+    // نستخدم InputDecorator بدل TextFormField+TextEditingController لأن الحقل
+    // للعرض فقط — يمنع تسريب Controller يُنشأ في كل إعادة بناء. تدقيق 2026-08-06.
     return GestureDetector(
       onTap: onTap,
-      child: AbsorbPointer(
-        child: TextFormField(
-          controller: TextEditingController(text: fmt.format(date)),
-          readOnly: true,
-          decoration: InputDecoration(
-            labelText: 'التاريخ',
-            prefixIcon:
-                const Icon(Icons.calendar_today_outlined, size: 20),
-            suffixIcon: Icon(
-              Icons.arrow_drop_down,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'التاريخ',
+          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+          suffixIcon: Icon(
+            Icons.arrow_drop_down,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
+        child: Text(fmt.format(date)),
       ),
     );
   }

@@ -122,7 +122,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
       context: context,
       initialDate: _voucherDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      lastDate: DateTime.now(),
       locale: const Locale('ar'),
       helpText: 'اختر تاريخ السند',
       cancelText: 'إلغاء',
@@ -829,22 +829,19 @@ class _KabdDateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('EEEE، dd MMMM yyyy', 'ar');
+    // InputDecorator بدل TextFormField+Controller — حقل عرض فقط بلا تسريب.
     return GestureDetector(
       onTap: onTap,
-      child: AbsorbPointer(
-        child: TextFormField(
-          controller: TextEditingController(text: fmt.format(date)),
-          readOnly: true,
-          decoration: InputDecoration(
-            labelText: 'التاريخ',
-            prefixIcon:
-                const Icon(Icons.calendar_today_outlined, size: 20),
-            suffixIcon: Icon(
-              Icons.arrow_drop_down,
-              color: Colors.green.shade700,
-            ),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'التاريخ',
+          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+          suffixIcon: Icon(
+            Icons.arrow_drop_down,
+            color: Colors.green.shade700,
           ),
         ),
+        child: Text(fmt.format(date)),
       ),
     );
   }

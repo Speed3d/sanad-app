@@ -125,13 +125,32 @@ class AppShell extends ConsumerWidget {
     }
   }
 
-  /// حساب index العناصر النشطة
+  /// حساب index العنصر النشط في القائمة — يُعيد -1 إذا لم يطابق أي عنصر
+  ///
+  /// كان يُعيد 0 (لوحة التحكم) لأي مسار غير مُدرَج مثل /audit و /backup،
+  /// فيُضيء العنصر الخطأ ويعرض عنوانه في الشريط العلوي. تدقيق 2026-08-06.
   static int _selectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
+    // نطابق أطول مسار أولاً لتفادي تطابق /vouchers مع /vouchers/sarf خطأً
+    var bestIndex = -1;
+    var bestLen = -1;
     for (var i = 0; i < _navItems.length; i++) {
-      if (location.startsWith(_navItems[i].route)) return i;
+      final route = _navItems[i].route;
+      if (location.startsWith(route) && route.length > bestLen) {
+        bestIndex = i;
+        bestLen = route.length;
+      }
     }
-    return 0;
+    return bestIndex;
+  }
+
+  /// عنوان الشريط العلوي — يدعم المسارات خارج القائمة (سجل المراجعة، النسخ)
+  static String _resolveTitle(BuildContext context, int selectedIndex) {
+    if (selectedIndex >= 0) return _navItems[selectedIndex].label;
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith(AppRoutes.audit)) return 'سجل المراجعة';
+    if (location.startsWith(AppRoutes.backup)) return 'النسخ الاحتياطي';
+    return 'نظام إدارة المبيعات';
   }
 
   /// تنقل آمن يمنع تكرار التنقل لنفس المسار ويُؤجّل التوجيه لإطار ما بعد الرسم
@@ -398,7 +417,7 @@ class _DesktopShell extends ConsumerWidget {
               children: [
                 // الشريط العلوي (Topbar 72px)
                 _DesktopTopbar(
-                  title: _navItems[selectedIndex].label,
+                  title: AppShell._resolveTitle(context, selectedIndex),
                   isDashboard: selectedIndex == 0,
                 ),
                 // محتوى الشاشة الفعلي
