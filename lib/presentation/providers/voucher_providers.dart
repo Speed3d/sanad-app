@@ -337,6 +337,24 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
       );
       return false;
     }
+    // ── فحص أثر التعديل على الرصيد (إصلاح ح-٢) ──────────────────────
+    // الإنشاء كان محروساً والتعديل لا — فكان يمكن تعديل سند صرف من
+    // 100 ألف إلى 100 مليون والالتفاف على المنع بالكامل.
+    final original = await _db.vouchersDao.getVoucherById(voucher.id);
+    if (original != null) {
+      final balanceError = await BalanceGuard.checkEditImpact(
+        _db,
+        original: original,
+        newTreasuryId: treasuryId,
+        newCurrency: currency,
+        newAmount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+    }
+
     state = const AsyncLoading();
     try {
       await _repo.updateVoucher(
@@ -506,6 +524,24 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
       );
       return false;
     }
+    // ── فحص أثر التعديل على الرصيد (إصلاح ح-٢) ──────────────────────
+    // الإنشاء كان محروساً والتعديل لا — فكان يمكن تعديل سند صرف من
+    // 100 ألف إلى 100 مليون والالتفاف على المنع بالكامل.
+    final original = await _db.vouchersDao.getVoucherById(voucher.id);
+    if (original != null) {
+      final balanceError = await BalanceGuard.checkEditImpact(
+        _db,
+        original: original,
+        newTreasuryId: treasuryId,
+        newCurrency: currency,
+        newAmount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+    }
+
     state = const AsyncLoading();
     try {
       await _repo.updateVoucher(

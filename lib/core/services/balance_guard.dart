@@ -59,4 +59,89 @@ class BalanceGuard {
     }
     return null;
   }
+
+  /// يفحص أثر **تعديل** سند قائم على رصيد الخزينة
+  ///
+  /// **لماذا دالة منفصلة؟** (إصلاح ح-٢ — تدقيق 2026-08-15)
+  ///   [checkSufficientBalance] تصلح للإنشاء فقط: تفترض أن المبلغ كله خصم
+  ///   جديد. عند التعديل يكون السند القديم **محسوباً أصلاً** في الرصيد، فلو
+  ///   استعملناها لرفضت كل تعديل تقريباً.
+  ///   وبدون أي فحص — وهو ما كان عليه الحال — يستطيع المستخدم تعديل سند صرف
+  ///   من 100 ألف إلى 100 مليون فيمرّ بلا اعتراض وتصبح الخزينة سالبة رغم
+  ///   تفعيل المنع. أي أن الحماية كانت مُلتَفّاً عليها من باب التعديل.
+  ///
+  /// **المعادلة:** الرصيد الناتج = الحالي − أثر السند القديم + أثر الجديد
+  ///
+  /// تغطّي الحالات الأربع:
+  ///   • زيادة مبلغ سند صرف
+  ///   • خفض مبلغ سند قبض بعد الصرف منه
+  ///   • نقل السند إلى خزينة أخرى
+  ///   • تغيير عملة السند
+  ///
+  /// [original]     — السند كما هو مخزَّن قبل التعديل
+  /// [newTreasuryId] / [newCurrency] / [newAmount] — القيم بعد التعديل
+  ///
+  /// يُعيد **رسالة خطأ عربية** عند الرفض، أو **null** عند السماح.
+  static Future<String?> checkEditImpact(
+    AppDatabase db, {
+    required Voucher original,
+    required int newTreasuryId,
+    required String newCurrency,
+    required double newAmount,
+  }) async {
+    final enforce = await db.appSettingsDao.getBool(
+      AppSettingsKeys.enforceBalanceCheck,
+      defaultValue: true,
+    );
+    if (!enforce) return null; // السماح بالرصيد المدين حسب إعداد المالك
+
+    /// إشارة السند في معادلة الرصيد: +1 للدائن، −1 للمدين
+    int signOf(String type) {
+      switch (type) {
+        case 'kabd':
+        case 'opening_balance':
+        case 'transfer_in':
+          return 1;
+        default:
+          return -1; // sarf | transfer_out | opening_balance_debit
+      }
+    }
+
+    final sign = signOf(original.voucherType);
+
+    // نجمع التغيّر الصافي لكل (خزينة، عملة) متأثرة. التعديل قد يمسّ اثنتين
+    // إن نُقل السند لخزينة أخرى أو غُيّرت عملته.
+    final deltas = <({int treasuryId, String currency}), double>{};
+
+    void add(int treasuryId, String currency, double delta) {
+      final key = (treasuryId: treasuryId, currency: currency);
+      deltas[key] = (deltas[key] ?? 0) + delta;
+    }
+
+    // سحب أثر السند القديم، ثم إضافة أثر الجديد
+    add(original.treasuryId, original.currency, -sign * original.amount);
+    add(newTreasuryId, newCurrency, sign * newAmount);
+
+    for (final entry in deltas.entries) {
+      if (entry.value >= -0.001) continue; // لا نقصان — لا داعي للفحص
+
+      final row = await db.treasuriesDao.getTreasuryBalance(entry.key.treasuryId);
+      final current = entry.key.currency == 'USD'
+          ? (row?.balanceUsd ?? 0.0)
+          : (row?.balanceIqd ?? 0.0);
+
+      final resulting = current + entry.value;
+      if (resulting < -0.001) {
+        final treasury =
+            await db.treasuriesDao.getTreasuryById(entry.key.treasuryId);
+        final name = treasury?.name ?? 'الخزينة';
+        return 'هذا التعديل يجعل رصيد "$name" سالباً '
+            '(${CurrencyFormatter.format(resulting, entry.key.currency)}).\n'
+            'الرصيد الحالي: '
+            '${CurrencyFormatter.format(current, entry.key.currency)}.\n'
+            'يمكنك السماح بالرصيد المدين من الإعدادات إذا رغبت.';
+      }
+    }
+    return null;
+  }
 }

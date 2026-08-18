@@ -218,9 +218,63 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA journal_mode = WAL');
       // تفعيل الحذف التلقائي للصفحات الفارغة (يقلل حجم الملف)
       await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
+
+      // ── تشخيص استمرارية التخزين ──────────────────────────────────────
+      // يطبع «علامة الإقلاع» السابقة إن وُجدت. إن ظهر «قاعدة بيانات جديدة»
+      // في كل تشغيل فالتخزين لا يستمر — وأشيع سبب لذلك على الويب أن
+      // flutter run فتح منفذاً عشوائياً جديداً، وتخزين المتصفح مرتبط
+      // بالأصل (المضيف:المنفذ). راجع .vscode/launch.json.
+      await _logStoragePersistence();
     },
   );
 
+
+  // ── تشخيص استمرارية التخزين ──────────────────────────────────────────────
+
+  /// يكشف ما إذا كانت قاعدة البيانات تحفظ فعلاً بين تشغيل وآخر
+  ///
+  /// **لماذا؟** أعطال «ضياع البيانات» يصعب تشخيصها لأن التطبيق يعمل بشكل
+  /// طبيعي تماماً داخل الجلسة الواحدة — ولا يُكتشف الخلل إلا بعد إعادة
+  /// التشغيل وفقدان كل شيء. هذا الفحص يجعل الخلل مرئياً في **أول ثانية**.
+  ///
+  /// الآلية: يقرأ علامة الإقلاع السابقة ثم يكتب علامة جديدة. فإن ظهرت
+  /// «قاعدة بيانات جديدة» في كل تشغيل فالتخزين لا يستمر.
+  ///
+  /// أشيع سبب على الويب: `flutter run` بلا `--web-port` يفتح منفذاً عشوائياً
+  /// في كل مرة، وتخزين المتصفح (OPFS/IndexedDB) مرتبط بالأصل
+  /// (المضيف:المنفذ) — فكل تشغيل أصلٌ جديد بقاعدة فارغة.
+  Future<void> _logStoragePersistence() async {
+    const key = 'last_boot_at';
+    try {
+      final rows = await customSelect(
+        'SELECT value FROM app_settings WHERE key = ?',
+        variables: [Variable.withString(key)],
+      ).get();
+
+      final previous = rows.isEmpty ? null : rows.first.data['value'] as String?;
+      final now = DateTime.now().toIso8601String();
+
+      if (previous == null || previous.isEmpty) {
+        // ignore: avoid_print
+        print('[التخزين] ⚠️ لا توجد علامة إقلاع سابقة — قاعدة بيانات جديدة.\n'
+            '          إن تكرّر هذا في كل تشغيل فالبيانات لا تُحفَظ.\n'
+            '          على الويب: شغّل بمنفذ ثابت (--web-port=5000).');
+      } else {
+        // ignore: avoid_print
+        print('[التخزين] ✅ البيانات محفوظة — آخر إقلاع مسجَّل: $previous');
+      }
+
+      await customStatement(
+        'INSERT INTO app_settings (key, value) VALUES (?, ?) '
+        'ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        [key, now],
+      );
+    } catch (e) {
+      // التشخيص ثانوي — لا يجوز أن يمنع فتح قاعدة البيانات
+      // ignore: avoid_print
+      print('[التخزين] تعذّر فحص الاستمرارية: $e');
+    }
+  }
   // ── Indexes ───────────────────────────────────────────────────────────────
 
   /// إنشاء الـ Indexes لتحسين أداء الاستعلامات الشائعة
