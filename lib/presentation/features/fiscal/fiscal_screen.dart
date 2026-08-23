@@ -29,6 +29,7 @@ import '../../../domain/models/auth_state.dart';
 import '../../../domain/models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/fiscal_providers.dart';
+import 'purge_period_dialog.dart';
 
 // ── ثوابت ────────────────────────────────────────────────────────────────────
 
@@ -158,6 +159,8 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
                   onClose: () => _showCloseDialog(context, period),
                   onReopen: () => _showReopenDialog(context, period),
                   onRecompute: () => _showRecomputeDialog(context, period),
+                  onDelete: () => _showDeleteDialog(context, period),
+                  onPurge: () => showPurgePeriodDialog(context, ref, period),
                 );
               },
             ),
@@ -180,7 +183,14 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
     String periodType = 'yearly';
     DateTime? startDate;
     DateTime? endDate;
-    final notesCtrl = TextEditingController();
+    // ⚠️ لا تُنشئ TextEditingController هنا ثم تتخلّص منه بعد showDialog.
+    //   الـ await ينتهي لحظة استدعاء Navigator.pop، بينما يبقى الحوار
+    //   **يُعاد بناؤه** طوال أنيميشن خروجه — فالتخلّص الفوري يجعل الحقل
+    //   يلمس متحكّماً ميتاً: «A TextEditingController was used after being
+    //   disposed»، ثم تنهار الشجرة بـ «_dependents.isEmpty» شاشةً حمراء.
+    //   (عطل بلّغ عنه المالك 2026-08-23 عند إنشاء فترة مالية ثانية.)
+    //   الحلّ: متغيّر نصّي عادي مع initialValue/onChanged — بلا متحكّم أصلاً.
+    String notes = '';
     final formKey = GlobalKey<FormState>();
     bool isCreating = false;
 
@@ -336,7 +346,8 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
 
                     // ── ملاحظات (اختياري) ─────────────────────────
                     TextFormField(
-                      controller: notesCtrl,
+                      initialValue: notes,
+                      onChanged: (v) => notes = v,
                       maxLines: 2,
                       decoration: const InputDecoration(
                         labelText: 'ملاحظات (اختياري)',
@@ -384,7 +395,7 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
                               periodType: periodType,
                               startDate: startDate!,
                               endDate: endDate!,
-                              notes: notesCtrl.text.trim(),
+                              notes: notes.trim(),
                             );
 
                         if (ctx.mounted) {
@@ -411,7 +422,56 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
         },
       ),
     );
-    notesCtrl.dispose();
+  }
+
+  // ── حوار حذف فترة مالية خالية ──────────────────────────────────────────
+
+  /// تأكيد حذف فترة مالية لا تحتوي أي سند
+  ///
+  /// لا متحكّم نصّي هنا عمداً — راجع التعليق في حوار الإنشاء: التخلّص من
+  /// متحكّم بعد `await showDialog` يقع أثناء أنيميشن الخروج فيُعطب الشجرة.
+  Future<void> _showDeleteDialog(
+    BuildContext context,
+    FiscalPeriod period,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline,
+                size: 20, color: Theme.of(ctx).colorScheme.error),
+            const SizedBox(width: 8),
+            const Text('حذف فترة مالية'),
+          ],
+        ),
+        content: Text(
+          'حذف الفترة "${period.name}" نهائياً؟\n\n'
+          'هذا الحذف فعلي لا يمكن التراجع عنه. لن يُسمح به إلا إن كانت '
+          'الفترة خالية تماماً من السندات وسلف المشاريع — فلا يضيع أي أثر '
+          'مالي. سيُسجَّل الحذف في سجل المراجعة.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('حذف نهائياً'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    // النتيجة (نجاح أو رسالة المنع) تُعرَض عبر ref.listen في الشاشة الرئيسية
+    await ref.read(fiscalNotifierProvider.notifier).deletePeriod(period.id);
   }
 
   // ── حوار إقفال فترة مالية ──────────────────────────────────────────────
@@ -422,7 +482,14 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
     FiscalPeriod period,
   ) async {
     final theme = Theme.of(context);
-    final notesCtrl = TextEditingController();
+    // ⚠️ لا تُنشئ TextEditingController هنا ثم تتخلّص منه بعد showDialog.
+    //   الـ await ينتهي لحظة استدعاء Navigator.pop، بينما يبقى الحوار
+    //   **يُعاد بناؤه** طوال أنيميشن خروجه — فالتخلّص الفوري يجعل الحقل
+    //   يلمس متحكّماً ميتاً: «A TextEditingController was used after being
+    //   disposed»، ثم تنهار الشجرة بـ «_dependents.isEmpty» شاشةً حمراء.
+    //   (عطل بلّغ عنه المالك 2026-08-23 عند إنشاء فترة مالية ثانية.)
+    //   الحلّ: متغيّر نصّي عادي مع initialValue/onChanged — بلا متحكّم أصلاً.
+    String notes = '';
     bool isClosing = false;
 
     await showDialog<void>(
@@ -485,8 +552,9 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
 
                 const SizedBox(height: 16),
 
-                TextField(
-                  controller: notesCtrl,
+                TextFormField(
+                  initialValue: notes,
+                  onChanged: (v) => notes = v,
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: 'ملاحظات الإقفال (اختياري)',
@@ -515,7 +583,7 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
                           .read(fiscalNotifierProvider.notifier)
                           .closePeriod(
                             period.id,
-                            notes: notesCtrl.text.trim(),
+                            notes: notes.trim(),
                           );
                       if (ctx.mounted) Navigator.pop(ctx);
                     },
@@ -535,7 +603,6 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
         ),
       ),
     );
-    notesCtrl.dispose();
   }
 
   // ── حوار إعادة فتح فترة (Super Admin) ────────────────────────────────
@@ -593,7 +660,7 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
                       const SizedBox(height: 8),
                       Text(
                         '• الفترات المالية اللاحقة المُقفَلة ستُحدَّد بـ "تحتاج إعادة احتساب"\n'
-                        '• يجب إعادة احتساب الأرصدة الافتتاحية بعد الانتهاء من التعديلات\n'
+                        '• يجب إعادة الاحتساب (تنظيف وإقفال) بعد الانتهاء من التعديلات\n'
                         '• هذه العملية للمدير الأعلى فقط',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer,
@@ -725,10 +792,11 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '1. احتساب الرصيد الختامي لكل خزينة من الفترة السابقة\n'
-                          '2. حذف سندات الافتتاح القديمة لهذه الفترة\n'
-                          '3. إنشاء سندات افتتاح جديدة بالأرصدة المحدَّثة\n'
-                          '4. إقفال هذه الفترة تلقائياً',
+                          '1. حذف أي سندات رصيد افتتاحي قديمة لهذه الفترة\n'
+                          '2. إقفال هذه الفترة تلقائياً\n\n'
+                          'ملاحظة: الرصيد ينتقل تراكمياً بين السنوات — '
+                          'الخزينة صندوق نقدي مستمر لا يُصفَّر، فلا تُنشأ '
+                          'سندات رصيد افتتاحي (كانت تُضاعف الرصيد).',
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -788,6 +856,8 @@ class _PeriodCard extends ConsumerWidget {
   final VoidCallback onClose;
   final VoidCallback onReopen;
   final VoidCallback onRecompute;
+  final VoidCallback onDelete;
+  final VoidCallback onPurge;
 
   const _PeriodCard({
     required this.period,
@@ -797,6 +867,8 @@ class _PeriodCard extends ConsumerWidget {
     required this.onClose,
     required this.onReopen,
     required this.onRecompute,
+    required this.onDelete,
+    required this.onPurge,
   });
 
   @override
@@ -1065,6 +1137,42 @@ class _PeriodCard extends ConsumerWidget {
                       ),
                       icon: const Icon(Icons.calculate_outlined, size: 16),
                       label: const Text('إعادة الاحتساب'),
+                    ),
+
+                  // حذف فترة خالية (super_admin فقط)
+                  //
+                  // يظهر فقط حين تكون الفترة بلا سندات ظاهرة. الحارس الحقيقي
+                  // في FiscalPeriodsDao.deleteEmptyPeriod — هذا الشرط لتقليل
+                  // الضجيج لا للحماية.
+                  if (isSuperAdmin && voucherCountAsync.valueOrNull == 0)
+                    OutlinedButton.icon(
+                      onPressed: isOperating ? null : onDelete,
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('حذف'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                        side: BorderSide(
+                          color: theme.colorScheme.error.withValues(alpha: 0.5),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+
+                  // 🔥 المحو القسري (super_admin فقط)
+                  //
+                  // بخلاف زر «حذف» أعلاه — المقيَّد بالفترة الخالية — يظهر
+                  // هذا دائماً لأن غرضه بالضبط محو فترة **فيها** سندات.
+                  // الحراسة الحقيقية ثلاث طبقات في FiscalNotifier.purgePeriod.
+                  if (isSuperAdmin)
+                    TextButton.icon(
+                      onPressed: isOperating ? null : onPurge,
+                      icon: const Icon(
+                          Icons.local_fire_department_outlined, size: 16),
+                      label: const Text('محو قسري'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
 
                   // إعادة فتح فترة تحتاج احتساب (super_admin فقط)

@@ -27,6 +27,7 @@ import '../app_database.dart';
 import '../tables/vouchers_table.dart';
 import '../tables/fiscal_periods_table.dart';
 import '../tables/treasuries_table.dart';
+import '../tables/advance_lines_table.dart';
 
 part 'vouchers_dao.g.dart';
 
@@ -51,13 +52,32 @@ class AccountStatementRow {
 }
 
 /// DAO السندات الموحد
-@DriftAccessor(tables: [Vouchers, FiscalPeriods, Treasuries])
+@DriftAccessor(tables: [Vouchers, FiscalPeriods, Treasuries, AdvanceLines])
 class VouchersDao extends DatabaseAccessor<AppDatabase>
     with _$VouchersDaoMixin {
   VouchersDao(super.db);
 
   /// مولّد عشوائي لمعرّفات مجموعات التحويل
   static final _random = Random();
+
+  /// أقصى قيمة آمنة لـ [Random.nextInt] على كل المنصات
+  ///
+  /// ⚠️ لا تستبدل هذا الثابت بإزاحة بتّية مثل `1 << 32`.
+  ///   على الويب تُمثَّل أعداد Dart كأعداد JavaScript، والإزاحة البتّية هناك
+  ///   ٣٢-بت، فـ `1 << 32` يساوي **صفراً** لا 4294967296 — فيرمي
+  ///   `nextInt(0)` الاستثناء:
+  ///     RangeError: max must be in range 0 < max < 2^32, was 0
+  ///   وكانت هذه بالضبط علّة تعطُّل التحويل على المتصفح (2026-08-15) بينما
+  ///   يعمل سليماً على ويندوز والـ VM. لم تكشفه أيٌّ من 152 اختباراً لأن
+  ///   `flutter test` يعمل على الـ VM لا على المتصفح.
+  static const int maxRandomBound = 0xFFFFFFFF;
+
+  /// توليد معرّف فريد لمجموعة تحويل (يربط سندَي التحويل)
+  ///
+  /// مُستخرَج كدالة مستقلة ليُختبَر مباشرة دون الحاجة لقاعدة بيانات.
+  static String generateTransferGroupId() =>
+      'tg_${DateTime.now().microsecondsSinceEpoch}_'
+      '${_random.nextInt(maxRandomBound)}';
 
   // ── استعلامات القراءة الأساسية ────────────────────────────────────────────
 
@@ -311,6 +331,17 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
         ),
       );
 
+      // 2ب. فكّ ربط سطر السلفة بهذا السند (إصلاح ح-٦)
+      //
+      // «المصروف» في ملخص السلفة يُحسَب من السندات غير المحذوفة، فيُصحّح
+      // نفسه تلقائياً. لكن سطر المسودة كان يبقى مؤشراً إلى سند محذوف —
+      // فيبدو مُرحَّلاً وهو ليس كذلك، ويضيع أثر أن ترحيله أُلغي.
+      if (target.advanceId != null) {
+        await (update(db.advanceLines)
+              ..where((l) => l.voucherId.equals(id)))
+            .write(const AdvanceLinesCompanion(voucherId: Value(null)));
+      }
+
       // 3. إذا كان السند تحويلاً، نحذف الطرف التوأم لضمان توازن الحسابات
       if (target.voucherType == 'transfer_out' ||
           target.voucherType == 'transfer_in') {
@@ -373,8 +404,7 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     return db.transaction(() async {
       // معرّف مجموعة مشترك يربط سندَي التحويل برباط موثوق — يُنشأ هنا
       // لضمان تطابقه على الطرفين مهما كان المستدعي (راجع H8).
-      final groupId =
-          'tg_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(1 << 32)}';
+      final groupId = generateTransferGroupId();
 
       final outId = await into(vouchers).insert(
         outVoucher.copyWith(transferGroupId: Value(groupId)),

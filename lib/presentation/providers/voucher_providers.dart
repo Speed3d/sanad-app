@@ -337,6 +337,24 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
       );
       return false;
     }
+    // ── فحص أثر التعديل على الرصيد (إصلاح ح-٢) ──────────────────────
+    // الإنشاء كان محروساً والتعديل لا — فكان يمكن تعديل سند صرف من
+    // 100 ألف إلى 100 مليون والالتفاف على المنع بالكامل.
+    final original = await _db.vouchersDao.getVoucherById(voucher.id);
+    if (original != null) {
+      final balanceError = await BalanceGuard.checkEditImpact(
+        _db,
+        original: original,
+        newTreasuryId: treasuryId,
+        newCurrency: currency,
+        newAmount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+    }
+
     state = const AsyncLoading();
     try {
       await _repo.updateVoucher(
@@ -352,7 +370,26 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
           closeSafe: closeSafe,
           exchangeRate: exchangeRate,
         ),
+        updatedByUserId: _userId,
       );
+      // توثيق التعديل بالقيم قبل وبعد (إصلاح ث-٢) — يُنفَّذ بعد نجاح
+      // التحديث لا قبله، كي لا يوثَّق تعديلٌ رفضه أحد الحُرّاس.
+      if (original != null) {
+        await ref.read(auditLoggerProvider).logVoucherUpdated(
+              userId: _userId ?? 0,
+              username: _username,
+              voucherId: voucher.id,
+              voucherType: original.voucherType,
+              oldAmount: original.amount,
+              newAmount: amount,
+              oldCurrency: original.currency,
+              newCurrency: currency,
+              oldTreasuryId: original.treasuryId,
+              newTreasuryId: treasuryId,
+              oldDate: original.voucherDate,
+              newDate: voucherDate,
+            );
+      }
       state = const AsyncData('تم تحديث السند بنجاح ✓');
       return true;
     } catch (e, st) {
@@ -506,6 +543,24 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
       );
       return false;
     }
+    // ── فحص أثر التعديل على الرصيد (إصلاح ح-٢) ──────────────────────
+    // الإنشاء كان محروساً والتعديل لا — فكان يمكن تعديل سند صرف من
+    // 100 ألف إلى 100 مليون والالتفاف على المنع بالكامل.
+    final original = await _db.vouchersDao.getVoucherById(voucher.id);
+    if (original != null) {
+      final balanceError = await BalanceGuard.checkEditImpact(
+        _db,
+        original: original,
+        newTreasuryId: treasuryId,
+        newCurrency: currency,
+        newAmount: amount,
+      );
+      if (balanceError != null) {
+        state = AsyncError(balanceError, StackTrace.empty);
+        return false;
+      }
+    }
+
     state = const AsyncLoading();
     try {
       await _repo.updateVoucher(
@@ -520,7 +575,25 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
           referenceNumber: referenceNumber,
           exchangeRate: exchangeRate,
         ),
+        updatedByUserId: _userId,
       );
+      // توثيق التعديل بالقيم قبل وبعد (إصلاح ث-٢) — راجع التعليق في updateSarf
+      if (original != null) {
+        await ref.read(auditLoggerProvider).logVoucherUpdated(
+              userId: _userId ?? 0,
+              username: _username,
+              voucherId: voucher.id,
+              voucherType: original.voucherType,
+              oldAmount: original.amount,
+              newAmount: amount,
+              oldCurrency: original.currency,
+              newCurrency: currency,
+              oldTreasuryId: original.treasuryId,
+              newTreasuryId: treasuryId,
+              oldDate: original.voucherDate,
+              newDate: voucherDate,
+            );
+      }
       state = const AsyncData('تم تحديث السند بنجاح ✓');
       return true;
     } catch (e, st) {

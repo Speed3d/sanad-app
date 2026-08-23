@@ -245,9 +245,54 @@ class VoucherRepository implements IVoucherRepository {
   }
 
   @override
-  Future<void> updateVoucher(VoucherModel voucher) async {
-    // منع تعديل سند داخل فترة مُقفَلة (يغيّر أرصدة تاريخية)
+  Future<void> updateVoucher(VoucherModel voucher, {int? updatedByUserId}) async {
+    // ── حاجز 1: سندات التحويل لا تُعدَّل إطلاقاً ────────────────────────
+    //
+    // ⚠️ لماذا المنع بدل المزامنة؟ (إصلاح ح-١ — تدقيق 2026-08-15)
+    //   التحويل سندان توأمان يربطهما transfer_group_id. تعديل أحدهما وحده
+    //   يخلق مالاً من العدم أو يُبخّره: تحويل 3 مليون يُعدَّل إلى 1 مليون
+    //   يجعل الخزينة المُرسِلة تفقد 1 مليون بينما المُستقبِلة استلمت 3.
+    //   وكان هذا ممكناً فعلياً لأن قائمة السندات توجّه سند التحويل إلى شاشة
+    //   تعديل الصرف/القبض التي لا تفحص النوع.
+    //   المنع هنا هو الحاجز الحقيقي — يبقى قائماً مهما تغيّرت الواجهات.
+    //   التصحيح يتم بالحذف (يحذف الطرفين ذرّياً) ثم إعادة الإنشاء.
+    if (voucher.voucherType == 'transfer_out' ||
+        voucher.voucherType == 'transfer_in') {
+      throw StateError(
+        'لا يمكن تعديل سند تحويل — التحويل سندان مرتبطان، وتعديل أحدهما '
+        'يخلّ بتوازن الخزينتين.\n'
+        'احذف التحويل (يُحذف الطرفان معاً) ثم أنشئه من جديد بالقيم الصحيحة.',
+      );
+    }
+
+    // ── حاجز 2: منع تعديل سند داخل فترة مُقفَلة (يغيّر أرصدة تاريخية) ──
     await _ensurePeriodActive(voucher.fiscalPeriodId);
+
+    // ── حاجز 3: منع نقل السند إلى سنة مالية أخرى (إصلاح ح-٥) ──────────
+    //
+    // كان updateVoucher يكتب fiscalPeriodId الأصلية دائماً، فنقل تاريخ سند
+    // من ديسمبر 2025 إلى يناير 2026 يُبقيه محسوباً في 2025 ← تقارير
+    // السنتين خاطئة والمستخدم لا يرى شيئاً.
+    //
+    // لماذا الرفض بدل إعادة التصنيف تلقائياً؟
+    //   رقم السند مُخصَّص من تسلسل سنته. نقله يترك ثغرة في تسلسل السنة
+    //   القديمة ورقماً قد يتكرر في الجديدة. الرفض أصدق، ويطابق نهج
+    //   «امنع وأعد الإنشاء» المعتمد في تعديل التحويلات.
+    final targetPeriod =
+        await _db.fiscalPeriodsDao.getFiscalPeriodForDate(voucher.voucherDate);
+    if (targetPeriod == null) {
+      throw StateError(
+        'لا توجد فترة مالية نشطة للتاريخ المُدخَل — تحقق من التاريخ أو '
+        'افتح السنة المالية المناسبة أولاً.',
+      );
+    }
+    if (targetPeriod.id != voucher.fiscalPeriodId) {
+      throw StateError(
+        'لا يمكن نقل سند إلى سنة مالية أخرى (${targetPeriod.name}).\n'
+        'رقم السند مرتبط بتسلسل سنته الأصلية. احذف السند وأنشئه من جديد '
+        'بالتاريخ الصحيح.',
+      );
+    }
     await _db.vouchersDao.updateVoucher(
       VouchersCompanion(
         id: Value(voucher.id),
@@ -266,6 +311,14 @@ class VoucherRepository implements IVoucherRepository {
         closeSafe: Value(voucher.closeSafe),
         linkedTreasuryId: Value(voucher.linkedTreasuryId),
         linkedEntityId: Value(voucher.linkedEntityId),
+        // ── أثر التعديل على الصف نفسه (إصلاح ث-٣) ───────────────────────
+        //
+        // العمودان موجودان في الجدول منذ البداية وكان التعديل لا يكتبهما
+        // إطلاقاً، فيبقيان على قيمة لحظة الإنشاء. النتيجة أن فحص قاعدة
+        // البيانات مباشرةً لا يكشف أن السند عُدِّل أصلاً — وهو خط الدفاع
+        // الأخير لو ضاع سجل التدقيق أو أُفرغ.
+        updatedAt: Value(DateTime.now()),
+        updatedByUserId: Value(updatedByUserId),
       ),
     );
   }

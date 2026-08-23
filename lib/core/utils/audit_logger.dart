@@ -278,6 +278,36 @@ class AuditLogger {
         ));
   }
 
+  /// تسجيل **تصفير جميع البيانات المالية** — أخطر عملية في التطبيق
+  ///
+  /// ⚠️ لماذا؟ (إصلاح ث-١ — تدقيق 2026-08-23)
+  ///   هذه العملية تمحو كل السندات والفترات والسلف دفعةً واحدة، وكانت
+  ///   تُنفَّذ **بلا أي أثر في سجل التدقيق**. فلو ضغطها أحدهم لما بقي في
+  ///   النظام ما يدل على أن شيئاً كان موجوداً أصلاً — ولا من محاه.
+  ///   نسجّل العدّادات **قبل** المسح لأنها تختفي بعده.
+  ///
+  /// [vouchersDeleted] / [periodsDeleted] / [advancesDeleted] — ما مُحي فعلاً
+  Future<void> logFinancialDataReset({
+    required int userId,
+    required String username,
+    required int vouchersDeleted,
+    required int periodsDeleted,
+    required int advancesDeleted,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.system,
+          action: AuditActions.delete,
+          meta: _toMeta({
+            'event': 'financial_data_reset',
+            'vouchers_deleted': vouchersDeleted,
+            'periods_deleted': periodsDeleted,
+            'advances_deleted': advancesDeleted,
+          }),
+        ));
+  }
+
   // ── أحداث السندات ─────────────────────────────────────────────────────────
 
   /// تسجيل إنشاء سند جديد
@@ -309,6 +339,60 @@ class AuditLogger {
             'amount': amount,
             'currency': currency,
             if (treasuryId != null) 'treasury_id': treasuryId,
+          }),
+        ));
+  }
+
+  /// تسجيل **تعديل** سند قائم — مع القيم قبل التعديل وبعده
+  ///
+  /// ⚠️ لماذا هذه الدالة ضرورية؟ (إصلاح ث-٢ — تدقيق 2026-08-23)
+  ///   كان السجل يوثّق الإنشاء والحذف فقط، والتعديل يمرّ صامتاً تماماً —
+  ///   رغم أنه **أخطر العمليات الثلاث** محاسبياً: السند المُنشأ والمحذوف
+  ///   يظهران في القوائم فيلاحظهما المالك، أما تغيير مبلغ سند قائم من
+  ///   ١٠٠ ألف إلى ٩٠٠ ألف فلا يترك أثراً يميّزه عن سند أُدخل صحيحاً منذ
+  ///   البداية. كانت هذه فجوة في إصلاح CRIT-4 نفسه.
+  ///
+  /// نسجّل **القيمة السابقة والجديدة معاً** لا الجديدة وحدها، وإلا لما أمكن
+  /// معرفة حجم التغيير عند المراجعة — وهو بيت القصيد.
+  ///
+  /// [voucherId]     — معرّف السند المعدَّل
+  /// [voucherType]   — نوع السند ('sarf' | 'kabd')
+  /// [oldAmount] / [newAmount]     — المبلغ قبل وبعد
+  /// [oldCurrency] / [newCurrency] — العملة قبل وبعد
+  /// [oldTreasuryId] / [newTreasuryId] — الخزينة قبل وبعد (النقل يغيّر رصيدين)
+  /// [oldDate] / [newDate]         — تاريخ السند قبل وبعد
+  Future<void> logVoucherUpdated({
+    required int userId,
+    required String username,
+    required int voucherId,
+    required String voucherType,
+    required double oldAmount,
+    required double newAmount,
+    required String oldCurrency,
+    required String newCurrency,
+    required int oldTreasuryId,
+    required int newTreasuryId,
+    DateTime? oldDate,
+    DateTime? newDate,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.vouchers,
+          action: AuditActions.update,
+          recordId: voucherId,
+          meta: _toMeta({
+            'voucher_type': voucherType,
+            'old_amount': oldAmount,
+            'new_amount': newAmount,
+            // الفرق مُحتسَب مسبقاً ليقرأه المراجع مباشرة دون حساب ذهني
+            'amount_delta': newAmount - oldAmount,
+            'old_currency': oldCurrency,
+            'new_currency': newCurrency,
+            'old_treasury_id': oldTreasuryId,
+            'new_treasury_id': newTreasuryId,
+            if (oldDate != null) 'old_date': oldDate.toIso8601String(),
+            if (newDate != null) 'new_date': newDate.toIso8601String(),
           }),
         ));
   }
@@ -516,6 +600,57 @@ class AuditLogger {
   /// [username]       — اسم المستخدم
   /// [fiscalPeriodId] — معرّف الفترة المالية
   /// [periodName]     — اسم الفترة
+  /// تسجيل **المحو القسري** لفترة مالية بكل سنداتها
+  ///
+  /// ⚠️ هذا السطر هو **الأثر الوحيد الباقي** بعد العملية — البيانات نفسها
+  ///   تُمحى نهائياً. لولاه لصار في البرنامج زرٌّ يمحو الدفاتر بلا شاهد،
+  ///   ولا يُعرَف بعدها أن سنةً كانت موجودة أصلاً ولا من محاها.
+  ///   لهذا لا يُمسّ سجل التدقيق في المحو مهما كان. (قرار المالك 2026-08-23.)
+  Future<void> logFiscalPurged({
+    required int userId,
+    required String username,
+    required String periodName,
+    required int vouchersPurged,
+    required int advancesPurged,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.fiscalPeriods,
+          action: AuditActions.delete,
+          meta: _toMeta({
+            'event': 'fiscal_period_purged',
+            'period_name': periodName,
+            'vouchers_purged': vouchersPurged,
+            'advances_purged': advancesPurged,
+            'note': 'hard_delete_irreversible',
+          }),
+        ));
+  }
+
+  /// تسجيل حذف فترة مالية خالية
+  ///
+  /// الفترة الخالية لا أثر مالي لها، لكن حذفها قرار إداري يجب أن يبقى له
+  /// شاهد: من حذف أي سنة ومتى — وإلا اختفى السجلّ بلا ذكر.
+  Future<void> logFiscalDeleted({
+    required int userId,
+    required String username,
+    required int fiscalPeriodId,
+    required String periodName,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.fiscalPeriods,
+          action: AuditActions.delete,
+          recordId: fiscalPeriodId,
+          meta: _toMeta({
+            'period_name': periodName,
+            'note': 'empty_period_deleted',
+          }),
+        ));
+  }
+
   Future<void> logFiscalReopen({
     required int userId,
     required String username,

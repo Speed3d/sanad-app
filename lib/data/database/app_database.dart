@@ -218,9 +218,63 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA journal_mode = WAL');
       // تفعيل الحذف التلقائي للصفحات الفارغة (يقلل حجم الملف)
       await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
+
+      // ── تشخيص استمرارية التخزين ──────────────────────────────────────
+      // يطبع «علامة الإقلاع» السابقة إن وُجدت. إن ظهر «قاعدة بيانات جديدة»
+      // في كل تشغيل فالتخزين لا يستمر — وأشيع سبب لذلك على الويب أن
+      // flutter run فتح منفذاً عشوائياً جديداً، وتخزين المتصفح مرتبط
+      // بالأصل (المضيف:المنفذ). راجع .vscode/launch.json.
+      await _logStoragePersistence();
     },
   );
 
+
+  // ── تشخيص استمرارية التخزين ──────────────────────────────────────────────
+
+  /// يكشف ما إذا كانت قاعدة البيانات تحفظ فعلاً بين تشغيل وآخر
+  ///
+  /// **لماذا؟** أعطال «ضياع البيانات» يصعب تشخيصها لأن التطبيق يعمل بشكل
+  /// طبيعي تماماً داخل الجلسة الواحدة — ولا يُكتشف الخلل إلا بعد إعادة
+  /// التشغيل وفقدان كل شيء. هذا الفحص يجعل الخلل مرئياً في **أول ثانية**.
+  ///
+  /// الآلية: يقرأ علامة الإقلاع السابقة ثم يكتب علامة جديدة. فإن ظهرت
+  /// «قاعدة بيانات جديدة» في كل تشغيل فالتخزين لا يستمر.
+  ///
+  /// أشيع سبب على الويب: `flutter run` بلا `--web-port` يفتح منفذاً عشوائياً
+  /// في كل مرة، وتخزين المتصفح (OPFS/IndexedDB) مرتبط بالأصل
+  /// (المضيف:المنفذ) — فكل تشغيل أصلٌ جديد بقاعدة فارغة.
+  Future<void> _logStoragePersistence() async {
+    const key = 'last_boot_at';
+    try {
+      final rows = await customSelect(
+        'SELECT value FROM app_settings WHERE key = ?',
+        variables: [Variable.withString(key)],
+      ).get();
+
+      final previous = rows.isEmpty ? null : rows.first.data['value'] as String?;
+      final now = DateTime.now().toIso8601String();
+
+      if (previous == null || previous.isEmpty) {
+        // ignore: avoid_print
+        print('[التخزين] ⚠️ لا توجد علامة إقلاع سابقة — قاعدة بيانات جديدة.\n'
+            '          إن تكرّر هذا في كل تشغيل فالبيانات لا تُحفَظ.\n'
+            '          على الويب: شغّل بمنفذ ثابت (--web-port=5000).');
+      } else {
+        // ignore: avoid_print
+        print('[التخزين] ✅ البيانات محفوظة — آخر إقلاع مسجَّل: $previous');
+      }
+
+      await customStatement(
+        'INSERT INTO app_settings (key, value) VALUES (?, ?) '
+        'ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        [key, now],
+      );
+    } catch (e) {
+      // التشخيص ثانوي — لا يجوز أن يمنع فتح قاعدة البيانات
+      // ignore: avoid_print
+      print('[التخزين] تعذّر فحص الاستمرارية: $e');
+    }
+  }
   // ── Indexes ───────────────────────────────────────────────────────────────
 
   /// إنشاء الـ Indexes لتحسين أداء الاستعلامات الشائعة
@@ -326,13 +380,59 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ── تصفير الحسابات ────────────────────────────────────────────────────────
-  
-  /// مسح جميع السندات والفترات المالية (لتصفير أرصدة الخزائن) — مخصص لمرحلة التطوير
-  Future<void> resetFinancialData() async {
-    await transaction(() async {
+
+  /// مسح كل الحركة المالية مع الإبقاء على البيانات الأساسية
+  ///
+  /// ⚠️ أُعيدت كتابتها بالكامل (إصلاح ث-١ — تدقيق 2026-08-23).
+  ///
+  /// **ما كان معطوباً:** كانت تحذف `vouchers` ثم `fiscal_periods` فقط. لكن
+  /// `voucher_sequences.fiscal_period_id` و`advances.fiscal_period_id`
+  /// مفتاحان خارجيان إلى `fiscal_periods`، و`PRAGMA foreign_keys = ON`
+  /// مُفعَّل في `beforeOpen`. وصف التسلسل يُنشأ عند **أول سند** في حياة
+  /// القاعدة — فبعد أول سند يصير حذف الفترات مستحيلاً ويرمي قيداً أجنبياً،
+  /// أي أن الزر كان يفشل دائماً في كل استعمال حقيقي.
+  /// وحتى لو نجح، كان يترك `voucher_sequences` قائماً (فالترقيم يستأنف من
+  /// حيث توقّف بدل أن يبدأ من ١) ويترك سلف المشاريع يتيمة تشير إلى فترات
+  /// محذوفة.
+  ///
+  /// **ترتيب المسح إلزامي** — من الابن إلى الأب، وإلا فشل القيد الأجنبي:
+  ///   advance_lines → advances → cash_advance_repayments → cash_advances
+  ///   → salary_payments → vouchers → voucher_sequences → fiscal_periods
+  ///
+  /// **ما لا يُمسّ عمداً:** الموظفون والخزائن والمقاولون والشركاء والمستخدمون
+  /// والإعدادات وسجل التدقيق. التصفير يمحو **الحركة** لا **الهيكل** — ولو
+  /// مُحي سجل التدقيق لضاع أثر التصفير نفسه.
+  ///
+  /// يُعيد عدّادات ما مُحي فعلاً، ليوثّقها المستدعي في سجل التدقيق.
+  Future<({int vouchers, int periods, int advances})> resetFinancialData() async {
+    return transaction(() async {
+      // ── القراءة قبل المسح ────────────────────────────────────────────
+      Future<int> countOf(String table) async {
+        final row = await customSelect('SELECT COUNT(*) AS c FROM $table')
+            .getSingle();
+        return row.data['c'] as int? ?? 0;
+      }
+
+      final voucherCount = await countOf('vouchers');
+      final periodCount = await countOf('fiscal_periods');
+      final advanceCount = await countOf('advances');
+
+      // ── المسح بالترتيب الآمن (الابن قبل الأب) ────────────────────────
+      await delete(advanceLines).go();
+      await delete(advances).go();
+      await delete(cashAdvanceRepayments).go();
+      await delete(cashAdvances).go();
+      await delete(salaryPayments).go();
       await delete(vouchers).go();
+      // بدون هذا السطر يستأنف ترقيم السندات من آخر رقم قبل التصفير
+      await delete(voucherSequences).go();
       await delete(fiscalPeriods).go();
-      // يمكن مسح جداول أخرى هنا إذا لزم الأمر مستقبلاً
+
+      return (
+        vouchers: voucherCount,
+        periods: periodCount,
+        advances: advanceCount,
+      );
     });
   }
 

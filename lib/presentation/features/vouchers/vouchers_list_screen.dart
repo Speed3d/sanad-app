@@ -346,14 +346,87 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
     );
   }
 
+  /// التوجيه عند الضغط على سند في القائمة
+  ///
+  /// ⚠️ سندات التحويل تُفتح للعرض فقط (إصلاح ح-١ — تدقيق 2026-08-15).
+  ///   كانت تُوجَّه إلى شاشتَي تعديل الصرف/القبض، فيُعدَّل طرف واحد من
+  ///   التحويل دون توأمه ← يظهر مال من العدم أو يختفي.
+  ///   التصحيح الآن بالحذف (يحذف الطرفين معاً) ثم إعادة الإنشاء.
   void _navigateToVoucherDetail(VoucherModel v) {
-    if (v.voucherType == 'sarf' || v.voucherType == 'transfer_out') {
+    if (v.voucherType == 'transfer_out' || v.voucherType == 'transfer_in') {
+      _showTransferDetails(v);
+      return;
+    }
+    if (v.voucherType == 'sarf') {
       context.go('/vouchers/sarf/${v.id}');
-    } else if (v.voucherType == 'kabd' || v.voucherType == 'transfer_in') {
+    } else if (v.voucherType == 'kabd') {
       context.go('/vouchers/kabd/${v.id}');
     } else {
-      context.go('/vouchers/transfer');
+      // الأرصدة الافتتاحية وغيرها — للعرض فقط، لا شاشة تعديل لها
+      _showReadOnlyDetails(v);
     }
+  }
+
+  /// ورقة تفاصيل التحويل — للقراءة فقط مع إمكانية الحذف
+  ///
+  /// التحويل لا يُعدَّل (يخلّ بتوازن الخزينتين)، لكنه يُحذف بأمان:
+  /// `softDeleteVoucher` يحذف الطرفين معاً عبر `transfer_group_id`.
+  void _showTransferDetails(VoucherModel v) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _VoucherDetailsSheet(
+        voucher: v,
+        title: v.voucherType == 'transfer_out'
+            ? 'تحويل صادر'
+            : 'تحويل وارد',
+        note: 'التحويل سندان مرتبطان ولا يُعدَّل أحدهما بمعزل عن الآخر.\n'
+            'لتصحيحه: احذفه (يُحذف الطرفان معاً) ثم أنشئه من جديد.',
+        onDelete: () => _confirmDeleteVoucher(v),
+      ),
+    );
+  }
+
+  /// ورقة تفاصيل عامة للقراءة فقط (الأرصدة الافتتاحية وغيرها)
+  void _showReadOnlyDetails(VoucherModel v) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _VoucherDetailsSheet(
+        voucher: v,
+        title: v.typeDisplayName,
+        note: 'هذا السند يُنشئه النظام ولا يُعدَّل يدوياً.',
+      ),
+    );
+  }
+
+  /// تأكيد حذف سند تحويل — يوضّح أن الطرفين سيُحذفان
+  Future<void> _confirmDeleteVoucher(VoucherModel v) async {
+    Navigator.of(context).pop(); // إغلاق ورقة التفاصيل أولاً
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف التحويل'),
+        content: const Text(
+          'سيُحذف طرفا التحويل معاً (الصادر والوارد)، فيرتدّ المبلغ إلى '
+          'الخزينة المُرسِلة ويُخصم من المُستقبِلة.\n\n'
+          'الحذف ناعم — يبقى الأثر الرقابي في سجل التدقيق.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('نعم، احذف التحويل'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    // deleteSarf يستدعي softDeleteVoucher الذي يحذف طرفَي التحويل معاً
+    await ref.read(voucherSarfNotifierProvider.notifier).deleteSarf(v.id);
   }
 }
 
@@ -679,6 +752,124 @@ class _AddVoucherTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── ورقة تفاصيل سند للقراءة فقط ──────────────────────────────────────────────
+
+/// عرض تفاصيل سند لا يُعدَّل (تحويل أو رصيد افتتاحي)
+///
+/// وُجدت لإصلاح ح-١: كانت سندات التحويل تُفتح في شاشة تعديل الصرف/القبض
+/// فيُعدَّل طرف واحد دون توأمه. الآن تُعرض هنا للقراءة، مع زر حذف يحذف
+/// الطرفين معاً عند الاقتضاء.
+class _VoucherDetailsSheet extends StatelessWidget {
+  const _VoucherDetailsSheet({
+    required this.voucher,
+    required this.title,
+    required this.note,
+    this.onDelete,
+  });
+
+  final VoucherModel voucher;
+  final String title;
+  final String note;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fmt = NumberFormat('#,##0.##');
+    final dateFmt = DateFormat('yyyy/MM/dd');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sync_alt, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(title, style: theme.textTheme.titleMedium),
+              const Spacer(),
+              Text('#${voucher.voucherNumber}',
+                  style: theme.textTheme.bodySmall),
+            ],
+          ),
+          const Divider(height: 20),
+          _row('المبلغ', '${fmt.format(voucher.amount)} ${voucher.currency}'),
+          _row('التاريخ', dateFmt.format(voucher.voucherDate)),
+          if (voucher.reason.isNotEmpty) _row('البيان', voucher.reason),
+          if (voucher.personName.isNotEmpty)
+            _row('الشخص', voucher.personName),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 15),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(note, style: theme.textTheme.bodySmall),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('إغلاق'),
+                ),
+              ),
+              if (onDelete != null) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('حذف التحويل'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(label,
+                style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }

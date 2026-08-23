@@ -1429,7 +1429,7 @@ class _VoucherByIdProviderElement
 }
 
 String _$voucherSarfNotifierHash() =>
-    r'1332cc4171b77582df041cf4ea1430251ef253f4';
+    r'6a40b12a7360a1ee1c81de6b65f6baeed645b725';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف سندات الصرف
 ///
@@ -1454,7 +1454,7 @@ final voucherSarfNotifierProvider = AutoDisposeNotifierProvider<
 
 typedef _$VoucherSarfNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
 String _$voucherKabdNotifierHash() =>
-    r'0d8376115b36e160bf282f1aa8ee2a23c397004f';
+    r'f9a1d2d4d7f70ab978ba390dfaee94a24ab54209';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف سندات القبض
 ///

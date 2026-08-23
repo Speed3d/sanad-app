@@ -99,6 +99,29 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
   // ── تعبئة النموذج في وضع التعديل ─────────────────────────────────────────
 
   void _prefillForm(VoucherModel v) {
+    // ── حارس: هذه الشاشة لا تُعدّل سندات التحويل ──────────────────────
+    //
+    // التحويل سندان توأمان؛ تعديل أحدهما هنا كان يخلّ بتوازن الخزينتين
+    // (ح-١ — تدقيق 2026-08-15). المستودع يرفض ذلك أصلاً، وهذا الحارس
+    // يمنع وصول المستخدم لنموذج تعديل لن يُقبَل حفظه أساساً.
+    if (v.isTransfer) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'سندات التحويل لا تُعدَّل — احذف التحويل وأنشئه من جديد.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+        context.pop();
+      });
+      return;
+    }
+
     if (_initialized) return;
     _initialized = true;
     final amtStr = v.amount == v.amount.truncateToDouble()

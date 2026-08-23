@@ -77,7 +77,11 @@ abstract class IVoucherRepository {
   });
 
   /// تحديث سند (قبل الإقفال المالي فقط)
-  Future<void> updateVoucher(VoucherModel voucher);
+  ///
+  /// [updatedByUserId] — من أجرى التعديل. يُكتَب في `updated_by_user_id`
+  /// مع `updated_at` ليبقى في الصف نفسه أثرٌ لمن غيّره ومتى، مستقلاً عن
+  /// سجل التدقيق (إصلاح ث-٣ — تدقيق 2026-08-23).
+  Future<void> updateVoucher(VoucherModel voucher, {int? updatedByUserId});
 
   /// حذف ناعم للسند
   Future<void> deleteVoucher(int id, {int? deletedByUserId});

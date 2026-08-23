@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/auth/permissions.dart';
+import '../../../../core/utils/audit_logger.dart';
 import '../../../../domain/models/auth_state.dart';
 import '../../../../domain/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
@@ -265,11 +266,31 @@ class SystemInfoTab extends ConsumerWidget {
 
     if (confirmed == true) {
       final db = ref.read(appDatabaseProvider);
+      // نقرأ هوية المنفِّذ قبل العملية — بعدها قد تكون الشاشة أُغلقت
+      final auth = ref.read(authNotifierProvider);
+      final user = auth is AuthAuthenticated ? auth.user : null;
       try {
-        await db.resetFinancialData();
+        final removed = await db.resetFinancialData();
+
+        // ── توثيق العملية الكارثية في سجل التدقيق (إصلاح ث-١) ──────────
+        // سجل التدقيق نفسه لا يُمسح في التصفير عمداً، فيبقى هذا السطر
+        // الدليل الوحيد على أن بيانات كانت موجودة ومَن محاها.
+        await ref.read(auditLoggerProvider).logFinancialDataReset(
+              userId: user?.id ?? 0,
+              username: user?.username ?? 'system',
+              vouchersDeleted: removed.vouchers,
+              periodsDeleted: removed.periods,
+              advancesDeleted: removed.advances,
+            );
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('✓ تم تصفير جميع السندات والأرصدة بنجاح')),
+            SnackBar(
+              content: Text(
+                '✓ تم التصفير — حُذف ${removed.vouchers} سند و'
+                '${removed.periods} سنة مالية و${removed.advances} سلفة مشروع',
+              ),
+            ),
           );
           // إعادة تحميل الإحصائيات
           ref.invalidate(_dbStatsProvider);

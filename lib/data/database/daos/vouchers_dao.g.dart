@@ -7,4 +7,6 @@ mixin _$VouchersDaoMixin on DatabaseAccessor<AppDatabase> {
   $TreasuriesTable get treasuries => attachedDatabase.treasuries;
   $FiscalPeriodsTable get fiscalPeriods => attachedDatabase.fiscalPeriods;
   $VouchersTable get vouchers => attachedDatabase.vouchers;
+  $AdvancesTable get advances => attachedDatabase.advances;
+  $AdvanceLinesTable get advanceLines => attachedDatabase.advanceLines;
 }
