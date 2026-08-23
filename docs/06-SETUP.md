@@ -61,11 +61,19 @@ dart run build_runner build --delete-conflicting-outputs
 - **Riverpod** → `*.g.dart` للـ Providers
 - **Freezed** → `*.freezed.dart` لنماذج الـ domain
 
-بدون هذه الخطوة **لن يُبنى المشروع إطلاقاً** — ستظهر عشرات أخطاء
-«Target of URI hasn't been generated».
+📌 **الملفات المولَّدة متتبَّعة في المستودع** (٣٣ ملف `.g.dart` و`.freezed.dart`)
+— أي أن المشروع **يُبنى بعد الاستنساخ مباشرةً**. لكن شغّل الأمر أعلاه مرة عند
+أول إعداد للتأكّد من تطابقها مع إصدار الحزم على جهازك.
 
-📌 الملفات المولَّدة **ليست** في المستودع (مستثناة في `.gitignore`) — لهذا
-تُولَّد محلياً على كل جهاز.
+⚠️ **الخطوة تصبح إلزامية** بعد أي تعديل على:
+- جداول Drift أو الـ DAOs
+- الـ Providers المُعلَّمة بـ `@riverpod`
+- نماذج Freezed في `domain/models/`
+
+بدونها تظهر أخطاء «Target of URI hasn't been generated» أو تُستعمَل نسخة
+قديمة من الكود المولَّد بصمت — وهذا أخطر، لأنه يُبنى ويعمل خطأً.
+
+📌 **ولا تنسَ إيداع الملفات المولَّدة مع تعديلك** — فهي جزء من المستودع.
 
 ### ٤) التشغيل
 ```bash
@@ -186,7 +194,7 @@ Cross-Origin-Embedder-Policy: require-corp
 
 | المشكلة | الحلّ |
 |---|---|
-| `Target of URI hasn't been generated` | لم تُشغِّل `build_runner` — الخطوة ٣ |
+| `Target of URI hasn't been generated` | عدّلت جدولاً أو Provider ولم تُشغِّل `build_runner` — الخطوة ٣ |
 | البرنامج يفتح على المتصفح بدل ويندوز | ويندوز هو أول إعداد في `.vscode/launch.json` — إن غُيِّر الترتيب أعِده |
 | البيانات تضيع على الويب في كل تشغيل | نسيت `--web-port=5000` |
 | فشل بناء ويندوز | Visual Studio بلا حزمة **Desktop development with C++** |
