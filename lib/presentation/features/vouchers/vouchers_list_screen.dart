@@ -21,6 +21,7 @@ import '../../../domain/models/treasury_model.dart';
 import '../../../domain/models/voucher_model.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
+import '../../widgets/common/item_type_selector.dart';
 
 /// شاشة السندات الرئيسية مع تبويبات الفلترة والبحث
 class VouchersListScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,14 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
   final _searchCtrl = TextEditingController();
   String _query = '';
   int? _selectedTreasuryId;
+
+  // ── فلترة بالبند والمشروع (ب-١ — 2026-08-23) ────────────────────────
+  // كانت الفلاتر بحثاً نصّياً وخزينةً فقط. البحث النصّي يمسح الاسم والسبب
+  // ورقم السند — ولا يمسّ البند ولا المشروع إطلاقاً، فكان السؤال «ما صُرف
+  // على البانزين في البصرة؟» بلا جواب من هذه الشاشة.
+  // null = بلا فلترة (الكل).
+  String? _itemTypeFilter;
+  String? _projectFilter;
 
   @override
   void initState() {
@@ -284,6 +293,18 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   ],
                 ),
 
+                // ── الصف الثاني: البند والمشروع ─────────────────────
+                // في صفّ مستقلّ لا مع البحث والخزينة: أربعة عناصر في صفّ
+                // واحد تتزاحم على الشاشات الضيّقة.
+                // يظهر كلٌّ منهما فقط حين توجد قيم فعلاً — فلتر بخيار
+                // واحد اسمه «الكل» ضجيج بصري بلا فائدة.
+                _SecondaryFilters(
+                  itemType: _itemTypeFilter,
+                  project: _projectFilter,
+                  onItemType: (v) => setState(() => _itemTypeFilter = v),
+                  onProject: (v) => setState(() => _projectFilter = v),
+                ),
+
                 const SizedBox(height: 16),
 
                 // شريط التبويبات (الكل / قبض / صرف / تحويل)
@@ -314,6 +335,8 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   typeFilter: null,
                   query: _query,
                   treasuryId: _selectedTreasuryId,
+                  itemType: _itemTypeFilter,
+                  project: _projectFilter,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -321,6 +344,8 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   typeFilter: 'kabd',
                   query: _query,
                   treasuryId: _selectedTreasuryId,
+                  itemType: _itemTypeFilter,
+                  project: _projectFilter,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -328,6 +353,8 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   typeFilter: 'sarf',
                   query: _query,
                   treasuryId: _selectedTreasuryId,
+                  itemType: _itemTypeFilter,
+                  project: _projectFilter,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -335,6 +362,8 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   typeFilter: 'transfer',
                   query: _query,
                   treasuryId: _selectedTreasuryId,
+                  itemType: _itemTypeFilter,
+                  project: _projectFilter,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -430,12 +459,94 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
   }
 }
 
+// ── فلاتر البند والمشروع ─────────────────────────────────────────────────────
+
+/// صفّ الفلاتر الثانوية — يظهر كلّ فلتر فقط حين توجد قيم فعلاً
+///
+/// **لماذا الظهور المشروط؟** (ب-١ — 2026-08-23)
+///   في قاعدة بيانات جديدة لا توجد مشاريع بعد، فقائمة «المشروع» ستحوي خياراً
+///   واحداً هو «الكل» — ضجيج بصري يشغل مساحة بلا فائدة. وحين يبدأ المالك
+///   بإدخال المشاريع يظهر الفلتر تلقائياً.
+///
+/// **ولماذا القيم المستعملة فقط؟** جدول `item_types` فيه ٢١ بنداً مبذوراً.
+/// عرضها كلها يعني أن أغلب الخيارات تُعطي نتيجة فارغة فيظنّ المستخدم الفلتر
+/// معطوباً. راجع `VouchersDao.watchUsedItemTypes`.
+class _SecondaryFilters extends ConsumerWidget {
+  const _SecondaryFilters({
+    required this.itemType,
+    required this.project,
+    required this.onItemType,
+    required this.onProject,
+  });
+
+  final String? itemType;
+  final String? project;
+  final ValueChanged<String?> onItemType;
+  final ValueChanged<String?> onProject;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final types = ref.watch(usedItemTypesProvider).valueOrNull ?? const [];
+    final projects = ref.watch(usedProjectsProvider).valueOrNull ?? const [];
+
+    // لا فلاتر متاحة بعد — لا نشغل مساحة بصفّ فارغ
+    if (types.isEmpty && projects.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          if (types.isNotEmpty)
+            Expanded(
+              child: ItemTypeFilterDropdown(
+                values: types,
+                selected: itemType,
+                onChanged: onItemType,
+              ),
+            ),
+          if (types.isNotEmpty && projects.isNotEmpty)
+            const SizedBox(width: 12),
+          if (projects.isNotEmpty)
+            Expanded(
+              child: ItemTypeFilterDropdown(
+                values: projects,
+                selected: project,
+                onChanged: onProject,
+                label: 'المشروع',
+                icon: Icons.location_city_outlined,
+              ),
+            ),
+          // زرّ مسح سريع — الوصول لكل قائمة واختيار «الكل» عمل متكرّر
+          if (itemType != null || project != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: 'مسح الفلاتر',
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 20),
+              onPressed: () {
+                onItemType(null);
+                onProject(null);
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 // ── تبويب قائمة السندات ──────────────────────────────────────────────────────
 
 class _VoucherTab extends ConsumerWidget {
   final String? typeFilter;
   final String query;
   final int? treasuryId;
+
+  /// فلترة بنوع البند — null = الكل
+  final String? itemType;
+
+  /// فلترة باسم المشروع — null = الكل
+  final String? project;
+
   final AsyncValue<Map<int, TreasuryModel>> treasuryMap;
   final void Function(VoucherModel) onTapVoucher;
 
@@ -443,6 +554,8 @@ class _VoucherTab extends ConsumerWidget {
     required this.typeFilter,
     required this.query,
     required this.treasuryId,
+    required this.itemType,
+    required this.project,
     required this.treasuryMap,
     required this.onTapVoucher,
   });
@@ -477,6 +590,18 @@ class _VoucherTab extends ConsumerWidget {
     return _renderList(context, combined, isDark);
   }
 
+  /// سبب خلوّ القائمة — يُسمّي الفلتر الفعّال بدل رسالة عامة
+  String _emptyReason() {
+    final active = <String>[
+      if (query.isNotEmpty) 'البحث',
+      if (treasuryId != null) 'الخزينة',
+      if (itemType != null) 'البند "$itemType"',
+      if (project != null) 'المشروع "$project"',
+    ];
+    if (active.isEmpty) return 'لا توجد سندات بعد';
+    return 'لا توجد سندات مطابقة لـ ${active.join(' و')}';
+  }
+
   Widget _renderList(BuildContext context, List<VoucherModel> list, bool isDark) {
     var filtered = list;
 
@@ -496,6 +621,17 @@ class _VoucherTab extends ConsumerWidget {
       filtered = filtered.where((v) => v.treasuryId == treasuryId).toList();
     }
 
+    // فلترة نوع البند — مطابقة تامة لا جزئية: البنود قيم من قائمة مضبوطة
+    // لا نصّ حرّ، والمطابقة الجزئية تجعل «سلفة» تلتقط «سلفة موظف» أيضاً.
+    if (itemType != null) {
+      filtered = filtered.where((v) => v.itemType == itemType).toList();
+    }
+
+    // فلترة المشروع — العمود nullable فالسندات بلا مشروع تُستبعَد ضمناً
+    if (project != null) {
+      filtered = filtered.where((v) => v.projectName == project).toList();
+    }
+
     if (filtered.isEmpty) {
       return Center(
         child: Column(
@@ -508,7 +644,9 @@ class _VoucherTab extends ConsumerWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              'لا توجد سندات مطابقة للبحث',
+              // نُسمّي الفلتر الفعّال بدل رسالة عامة: المستخدم قد يكون نسي
+              // فلتراً مضبوطاً في تبويب آخر فيظنّ السندات اختفت.
+              _emptyReason(),
               style: TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w600,

@@ -156,6 +156,22 @@ Future<List<VoucherModel>> searchVouchers(Ref ref, String query) {
 }
 
 
+// ── قيم الفلترة المتاحة ─────────────────────────────────────────────────────
+
+/// أنواع البنود المستعملة فعلاً — لقائمة الفلترة في شاشة السندات
+///
+/// تعرض المستعمَل فقط لا كل البنود المتاحة، فكل خيار مضمون أن يُظهر نتيجة.
+@riverpod
+Stream<List<String>> usedItemTypes(Ref ref) {
+  return ref.watch(appDatabaseProvider).vouchersDao.watchUsedItemTypes();
+}
+
+/// أسماء المشاريع المستعملة فعلاً — لقائمة الفلترة في شاشة السندات
+@riverpod
+Stream<List<String>> usedProjects(Ref ref) {
+  return ref.watch(appDatabaseProvider).vouchersDao.watchUsedProjects();
+}
+
 // ── الفترات المالية المساعدة ────────────────────────────────────────────────
 
 /// الفترة المالية النشطة لتاريخ اليوم
@@ -201,6 +217,12 @@ Future<VoucherModel?> voucherById(Ref ref, int id) async {
     closeSafe: v.closeSafe,
     linkedTreasuryId: v.linkedTreasuryId,
     linkedEntityId: v.linkedEntityId,
+    // حقول تتبّع المصروفات — كانت تُسقَط هنا فتفتح شاشة التعديل فارغة
+    // ثم يحفظ المستخدم فيمحوها دون أن يشعر (ب-١ — 2026-08-23)
+    projectName: v.projectName,
+    invoiceNumber: v.invoiceNumber,
+    spentBy: v.spentBy,
+    advanceNumber: v.advanceNumber,
     isDeleted: v.isDeleted,
     deletedAt: v.deletedAt,
   );
@@ -249,6 +271,11 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
     String referenceNumber = '',
     bool closeSafe = false,
     double exchangeRate = 1.0,
+    // ── تتبّع المصروفات (ب-١) ────────────────────────────────────────
+    String? projectName,
+    String? invoiceNumber,
+    String? spentBy,
+    String? advanceNumber,
   }) async {
     if (amount <= 0) {
       state = const AsyncError(
@@ -295,6 +322,10 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
         closeSafe: closeSafe,
         exchangeRate: exchangeRate,
         createdByUserId: _userId,
+        projectName: projectName,
+        invoiceNumber: invoiceNumber,
+        spentBy: spentBy,
+        advanceNumber: advanceNumber,
       );
       // توثيق إنشاء السند في سجل التدقيق
       await ref.read(auditLoggerProvider).logVoucherCreated(
@@ -329,6 +360,10 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
     String referenceNumber = '',
     bool closeSafe = false,
     double exchangeRate = 1.0,
+    String? projectName,
+    String? invoiceNumber,
+    String? spentBy,
+    String? advanceNumber,
   }) async {
     if (amount <= 0) {
       state = const AsyncError(
@@ -369,6 +404,10 @@ class VoucherSarfNotifier extends _$VoucherSarfNotifier {
           referenceNumber: referenceNumber,
           closeSafe: closeSafe,
           exchangeRate: exchangeRate,
+          projectName: projectName,
+          invoiceNumber: invoiceNumber,
+          spentBy: spentBy,
+          advanceNumber: advanceNumber,
         ),
         updatedByUserId: _userId,
       );
@@ -470,6 +509,11 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
     String itemType = '',
     String referenceNumber = '',
     double exchangeRate = 1.0,
+    // ── رقم الفاتورة (ب-١) ──────────────────────────────────────────
+    // مفهوم مختلف عن «الرقم المرجعي»: هذا رقم فاتورة الشركة الصادرة،
+    // وذاك رقم الشيك أو أمر الدفع. كلاهما قد يوجد في السند نفسه.
+    String? invoiceNumber,
+    String? projectName,
   }) async {
     if (amount <= 0) {
       state = const AsyncError(
@@ -502,6 +546,8 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
         referenceNumber: referenceNumber,
         exchangeRate: exchangeRate,
         createdByUserId: _userId,
+        invoiceNumber: invoiceNumber,
+        projectName: projectName,
       );
       // توثيق إنشاء السند في سجل التدقيق
       await ref.read(auditLoggerProvider).logVoucherCreated(
@@ -535,6 +581,8 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
     String itemType = '',
     String referenceNumber = '',
     double exchangeRate = 1.0,
+    String? invoiceNumber,
+    String? projectName,
   }) async {
     if (amount <= 0) {
       state = const AsyncError(
@@ -574,6 +622,8 @@ class VoucherKabdNotifier extends _$VoucherKabdNotifier {
           itemType: itemType,
           referenceNumber: referenceNumber,
           exchangeRate: exchangeRate,
+          invoiceNumber: invoiceNumber,
+          projectName: projectName,
         ),
         updatedByUserId: _userId,
       );

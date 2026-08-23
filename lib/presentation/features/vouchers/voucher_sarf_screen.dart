@@ -25,30 +25,14 @@ import '../../../domain/models/voucher_model.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
+import '../../widgets/common/item_type_selector.dart';
 
-// ── ثوابت أنواع البنود ──────────────────────────────────────────────────────
+// ملاحظة (ب-١ — 2026-08-23): حُذفت من هنا قائمتان ثابتتان بأنواع البنود
+// (_kItemTypes و _kItemTypeLabels). كانتا تعرضان ٨ بنود مكتوبة في الكود
+// بينما جدول `item_types` في قاعدة البيانات فيه ٢١ بنداً يديرها المالك من
+// الإعدادات — فكان ما يضيفه لا يظهر هنا إطلاقاً. حلّ محلّهما
+// ItemTypeSelector الذي يقرأ من الجدول مباشرةً.
 
-const _kItemTypes = [
-  '',
-  'راتب',
-  'سلفة',
-  'إيجار',
-  'مشتريات',
-  'مصاريف تشغيل',
-  'رسوم وضرائب',
-  'أخرى',
-];
-
-const _kItemTypeLabels = {
-  '': 'غير محدد',
-  'راتب': 'راتب',
-  'سلفة': 'سلفة',
-  'إيجار': 'إيجار',
-  'مشتريات': 'مشتريات',
-  'مصاريف تشغيل': 'تشغيل',
-  'رسوم وضرائب': 'رسوم',
-  'أخرى': 'أخرى',
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // الشاشة الرئيسية
@@ -76,6 +60,19 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
   final _reasonCtrl = TextEditingController();
   final _refNumCtrl = TextEditingController();
 
+  // ── حقول تتبّع المصروفات (ب-١ — 2026-08-23) ─────────────────────────
+  // الأعمدة قائمة في قاعدة البيانات منذ Schema v2 ولم تكن الشاشة تعرضها،
+  // فكان تتبّع «أين صُرف المال ومن صرفه» مستحيلاً من الواجهة.
+  //
+  // متحكّمات هنا لا متغيّرات نصّية: هذه شاشة StatefulWidget كاملة تملكها
+  // وتتخلّص منها في dispose() — وهو النمط الآمن. المحظور هو إنشاء متحكّم
+  // داخل دالة ثم التخلّص منه بعد await showDialog. راجع
+  // test/unit/dialog_controller_lifecycle_test.dart
+  final _projectCtrl = TextEditingController();
+  final _invoiceCtrl = TextEditingController();
+  final _spentByCtrl = TextEditingController();
+  final _advanceNumCtrl = TextEditingController();
+
   // ── حالة النموذج ─────────────────────────────────────────────────────────
   int? _selectedTreasuryId;
   String _currency = 'IQD';
@@ -93,6 +90,10 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
     _personNameCtrl.dispose();
     _reasonCtrl.dispose();
     _refNumCtrl.dispose();
+    _projectCtrl.dispose();
+    _invoiceCtrl.dispose();
+    _spentByCtrl.dispose();
+    _advanceNumCtrl.dispose();
     super.dispose();
   }
 
@@ -133,6 +134,11 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
       _personNameCtrl.text = v.personName;
       _reasonCtrl.text = v.reason;
       _refNumCtrl.text = v.referenceNumber;
+      // الأعمدة nullable — الغياب يُعرَض حقلاً فارغاً
+      _projectCtrl.text = v.projectName ?? '';
+      _invoiceCtrl.text = v.invoiceNumber ?? '';
+      _spentByCtrl.text = v.spentBy ?? '';
+      _advanceNumCtrl.text = v.advanceNumber ?? '';
       _selectedTreasuryId = v.treasuryId;
       _currency = v.currency;
       _voucherDate = v.voucherDate;
@@ -203,6 +209,10 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
         referenceNumber: _refNumCtrl.text.trim(),
         closeSafe: _closeSafe,
         exchangeRate: rate,
+        projectName: _projectCtrl.text,
+        invoiceNumber: _invoiceCtrl.text,
+        spentBy: _spentByCtrl.text,
+        advanceNumber: _advanceNumCtrl.text,
       );
     } else {
       success = await notifier.createSarf(
@@ -216,6 +226,10 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
         referenceNumber: _refNumCtrl.text.trim(),
         closeSafe: _closeSafe,
         exchangeRate: rate,
+        projectName: _projectCtrl.text,
+        invoiceNumber: _invoiceCtrl.text,
+        spentBy: _spentByCtrl.text,
+        advanceNumber: _advanceNumCtrl.text,
       );
     }
 
@@ -443,11 +457,102 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                         label: 'نوع البند',
                       ),
                       const SizedBox(height: 8),
-                      _ItemTypeChips(
+                      ItemTypeSelector(
+                        kind: 'sarf',
                         selected: _itemType,
                         onSelected: (t) =>
                             setState(() => _itemType = t),
                         enabled: !isOperating,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── تتبّع المصروف (ب-١) ─────────────────────────────
+                      //
+                      // هذه الحقول تجيب عن السؤال الذي كانت التقارير عاجزة
+                      // عنه: **أين** صُرف المال و**من** صرفه و**بأي فاتورة**.
+                      // الأعمدة قائمة في قاعدة البيانات منذ Schema v2 ولم
+                      // تكن الشاشة تعرضها، فكان الجواب مستحيلاً.
+                      // كلها اختيارية — لا تُثقل الإدخال اليومي السريع.
+                      _SectionLabel(
+                        icon: Icons.assignment_outlined,
+                        label: 'تتبّع المصروف (اختياري)',
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _projectCtrl,
+                              enabled: !isOperating,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'المشروع / الموقع',
+                                hintText: 'مثال: مشروع البصرة',
+                                prefixIcon: Icon(
+                                  Icons.location_city_outlined,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _spentByCtrl,
+                              enabled: !isOperating,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'صُرف بواسطة',
+                                hintText: 'من صرف في الموقع',
+                                prefixIcon: Icon(
+                                  Icons.engineering_outlined,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _invoiceCtrl,
+                              enabled: !isOperating,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'رقم الفاتورة / الوصل',
+                                hintText: 'مثال: INV-118',
+                                prefixIcon: Icon(
+                                  Icons.receipt_long_outlined,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _advanceNumCtrl,
+                              enabled: !isOperating,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'رقم السلفة',
+                                // توضيح ضروري: هذا للعرض والتتبّع اليدوي.
+                                // الربط الموثوق بسلفة المشروع يتم عبر
+                                // advance_id عند الاعتماد لا من هنا.
+                                hintText: 'للعرض فقط',
+                                prefixIcon: Icon(
+                                  Icons.folder_shared_outlined,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 20),
 
@@ -923,45 +1028,6 @@ class _DatePickerField extends StatelessWidget {
           ),
         ),
         child: Text(fmt.format(date)),
-      ),
-    );
-  }
-}
-
-// ── شرائح نوع البند ─────────────────────────────────────────────────────────
-
-class _ItemTypeChips extends StatelessWidget {
-  final String selected;
-  final ValueChanged<String> onSelected;
-  final bool enabled;
-
-  const _ItemTypeChips({
-    required this.selected,
-    required this.onSelected,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 38,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: _kItemTypes.map((type) {
-          final label = _kItemTypeLabels[type] ?? type;
-          final isSelected = selected == type;
-          return Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: ChoiceChip(
-              label: Text(label),
-              selected: isSelected,
-              onSelected: enabled
-                  ? (_) => onSelected(type)
-                  : null,
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        }).toList(),
       ),
     );
   }

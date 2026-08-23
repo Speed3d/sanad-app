@@ -199,6 +199,43 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
   // فيستبعد سندات التحويل ولا يستطيع حساب «المُرسَل». حلّ محلّه استعلامات
   // AdvancesDao التي تعمل على كيان السلفة بمفتاح خارجي.
 
+  // ── قيم الفلترة المستعملة فعلاً ───────────────────────────────────────────
+
+  /// أنواع البنود المستعملة فعلاً في سندات غير محذوفة
+  ///
+  /// **لماذا «المستعملة فعلاً» لا كل البنود المتاحة؟** (ب-١ — 2026-08-23)
+  ///   قائمة `item_types` فيها ٢١ بنداً مبذوراً. عرضها كلها في فلتر يعني أن
+  ///   أغلب الخيارات تُعطي نتيجة فارغة — فيظنّ المستخدم أن الفلتر معطوب.
+  ///   عرض المستعمَل فقط يجعل كل خيار في القائمة مضموناً أن يُظهر شيئاً.
+  ///
+  /// تدفّق تفاعلي: يتحدّث فور إضافة سند ببند جديد.
+  Stream<List<String>> watchUsedItemTypes() {
+    return customSelect(
+      "SELECT DISTINCT item_type AS v FROM vouchers "
+      "WHERE is_deleted = 0 AND item_type != '' "
+      "ORDER BY item_type",
+      readsFrom: {vouchers},
+    ).watch().map(
+          (rows) => rows.map((r) => r.data['v'] as String).toList(),
+        );
+  }
+
+  /// أسماء المشاريع المستعملة فعلاً في سندات غير محذوفة
+  ///
+  /// العمود nullable، ونستبعد NULL والنصّ الفارغ معاً: الأول هو التمثيل
+  /// الصحيح للغياب، والثاني قد يوجد في صفوف قديمة سبقت قاعدة «الغياب = null».
+  Stream<List<String>> watchUsedProjects() {
+    return customSelect(
+      "SELECT DISTINCT project_name AS v FROM vouchers "
+      "WHERE is_deleted = 0 AND project_name IS NOT NULL "
+      "AND project_name != '' "
+      "ORDER BY project_name",
+      readsFrom: {vouchers},
+    ).watch().map(
+          (rows) => rows.map((r) => r.data['v'] as String).toList(),
+        );
+  }
+
   // ── كشف الحساب ────────────────────────────────────────────────────────────
 
   /// كشف الحساب الكامل لخزينة مع الرصيد التراكمي

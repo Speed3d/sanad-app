@@ -43,6 +43,11 @@ class VoucherRepository implements IVoucherRepository {
       closeSafe: v.closeSafe,
       linkedTreasuryId: v.linkedTreasuryId,
       linkedEntityId: v.linkedEntityId,
+      // حقول تتبّع المصروفات — كانت تُسقَط هنا فتصل الشاشة فارغة دائماً
+      projectName: v.projectName,
+      invoiceNumber: v.invoiceNumber,
+      spentBy: v.spentBy,
+      advanceNumber: v.advanceNumber,
       isDeleted: v.isDeleted,
       deletedAt: v.deletedAt,
     );
@@ -147,6 +152,10 @@ class VoucherRepository implements IVoucherRepository {
     int? linkedEntityId,
     double exchangeRate = 1.0,
     int? createdByUserId,
+    String? projectName,
+    String? invoiceNumber,
+    String? spentBy,
+    String? advanceNumber,
   }) async {
     // 0. التأكد أن الفترة نشطة (دفاع في العمق حتى لو مرّر المستدعي فترة مقفلة)
     await _ensurePeriodActive(fiscalPeriodId);
@@ -177,8 +186,25 @@ class VoucherRepository implements IVoucherRepository {
         linkedTreasuryId: Value(linkedTreasuryId),
         linkedEntityId: Value(linkedEntityId),
         createdByUserId: Value(createdByUserId),
+        // ── تتبّع المصروفات ───────────────────────────────────────────
+        // نحوّل النصّ الفارغ إلى null عمداً: العمود nullable، وتخزين ''
+        // يجعل الفلترة والتقارير تعامله كقيمة قائمة لا كغياب.
+        projectName: Value(_orNull(projectName)),
+        invoiceNumber: Value(_orNull(invoiceNumber)),
+        spentBy: Value(_orNull(spentBy)),
+        advanceNumber: Value(_orNull(advanceNumber)),
       ),
     );
+  }
+
+  /// نصّ فارغ أو مقصوص إلى فراغ ← null
+  ///
+  /// الأعمدة الأربعة nullable، وتخزين '' فيها يجعل الفلترة تظنّها قيمة
+  /// موجودة. القاعدة: **الغياب يُمثَّل بـ null دائماً لا بنصّ فارغ.**
+  static String? _orNull(String? v) {
+    if (v == null) return null;
+    final t = v.trim();
+    return t.isEmpty ? null : t;
   }
 
   @override
@@ -311,6 +337,11 @@ class VoucherRepository implements IVoucherRepository {
         closeSafe: Value(voucher.closeSafe),
         linkedTreasuryId: Value(voucher.linkedTreasuryId),
         linkedEntityId: Value(voucher.linkedEntityId),
+        // حقول تتبّع المصروفات — لم تكن تُكتب فكان التعديل يفقدها
+        projectName: Value(_orNull(voucher.projectName)),
+        invoiceNumber: Value(_orNull(voucher.invoiceNumber)),
+        spentBy: Value(_orNull(voucher.spentBy)),
+        advanceNumber: Value(_orNull(voucher.advanceNumber)),
         // ── أثر التعديل على الصف نفسه (إصلاح ث-٣) ───────────────────────
         //
         // العمودان موجودان في الجدول منذ البداية وكان التعديل لا يكتبهما

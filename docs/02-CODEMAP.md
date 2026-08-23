@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-08-23** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-08-23 (بعد ب-١)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -119,7 +119,7 @@ lib/
 |---|---|---|
 | `splash_screen` · `login_screen` · `first_run_screen` | خارج الـ Shell | |
 | `dashboard_screen` + `dashboard_charts` | `/dashboard` | بيانات حقيقية (`weeklyLiquidity`) |
-| `vouchers_list_screen` | `/vouchers` | ٤ تبويبات · **الفلاتر: بحث + خزينة فقط** ← ناقص |
+| `vouchers_list_screen` | `/vouchers` | ٤ تبويبات · فلاتر: بحث · خزينة · **بند · مشروع** (ب-١) |
 | `voucher_sarf_screen` · `voucher_kabd_screen` | `/vouchers/sarf` · `/kabd` | ⚠️ **~١١٠٠ سطر مكرّر بينهما** |
 | `voucher_transfer_screen` | `/vouchers/transfer` | ربط اختياري بسلفة |
 | `treasuries_screen` | `/treasury` | تحذير المسودات المعلّقة |
@@ -145,6 +145,7 @@ lib/
 | الملف | استعمله بدل إعادة الكتابة |
 |---|---|
 | `app_components.dart` | مكوّنات مشتركة (حالات فارغة، بطاقات…) — **افحصه قبل بناء ودجت جديد** |
+| `item_type_selector.dart` | `ItemTypeSelector` شرائح البنود من جدول `item_types` · `ItemTypeFilterDropdown` قائمة فلترة. **استعملهما — لا تكتب قائمة بنود ثابتة في الكود** |
 | `app_shell.dart` | القشرة: NavigationRail / NavigationBar |
 | `error_screen.dart` | ٤٠٤ و٤٠٣ |
 | `global_search_dialog.dart` | البحث الشامل |
@@ -173,6 +174,24 @@ ctrl.dispose();   // الحوار ما زال يُعاد بناؤه!
 يملكه ويتخلّص منه في `dispose()`. **يحرسه اختبار آلي:**
 `test/unit/dialog_controller_lifecycle_test.dart`
 
+### ✅ قوائم البنود تُقرأ من قاعدة البيانات
+```dart
+// ✅ الصحيح
+ItemTypeSelector(kind: 'sarf', selected: _itemType, onSelected: ...)
+```
+```dart
+// ❌ الخطأ — كان في شاشتَي الصرف والقبض
+const _kItemTypes = ['راتب', 'سلفة', ...];   // قائمة ثابتة في الكود
+```
+جدول `item_types` يديره المالك من الإعدادات. أي قائمة ثابتة تعني أن ما يضيفه
+لا يظهر — ميزة معطَّلة بصمت. المصدر الوحيد: `itemTypeNamesProvider`.
+
+### ✅ الغياب يُمثَّل بـ null لا بنصّ فارغ
+الأعمدة nullable (`project_name` · `invoice_number` · `spent_by` ·
+`advance_number`) — الشاشة تُرسل `''` حين يترك المستخدم الحقل فارغاً، ويحوّلها
+`VoucherRepository._orNull` إلى `null`. تخزين `''` يجعل الفلترة والتقارير
+تعامله كقيمة قائمة.
+
 ### ✅ التحديث الجزئي في Drift
 ```dart
 await (update(vouchers)..where(...)).write(companion);   // ✅
@@ -194,7 +213,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
-## ٦. الاختبارات (`test/`) — ٢٧ ملفاً · ٢١٤ اختباراً
+## ٦. الاختبارات (`test/`) — ٢٩ ملفاً · ٢٣٠ اختباراً
 
 | المجموعة | الملفات |
 |---|---|
@@ -204,6 +223,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **أثر التدقيق** | `audit_trail_and_reset` |
 | **السلف** | `advance_posting` · `advance_repayment` · `excel_row_parser` |
 | **الـ Schema** | `database` · `schema_v4` · `schema_v5` |
+| **حقول التتبّع** | `voucher_tracking_fields` · `voucher_filter_values` |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` ← يفحص **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |
 

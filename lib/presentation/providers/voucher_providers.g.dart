@@ -1105,6 +1105,45 @@ class _SearchVouchersProviderElement
   String get query => (origin as SearchVouchersProvider).query;
 }
 
+String _$usedItemTypesHash() => r'500aad9a377e126e83d8226684f30c429736ab94';
+
+/// أنواع البنود المستعملة فعلاً — لقائمة الفلترة في شاشة السندات
+///
+/// تعرض المستعمَل فقط لا كل البنود المتاحة، فكل خيار مضمون أن يُظهر نتيجة.
+///
+/// Copied from [usedItemTypes].
+@ProviderFor(usedItemTypes)
+final usedItemTypesProvider = AutoDisposeStreamProvider<List<String>>.internal(
+  usedItemTypes,
+  name: r'usedItemTypesProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$usedItemTypesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UsedItemTypesRef = AutoDisposeStreamProviderRef<List<String>>;
+String _$usedProjectsHash() => r'a33b74a8e002d8666b598d8ac6ac641645f381e7';
+
+/// أسماء المشاريع المستعملة فعلاً — لقائمة الفلترة في شاشة السندات
+///
+/// Copied from [usedProjects].
+@ProviderFor(usedProjects)
+final usedProjectsProvider = AutoDisposeStreamProvider<List<String>>.internal(
+  usedProjects,
+  name: r'usedProjectsProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$usedProjectsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UsedProjectsRef = AutoDisposeStreamProviderRef<List<String>>;
 String _$activeFiscalPeriodHash() =>
     r'25aeb79a3583ff14a26dacfd04e6aa4e8002bce7';
 
@@ -1285,7 +1324,7 @@ class _FiscalPeriodForDateProviderElement
   DateTime get date => (origin as FiscalPeriodForDateProvider).date;
 }
 
-String _$voucherByIdHash() => r'7ae878d0803c0933e047b55593050a07952d17ff';
+String _$voucherByIdHash() => r'4183642f767a04cfb36e44257088801964407782';
 
 /// تفاصيل سند واحد — يُستخدَم في وضع التعديل
 ///
@@ -1429,7 +1468,7 @@ class _VoucherByIdProviderElement
 }
 
 String _$voucherSarfNotifierHash() =>
-    r'6a40b12a7360a1ee1c81de6b65f6baeed645b725';
+    r'd1e2e484938f0a540ee4478039e6baf48630d65b';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف سندات الصرف
 ///
@@ -1454,7 +1493,7 @@ final voucherSarfNotifierProvider = AutoDisposeNotifierProvider<
 
 typedef _$VoucherSarfNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
 String _$voucherKabdNotifierHash() =>
-    r'f9a1d2d4d7f70ab978ba390dfaee94a24ab54209';
+    r'746012ee5b196a5d905f2583c3bb834d143ee568';
 
 /// Notifier لعمليات إنشاء / تعديل / حذف سندات القبض
 ///

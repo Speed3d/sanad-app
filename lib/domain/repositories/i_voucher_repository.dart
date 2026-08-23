@@ -59,6 +59,13 @@ abstract class IVoucherRepository {
     int? linkedEntityId,
     double exchangeRate,
     int? createdByUserId,
+    // ── حقول تتبّع المصروفات (الأعمدة قائمة منذ Schema v2) ───────────────
+    // كانت موجودة في قاعدة البيانات وفي VoucherModel، لكن المستودع لم يكن
+    // يمرّرها فتضيع بين الشاشة والجدول. وُصلت 2026-08-23 (ب-١).
+    String? projectName,
+    String? invoiceNumber,
+    String? spentBy,
+    String? advanceNumber,
   });
 
   /// إنشاء عملية تحويل بين خزينتين (Atomic)

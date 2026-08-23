@@ -25,28 +25,12 @@ import '../../../domain/models/voucher_model.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
+import '../../widgets/common/item_type_selector.dart';
 
-// ── ثوابت أنواع إيرادات القبض ───────────────────────────────────────────────
+// ملاحظة (ب-١ — 2026-08-23): حُذفت من هنا قائمتان ثابتتان بأنواع الإيرادات.
+// كانتا تعرضان ٧ بنود مكتوبة في الكود بينما جدول `item_types` يديره المالك
+// من الإعدادات — فما يضيفه لم يكن يظهر هنا. راجع ItemTypeSelector.
 
-const _kKabdItemTypes = [
-  '',
-  'دفعة عميل',
-  'إيراد بيع',
-  'قرض وارد',
-  'رأس مال',
-  'مرتجع صرف',
-  'إيرادات أخرى',
-];
-
-const _kKabdItemTypeLabels = {
-  '': 'غير محدد',
-  'دفعة عميل': 'دفعة عميل',
-  'إيراد بيع': 'إيراد بيع',
-  'قرض وارد': 'قرض وارد',
-  'رأس مال': 'رأس مال',
-  'مرتجع صرف': 'مرتجع',
-  'إيرادات أخرى': 'أخرى',
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // الشاشة الرئيسية
@@ -75,6 +59,12 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
   final _reasonCtrl = TextEditingController();
   final _refNumCtrl = TextEditingController();
 
+  // ── رقم الفاتورة (ب-١ — 2026-08-23) ─────────────────────────────────
+  // مفهوم مستقلّ عن «الرقم المرجعي»: هذا رقم الفاتورة الصادرة من الشركة
+  // للعميل، وذاك رقم الشيك أو الحوالة الواردة. قد يوجد الاثنان في السند
+  // نفسه، فدمجهما في حقل واحد كان يُضيّع أحدهما.
+  final _invoiceCtrl = TextEditingController();
+
   // ── حالة النموذج ─────────────────────────────────────────────────────────
   int? _selectedTreasuryId;
   String _currency = 'IQD';
@@ -91,6 +81,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
     _personNameCtrl.dispose();
     _reasonCtrl.dispose();
     _refNumCtrl.dispose();
+    _invoiceCtrl.dispose();
     super.dispose();
   }
 
@@ -131,6 +122,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
       _personNameCtrl.text = v.personName;
       _reasonCtrl.text = v.reason;
       _refNumCtrl.text = v.referenceNumber;
+      _invoiceCtrl.text = v.invoiceNumber ?? '';
       _selectedTreasuryId = v.treasuryId;
       _currency = v.currency;
       _voucherDate = v.voucherDate;
@@ -196,6 +188,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
         reason: _reasonCtrl.text.trim(),
         itemType: _itemType,
         referenceNumber: _refNumCtrl.text.trim(),
+        invoiceNumber: _invoiceCtrl.text,
         exchangeRate: rate,
       );
     } else {
@@ -208,6 +201,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
         reason: _reasonCtrl.text.trim(),
         itemType: _itemType,
         referenceNumber: _refNumCtrl.text.trim(),
+        invoiceNumber: _invoiceCtrl.text,
         exchangeRate: rate,
       );
     }
@@ -431,7 +425,8 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                         label: 'نوع الإيراد',
                       ),
                       const SizedBox(height: 8),
-                      _KabdItemTypeChips(
+                      ItemTypeSelector(
+                        kind: 'kabd',
                         selected: _itemType,
                         onSelected: (t) =>
                             setState(() => _itemType = t),
@@ -442,18 +437,45 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                       // ── الرقم المرجعي ────────────────────────────────────
                       const _KabdSectionLabel(
                         icon: Icons.tag,
-                        label: 'الرقم المرجعي',
+                        label: 'الأرقام المرجعية',
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _refNumCtrl,
-                        enabled: !isOperating,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          labelText: 'رقم الشيك / أمر القبض / الفاتورة',
-                          hintText: 'اختياري...',
-                          prefixIcon: Icon(Icons.tag, size: 20),
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _refNumCtrl,
+                              enabled: !isOperating,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                // التسمية كانت «رقم الشيك / أمر القبض /
+                                // الفاتورة» — ثلاثة مفاهيم في حقل واحد،
+                                // فكان إدخال اثنين منها يُضيّع أحدهما.
+                                // فُصلت الفاتورة إلى عمودها الخاص (ب-١).
+                                labelText: 'رقم الشيك / أمر القبض',
+                                hintText: 'اختياري...',
+                                prefixIcon: Icon(Icons.tag, size: 20),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _invoiceCtrl,
+                              enabled: !isOperating,
+                              textInputAction: TextInputAction.done,
+                              decoration: const InputDecoration(
+                                labelText: 'رقم الفاتورة',
+                                hintText: 'فاتورة الشركة الصادرة',
+                                prefixIcon: Icon(
+                                  Icons.receipt_long_outlined,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -869,47 +891,6 @@ class _KabdDateField extends StatelessWidget {
     );
   }
 }
-
-// ── شرائح نوع الإيراد ────────────────────────────────────────────────────────
-
-class _KabdItemTypeChips extends StatelessWidget {
-  final String selected;
-  final ValueChanged<String> onSelected;
-  final bool enabled;
-
-  const _KabdItemTypeChips({
-    required this.selected,
-    required this.onSelected,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 38,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: _kKabdItemTypes.map((type) {
-          final label = _kKabdItemTypeLabels[type] ?? type;
-          final isSelected = selected == type;
-          return Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: ChoiceChip(
-              label: Text(label),
-              selected: isSelected,
-              selectedColor: Colors.green.shade100,
-              checkmarkColor: Colors.green.shade800,
-              onSelected: enabled ? (_) => onSelected(type) : null,
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-// ── أزرار الإجراءات ──────────────────────────────────────────────────────────
 
 class _KabdActionButtons extends StatelessWidget {
   final bool isEdit;
