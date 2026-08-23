@@ -380,13 +380,59 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ── تصفير الحسابات ────────────────────────────────────────────────────────
-  
-  /// مسح جميع السندات والفترات المالية (لتصفير أرصدة الخزائن) — مخصص لمرحلة التطوير
-  Future<void> resetFinancialData() async {
-    await transaction(() async {
+
+  /// مسح كل الحركة المالية مع الإبقاء على البيانات الأساسية
+  ///
+  /// ⚠️ أُعيدت كتابتها بالكامل (إصلاح ث-١ — تدقيق 2026-08-23).
+  ///
+  /// **ما كان معطوباً:** كانت تحذف `vouchers` ثم `fiscal_periods` فقط. لكن
+  /// `voucher_sequences.fiscal_period_id` و`advances.fiscal_period_id`
+  /// مفتاحان خارجيان إلى `fiscal_periods`، و`PRAGMA foreign_keys = ON`
+  /// مُفعَّل في `beforeOpen`. وصف التسلسل يُنشأ عند **أول سند** في حياة
+  /// القاعدة — فبعد أول سند يصير حذف الفترات مستحيلاً ويرمي قيداً أجنبياً،
+  /// أي أن الزر كان يفشل دائماً في كل استعمال حقيقي.
+  /// وحتى لو نجح، كان يترك `voucher_sequences` قائماً (فالترقيم يستأنف من
+  /// حيث توقّف بدل أن يبدأ من ١) ويترك سلف المشاريع يتيمة تشير إلى فترات
+  /// محذوفة.
+  ///
+  /// **ترتيب المسح إلزامي** — من الابن إلى الأب، وإلا فشل القيد الأجنبي:
+  ///   advance_lines → advances → cash_advance_repayments → cash_advances
+  ///   → salary_payments → vouchers → voucher_sequences → fiscal_periods
+  ///
+  /// **ما لا يُمسّ عمداً:** الموظفون والخزائن والمقاولون والشركاء والمستخدمون
+  /// والإعدادات وسجل التدقيق. التصفير يمحو **الحركة** لا **الهيكل** — ولو
+  /// مُحي سجل التدقيق لضاع أثر التصفير نفسه.
+  ///
+  /// يُعيد عدّادات ما مُحي فعلاً، ليوثّقها المستدعي في سجل التدقيق.
+  Future<({int vouchers, int periods, int advances})> resetFinancialData() async {
+    return transaction(() async {
+      // ── القراءة قبل المسح ────────────────────────────────────────────
+      Future<int> countOf(String table) async {
+        final row = await customSelect('SELECT COUNT(*) AS c FROM $table')
+            .getSingle();
+        return row.data['c'] as int? ?? 0;
+      }
+
+      final voucherCount = await countOf('vouchers');
+      final periodCount = await countOf('fiscal_periods');
+      final advanceCount = await countOf('advances');
+
+      // ── المسح بالترتيب الآمن (الابن قبل الأب) ────────────────────────
+      await delete(advanceLines).go();
+      await delete(advances).go();
+      await delete(cashAdvanceRepayments).go();
+      await delete(cashAdvances).go();
+      await delete(salaryPayments).go();
       await delete(vouchers).go();
+      // بدون هذا السطر يستأنف ترقيم السندات من آخر رقم قبل التصفير
+      await delete(voucherSequences).go();
       await delete(fiscalPeriods).go();
-      // يمكن مسح جداول أخرى هنا إذا لزم الأمر مستقبلاً
+
+      return (
+        vouchers: voucherCount,
+        periods: periodCount,
+        advances: advanceCount,
+      );
     });
   }
 

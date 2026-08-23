@@ -29,6 +29,8 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/auth/permissions.dart';
+import '../../core/constants/app_settings_keys.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
@@ -123,22 +125,11 @@ class FiscalNotifier extends _$FiscalNotifier {
   }) async {
     state = const AsyncLoading();
     try {
-      // التحقق من عدم التداخل مع فترات موجودة
-      final existing = await _db.fiscalPeriodsDao.watchAllPeriods().first;
-      final hasOverlap = existing.any(
-        (p) =>
-            startDate.isBefore(p.endDate.add(const Duration(days: 1))) &&
-            endDate.isAfter(p.startDate.subtract(const Duration(days: 1))),
-      );
-
-      if (hasOverlap) {
-        state = const AsyncError(
-          'يتداخل نطاق التواريخ مع فترة مالية موجودة',
-          StackTrace.empty,
-        );
-        return false;
-      }
-
+      // ملاحظة (2026-08-23): فحص التقاطع كان هنا بمعادلة خاطئة تُزيح الحدّ
+      // يوماً كاملاً، فترفض كل سنة مجاورة (2025 و2027 مع وجود 2026). نُقل
+      // إلى FiscalPeriodsDao.insertPeriod ليصير غير قابل للالتفاف وليدخل
+      // تحت مظلّة الاختبارات — راجع التعليق هناك. الرسالة تأتي من هناك
+      // وتسمّي الفترة المتقاطعة، ويلتقطها catch أدناه.
       await _db.fiscalPeriodsDao.insertPeriod(
         FiscalPeriodsCompanion.insert(
           name: name,
@@ -152,6 +143,179 @@ class FiscalNotifier extends _$FiscalNotifier {
 
       state = const AsyncData('تم إنشاء الفترة المالية بنجاح ✓');
       return true;
+    } on StateError catch (e, st) {
+      // رسائل الحُرّاس عربية جاهزة للعرض — نمرّر النصّ وحده بلا بادئة
+      // "Bad state:" التي يضيفها toString على StateError.
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // 🔥 المحو القسري — أخطر عملية في التطبيق
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// محو فترة مالية **بكل سنداتها** محواً نهائياً لا رجعة فيه
+  ///
+  /// أُضيفت بطلب صريح من المالك (2026-08-23): مرحلة الاختبار تتطلّب تصفير
+  /// سنة كاملة وإعادة بنائها، وبدون هذا تبقى كل سنة تجريبية حاجزاً دائماً
+  /// على نطاق تواريخها لأن `deleteEmptyPeriod` ترفض أي فترة فيها أثر —
+  /// **حتى لو كان كل سنداتها محذوفة ناعماً**.
+  ///
+  /// **ثلاث طبقات حراسة، كلها إلزامية:**
+  ///   ١. صلاحية `purgeFiscalPeriod` (super_admin وحده)
+  ///   ٢. كلمة مرور المستخدم — تحقّق bcrypt حقيقي، لا مقارنة نصية
+  ///   ٣. رمز المحو المنفصل + كتابة اسم الفترة حرفياً
+  ///
+  /// لماذا كل هذا؟ العملية تمحو سندات حقيقية بلا تراجع. الطبقة الثانية
+  /// تمنع من يجد الجهاز مفتوحاً، والثالثة تمنع **الخطأ في اختيار السنة** —
+  /// وهو الخطر الأرجح عملياً.
+  ///
+  /// [password]   — كلمة مرور المستخدم الحالي
+  /// [purgeCode]  — رمز المحو المُعيَّن من الإعدادات ← الأمان
+  /// [typedName]  — اسم الفترة كما كتبه المستخدم (يجب أن يطابق تماماً)
+  ///
+  /// يُعيد: true عند النجاح
+  Future<bool> purgePeriod(
+    int periodId, {
+    required String password,
+    required String purgeCode,
+    required String typedName,
+  }) async {
+    final authState = ref.read(authNotifierProvider);
+    if (authState is! AuthAuthenticated) {
+      state = const AsyncError('يجب تسجيل الدخول أولاً', StackTrace.empty);
+      return false;
+    }
+    final user = authState.user;
+
+    // ── الطبقة ١: الصلاحية ─────────────────────────────────────────────
+    if (!user.can(AppPermission.purgeFiscalPeriod)) {
+      state = const AsyncError(
+        'المحو القسري متاح لمدير النظام وحده.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+
+    state = const AsyncLoading();
+    try {
+      final period = await _db.fiscalPeriodsDao.getPeriodById(periodId);
+      if (period == null) {
+        state = const AsyncError('الفترة المالية غير موجودة.', StackTrace.empty);
+        return false;
+      }
+
+      // ── الطبقة ٣أ: اسم الفترة مكتوباً حرفياً ─────────────────────────
+      // يُفحص أولاً لأنه الأرخص، ولأن الخطأ فيه هو الأشيع (سنة خاطئة).
+      if (typedName.trim() != period.name.trim()) {
+        state = AsyncError(
+          'اسم الفترة المكتوب لا يطابق "${period.name}".',
+          StackTrace.empty,
+        );
+        return false;
+      }
+
+      final auth = ref.read(authServiceProvider);
+
+      // ── الطبقة ٢: كلمة مرور المستخدم (bcrypt) ────────────────────────
+      final dbUser = await _db.usersDao.getUserById(user.id);
+      if (dbUser == null) {
+        state = const AsyncError(
+          'تعذّر قراءة بيانات المستخدم.',
+          StackTrace.empty,
+        );
+        return false;
+      }
+      if (!await auth.verifyPassword(password, dbUser.passwordHash)) {
+        state = const AsyncError('كلمة المرور غير صحيحة.', StackTrace.empty);
+        return false;
+      }
+
+      // ── الطبقة ٣ب: رمز المحو ─────────────────────────────────────────
+      final codeHash =
+          await _db.appSettingsDao.getString(AppSettingsKeys.purgeCodeHash);
+      if (codeHash == null || codeHash.isEmpty) {
+        state = const AsyncError(
+          'لم يُعيَّن رمز المحو بعد.\n'
+          'عيّنه من: الإعدادات ← الأمان ← رمز المحو القسري.',
+          StackTrace.empty,
+        );
+        return false;
+      }
+      if (!await auth.verifyPassword(purgeCode, codeHash)) {
+        state = const AsyncError('رمز المحو غير صحيح.', StackTrace.empty);
+        return false;
+      }
+
+      // ── التنفيذ ──────────────────────────────────────────────────────
+      final purged =
+          await _db.fiscalPeriodsDao.purgeFiscalPeriodCompletely(periodId);
+
+      // الأثر الوحيد الباقي — يُكتب بعد النجاح لا قبله
+      await ref.read(auditLoggerProvider).logFiscalPurged(
+            userId: user.id,
+            username: user.username,
+            periodName: period.name,
+            vouchersPurged: purged.vouchers,
+            advancesPurged: purged.advances,
+          );
+
+      state = AsyncData(
+        'تم محو الفترة "${period.name}" نهائياً — '
+        '${purged.vouchers} سند و${purged.advances} سلفة مشروع ✓',
+      );
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // حذف فترة مالية خالية
+  // ══════════════════════════════════════════════════════════════════════
+
+  /// حذف فترة مالية لا تحتوي أي سند أو سلفة
+  ///
+  /// أُضيفت 2026-08-23: لم يكن في النظام أي طريقة لحذف فترة، فأي سنة تُنشأ
+  /// بالخطأ تبقى للأبد وتحجب — بقاعدة عدم التقاطع — إنشاءَ السنة الصحيحة
+  /// مكانها. شرط «الخالية» يُفرَض في طبقة البيانات لا هنا.
+  ///
+  /// يُعيد: true عند النجاح
+  Future<bool> deletePeriod(int periodId) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      state = const AsyncError('يجب تسجيل الدخول أولاً', StackTrace.empty);
+      return false;
+    }
+
+    state = const AsyncLoading();
+    try {
+      // نقرأ الاسم قبل الحذف — بعده لا يبقى ما يُسمّى في سجل التدقيق
+      final period = await _db.fiscalPeriodsDao.getPeriodById(periodId);
+      final name = period?.name ?? '#$periodId';
+
+      await _db.fiscalPeriodsDao.deleteEmptyPeriod(periodId);
+
+      await ref.read(auditLoggerProvider).logFiscalDeleted(
+            userId: userId,
+            username: _currentUsername,
+            fiscalPeriodId: periodId,
+            periodName: name,
+          );
+
+      state = AsyncData('تم حذف الفترة المالية "$name" ✓');
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;

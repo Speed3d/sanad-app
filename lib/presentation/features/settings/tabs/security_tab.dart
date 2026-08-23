@@ -23,6 +23,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/settings_provider.dart';
+import 'purge_code_card.dart';
 import 'settings_shared.dart';
 
 /// خيارات القفل التلقائي
@@ -375,6 +376,11 @@ class _SecurityTabState extends ConsumerState<SecurityTab> {
 
           // ── سياسة الرصيد المدين ────────────────────────────────────────────
           const _BalancePolicyCard(),
+
+          const SizedBox(height: 24),
+
+          // رمز المحو القسري (يظهر لمدير النظام وحده)
+          const PurgeCodeCard(),
 
           const SizedBox(height: 24),
 

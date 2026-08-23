@@ -106,6 +106,20 @@ enum AppPermission {
 
   /// حذف مستخدم
   deleteUser,
+
+  /// **محو** فترة مالية بكل سنداتها محواً نهائياً لا رجعة فيه
+  ///
+  /// ⚠️ أخطر عملية في التطبيق كلّه — تمحو سندات حقيقية لا سجلاً فارغاً.
+  ///   الصلاحية وحدها لا تكفي: العملية محروسة أيضاً بكلمة مرور المستخدم
+  ///   ورمز محو منفصل وكتابة اسم الفترة. راجع FiscalNotifier.purgePeriod.
+  purgeFiscalPeriod,
+
+  /// حذف فترة مالية **خالية** من أي سند أو سلفة
+  ///
+  /// مفصولة عن closeFiscalPeriod عمداً: الإقفال يحفظ الأثر، والحذف يمحو
+  /// السجلّ. وإن كان الحذف مقيَّداً بالفترات الخالية (فلا أثر مالي يضيع)،
+  /// يبقى تصحيحاً لخطأ إداري لا عملية يومية.
+  deleteFiscalPeriod,
 }
 
 /// مستوى الصلاحية المطلوب — تدرّج تصاعدي
@@ -142,6 +156,8 @@ _Level _requiredLevel(AppPermission p) {
     case AppPermission.recomputeBalances:
     case AppPermission.purgeAuditLog:
     case AppPermission.deleteUser:
+    case AppPermission.deleteFiscalPeriod:
+    case AppPermission.purgeFiscalPeriod:
       return _Level.superAdmin;
   }
 }

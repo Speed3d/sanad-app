@@ -245,7 +245,7 @@ class VoucherRepository implements IVoucherRepository {
   }
 
   @override
-  Future<void> updateVoucher(VoucherModel voucher) async {
+  Future<void> updateVoucher(VoucherModel voucher, {int? updatedByUserId}) async {
     // ── حاجز 1: سندات التحويل لا تُعدَّل إطلاقاً ────────────────────────
     //
     // ⚠️ لماذا المنع بدل المزامنة؟ (إصلاح ح-١ — تدقيق 2026-08-15)
@@ -311,6 +311,14 @@ class VoucherRepository implements IVoucherRepository {
         closeSafe: Value(voucher.closeSafe),
         linkedTreasuryId: Value(voucher.linkedTreasuryId),
         linkedEntityId: Value(voucher.linkedEntityId),
+        // ── أثر التعديل على الصف نفسه (إصلاح ث-٣) ───────────────────────
+        //
+        // العمودان موجودان في الجدول منذ البداية وكان التعديل لا يكتبهما
+        // إطلاقاً، فيبقيان على قيمة لحظة الإنشاء. النتيجة أن فحص قاعدة
+        // البيانات مباشرةً لا يكشف أن السند عُدِّل أصلاً — وهو خط الدفاع
+        // الأخير لو ضاع سجل التدقيق أو أُفرغ.
+        updatedAt: Value(DateTime.now()),
+        updatedByUserId: Value(updatedByUserId),
       ),
     );
   }

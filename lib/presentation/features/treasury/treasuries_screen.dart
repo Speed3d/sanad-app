@@ -175,7 +175,14 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
   // ══════════════════════════════════════════════════════════════════════
 
   Future<void> _showCreateDialog(BuildContext context) async {
-    final nameCtrl = TextEditingController();
+    // ⚠️ لا تُنشئ TextEditingController هنا ثم تتخلّص منه بعد showDialog.
+    //   الـ await ينتهي لحظة استدعاء Navigator.pop، بينما يبقى الحوار
+    //   **يُعاد بناؤه** طوال أنيميشن خروجه — فالتخلّص الفوري يجعل الحقل
+    //   يلمس متحكّماً ميتاً: «A TextEditingController was used after being
+    //   disposed»، ثم تنهار الشجرة بـ «_dependents.isEmpty» شاشةً حمراء.
+    //   (عطل بلّغ عنه المالك 2026-08-23 عند إنشاء فترة مالية ثانية.)
+    //   الحلّ: متغيّر نصّي عادي مع initialValue/onChanged — بلا متحكّم أصلاً.
+    String name = '';
     final formKey = GlobalKey<FormState>();
     bool isCreating = false;
 
@@ -196,7 +203,8 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
             child: Form(
               key: formKey,
               child: TextFormField(
-                controller: nameCtrl,
+                initialValue: name,
+                onChanged: (v) => name = v,
                 autofocus: true,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
@@ -228,7 +236,7 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
                       await ref
                           .read(treasuryNotifierProvider.notifier)
                           .createTreasury(
-                            name: nameCtrl.text.trim(),
+                            name: name.trim(),
                             kind: 'main',
                           );
                       if (ctx.mounted) Navigator.pop(ctx);
@@ -249,7 +257,6 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
         ),
       ),
     );
-    nameCtrl.dispose();
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -260,8 +267,14 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
     BuildContext context,
     TreasuryBalanceModel balance,
   ) async {
-    final nameCtrl =
-        TextEditingController(text: balance.treasuryName);
+    // ⚠️ لا تُنشئ TextEditingController هنا ثم تتخلّص منه بعد showDialog.
+    //   الـ await ينتهي لحظة استدعاء Navigator.pop، بينما يبقى الحوار
+    //   **يُعاد بناؤه** طوال أنيميشن خروجه — فالتخلّص الفوري يجعل الحقل
+    //   يلمس متحكّماً ميتاً: «A TextEditingController was used after being
+    //   disposed»، ثم تنهار الشجرة بـ «_dependents.isEmpty» شاشةً حمراء.
+    //   (عطل بلّغ عنه المالك 2026-08-23 عند إنشاء فترة مالية ثانية.)
+    //   الحلّ: متغيّر نصّي عادي مع initialValue/onChanged — بلا متحكّم أصلاً.
+    String name = balance.treasuryName;
     final formKey = GlobalKey<FormState>();
     bool isSaving = false;
 
@@ -282,7 +295,8 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
             child: Form(
               key: formKey,
               child: TextFormField(
-                controller: nameCtrl,
+                initialValue: name,
+                onChanged: (v) => name = v,
                 autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'الاسم الجديد',
@@ -320,7 +334,7 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
 
                       await ref
                           .read(treasuryNotifierProvider.notifier)
-                          .renameTreasury(model, nameCtrl.text.trim());
+                          .renameTreasury(model, name.trim());
 
                       if (ctx.mounted) Navigator.pop(ctx);
                     },
@@ -340,7 +354,6 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
         ),
       ),
     );
-    nameCtrl.dispose();
   }
 
   // ══════════════════════════════════════════════════════════════════════

@@ -95,7 +95,14 @@ class ItemTypesTab extends ConsumerWidget {
   }
 
   Future<void> _showAddDialog(BuildContext context, WidgetRef ref) async {
-    final nameCtrl = TextEditingController();
+    // ⚠️ لا تُنشئ TextEditingController هنا ثم تتخلّص منه بعد showDialog.
+    //   الـ await ينتهي لحظة استدعاء Navigator.pop، بينما يبقى الحوار
+    //   **يُعاد بناؤه** طوال أنيميشن خروجه — فالتخلّص الفوري يجعل الحقل
+    //   يلمس متحكّماً ميتاً: «A TextEditingController was used after being
+    //   disposed»، ثم تنهار الشجرة بـ «_dependents.isEmpty» شاشةً حمراء.
+    //   (عطل بلّغ عنه المالك 2026-08-23 عند إنشاء فترة مالية ثانية.)
+    //   الحلّ: متغيّر نصّي عادي مع initialValue/onChanged — بلا متحكّم أصلاً.
+    var name = '';
     var kind = 'sarf';
 
     final saved = await showDialog<bool>(
@@ -106,8 +113,9 @@ class ItemTypesTab extends ConsumerWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameCtrl,
+              TextFormField(
+                initialValue: name,
+                onChanged: (v) => name = v,
                 autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'اسم البند',
@@ -147,9 +155,8 @@ class ItemTypesTab extends ConsumerWidget {
       ),
     );
 
-    final name = nameCtrl.text.trim();
-    nameCtrl.dispose();
-    if (saved != true || name.isEmpty || !context.mounted) return;
+    final trimmed = name.trim();
+    if (saved != true || trimmed.isEmpty || !context.mounted) return;
 
     try {
       await ref.read(appDatabaseProvider).advancesDao.insertItemType(
