@@ -1,0 +1,128 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// pdf_arabic_font_test.dart — حارس الخط العربي في ملفات PDF
+//
+// **العطل الذي يمنعه** (بلاغ المالك 2026-08-24 — «العربي غير مفهوم»):
+//
+//   كانت الشيفرة تحمّل `Tajawal-Regular` وحده وتمرّره:
+//       pw.ThemeData.withFont(base: font)      ← بلا bold
+//
+//   و`ThemeData.withFont` يبني النمط من `TextStyle.defaultStyle()` الذي يضع
+//   `fontBold: Font.helveticaBold()`، ثم `copyWith(fontBold: null)` **يُبقي
+//   القيمة الافتراضية** لأن `??` لا تستبدل بـ null.
+//
+//   النتيجة: كل نصّ عريض يُرسَم بـ **Helvetica-Bold** التي لا تحوي حرفاً
+//   عربياً واحداً. والسند يستعمل العريض في العنوان ورقم السند وكل تسميات
+//   الحقول — فخرج نصفه فارغاً.
+//
+// **لماذا لم يكشفه أي اختبار سابق؟** لأن `company_identity_test` كان يتحقّق
+// أن الناتج ملف PDF صالح فقط — وهو صالح تماماً، لكنه غير مقروء. الملف
+// السليم شكلياً والفارغ معنىً يمرّ من كل فحص لا ينظر إلى **محتواه**.
+//
+// لهذا يفحص هذا الملف الخطوط المضمَّنة فعلاً داخل الـ PDF الناتج.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:sales_management/core/services/pdf_service.dart';
+import 'package:sales_management/domain/models/voucher_model.dart';
+
+void main() {
+  /// تحميل خط من القرص — `rootBundle` لا يعمل خارج تطبيق حيّ
+  pw.Font load(String name) => pw.Font.ttf(
+        File('assets/fonts/$name').readAsBytesSync().buffer.asByteData(),
+      );
+
+  late PdfService service;
+
+  setUp(() {
+    service = PdfService(
+      regular: load('Tajawal-Regular.ttf'),
+      bold: load('Tajawal-Bold.ttf'),
+    );
+  });
+
+  /// أسماء الخطوط المضمَّنة داخل ملف PDF
+  Set<String> embeddedFonts(Uint8List pdf) {
+    final text = String.fromCharCodes(pdf);
+    return RegExp(r'/BaseFont\s*/([A-Za-z0-9+\-,._]+)')
+        .allMatches(text)
+        .map((m) => m.group(1)!)
+        .toSet();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+
+  test('⭐ لا يُضمَّن Helvetica إطلاقاً — لا تحوي حرفاً عربياً', () async {
+    final pdf = await service.generateVoucherReceipt(_voucher());
+    final fonts = embeddedFonts(pdf);
+
+    expect(
+      fonts.any((f) => f.contains('Helvetica')),
+      isFalse,
+      reason: 'وجود Helvetica يعني أن نصّاً عربياً رُسم بخط بلا عربية.\n'
+          'الخطوط المضمَّنة: $fonts',
+    );
+  });
+
+  test('⭐ الخط العريض العربي مضمَّن — العنوان والتسميات عريضة', () async {
+    final pdf = await service.generateVoucherReceipt(_voucher());
+    final fonts = embeddedFonts(pdf);
+
+    expect(
+      fonts.any((f) => f.contains('Tajawal') && f.contains('Bold')),
+      isTrue,
+      reason: 'بلا Tajawal-Bold يخرج كل نصّ عريض فارغاً.\n'
+          'الخطوط المضمَّنة: $fonts',
+    );
+  });
+
+  test('الخط العادي العربي مضمَّن أيضاً', () async {
+    final pdf = await service.generateVoucherReceipt(_voucher());
+    expect(
+      embeddedFonts(pdf).any((f) => f.contains('Tajawal')),
+      isTrue,
+    );
+  });
+
+  test('⭐ ترويسة الشركة العربية العريضة لا تكسر الخطوط', () async {
+    // اسم الشركة يُرسَم عريضاً في الترويسة — وهو أول ما يراه القارئ
+    final pdf = await service.generateVoucherReceipt(
+      _voucher(),
+      header: const PdfCompanyHeader(companyName: 'شركة سند للمقاولات العامة'),
+    );
+    expect(embeddedFonts(pdf).any((f) => f.contains('Helvetica')), isFalse);
+  });
+
+  test('الناتج ملف PDF صالح — الفحص الشكلي يبقى قائماً', () async {
+    final pdf = await service.generateVoucherReceipt(_voucher());
+    expect(String.fromCharCodes(pdf.take(4)), '%PDF');
+    expect(pdf.length, greaterThan(1000));
+  });
+
+  test('⭐ الخطوط تُحمَّل مرة واحدة وتُعاد استعمالها', () async {
+    // بلا التخزين يُعاد تحليل ٦٠ كيلوبايت من بيانات الخط عند كل طباعة
+    final first = await service.generateVoucherReceipt(_voucher());
+    final second = await service.generateVoucherReceipt(_voucher());
+    expect(embeddedFonts(first), equals(embeddedFonts(second)));
+  });
+}
+
+/// سند نموذجي بنصوص عربية في المواضع العريضة والعادية معاً
+VoucherModel _voucher() => VoucherModel(
+      id: 1,
+      voucherNumber: 3,
+      voucherType: 'kabd',
+      treasuryId: 1,
+      fiscalPeriodId: 1,
+      amount: 5000000,
+      currency: 'IQD',
+      voucherDate: DateTime(2026, 3, 1),
+      personName: 'أحمد محمد الجبوري',
+      reason: 'دفعة من العميل',
+      itemType: 'دفعة عميل',
+      projectName: 'مشروع البصرة',
+      invoiceNumber: 'INV-118',
+    );

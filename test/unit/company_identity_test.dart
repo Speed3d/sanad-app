@@ -11,9 +11,11 @@
 // فتبقى قابلة للاختبار بلا قاعدة بيانات إطلاقاً — وهو ما تُثبته هذه الملفات.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drift/native.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sales_management/core/constants/app_settings_keys.dart';
 import 'package:sales_management/core/services/pdf_service.dart';
@@ -111,7 +113,7 @@ void main() {
   test('⭐ PdfService يعمل بلا قاعدة بيانات إطلاقاً', () async {
     // هذا الاختبار نفسه هو البرهان: لا AppDatabase في نطاقه. لو احتاجت
     // الخدمة يوماً قراءة الإعدادات بنفسها لانكسر — وهو المقصود.
-    final service = PdfService();
+    final service = _service();
     final bytes = await service.generateVoucherReceipt(
       _sampleVoucher(),
       header: const PdfCompanyHeader(companyName: 'شركة سند للمقاولات'),
@@ -123,10 +125,24 @@ void main() {
   });
 
   test('توليد السند بلا ترويسة ينجح أيضاً', () async {
-    final bytes = await PdfService().generateVoucherReceipt(_sampleVoucher());
+    final bytes = await _service().generateVoucherReceipt(_sampleVoucher());
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
   });
 }
+
+/// خدمة PDF بخطوط محقونة من القرص
+///
+/// `rootBundle` لا يعمل خارج تطبيق حيّ، والخدمة **لم تعد تتراجع صامتةً إلى
+/// Helvetica** بعد عطل «العربي غير مفهوم» (2026-08-24) — فالحقن هو الطريق
+/// الصحيح للاختبار. راجع `pdf_arabic_font_test.dart`.
+PdfService _service() => PdfService(
+      regular: _font('Tajawal-Regular.ttf'),
+      bold: _font('Tajawal-Bold.ttf'),
+    );
+
+pw.Font _font(String name) => pw.Font.ttf(
+      File('assets/fonts/$name').readAsBytesSync().buffer.asByteData(),
+    );
 
 /// سند نموذجي للاختبار — قيم ثابتة لا تعتمد على قاعدة بيانات
 VoucherModel _sampleVoucher() => VoucherModel(

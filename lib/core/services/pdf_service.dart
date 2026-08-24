@@ -46,19 +46,69 @@ class PdfCompanyHeader {
 
 /// خدمة إنشاء ملفات PDF
 class PdfService {
-  /// خط عربي محمّل
-  pw.Font? _arabicFont;
+  /// [regular] و[bold] — حقن الخطوط بدل تحميلها من الأصول
+  ///
+  /// الإنتاج يستدعي `PdfService()` بلا معاملات فتُحمَّل من `rootBundle`.
+  /// الاختبارات تحقنها من القرص مباشرةً لأن `rootBundle` لا يعمل خارج
+  /// تطبيق حيّ — فيبقى توليد الـ PDF قابلاً للاختبار بلا محاكاة.
+  PdfService({pw.Font? regular, pw.Font? bold})
+      : _arabicRegular = regular,
+        _arabicBold = bold;
 
-  /// تحميل الخط العربي (Tajawal) من الأصول
-  Future<pw.Font> _loadFont() async {
-    if (_arabicFont != null) return _arabicFont!;
-    try {
-      final fontData = await rootBundle.load('assets/fonts/Tajawal-Regular.ttf');
-      _arabicFont = pw.Font.ttf(fontData);
-    } catch (_) {
-      _arabicFont = pw.Font.helvetica();
+  /// الخطوط العربية المحمّلة — تُحمَّل مرة واحدة وتُخزَّن
+  pw.Font? _arabicRegular;
+  pw.Font? _arabicBold;
+
+  /// تحميل الخطوط العربية (Tajawal) من الأصول
+  ///
+  /// ⚠️ **لماذا خطّان لا خط واحد؟** (إصلاح عطل «العربي غير مفهوم» — 2026-08-24)
+  ///
+  ///   كانت الشيفرة تحمّل `Tajawal-Regular` وحده وتمرّره:
+  ///   ```dart
+  ///   _themeWith(fonts)   // ← بلا bold
+  ///   ```
+  ///   و`ThemeData.withFont` يبني النمط من `TextStyle.defaultStyle()` الذي
+  ///   يضع `fontBold: Font.helveticaBold()`، ثم `copyWith(fontBold: null)`
+  ///   **يُبقي القيمة الافتراضية** لأن `??` لا تستبدل بـ null.
+  ///
+  ///   النتيجة: **كل نصّ `fontWeight: bold` كان يُرسَم بـ Helvetica-Bold**،
+  ///   وهي لا تحوي حرفاً عربياً واحداً. والسند يستعمل العريض في العنوان
+  ///   ورقم السند وكل تسميات الحقول — فبدا نصفه فارغاً أو مشوّهاً.
+  ///
+  ///   البرهان: توليد سند بلا `bold:` يُضمِّن `Helvetica-Bold` ويطبع
+  ///   «Unable to find a font to draw س» لكل حرف؛ ومعه يُضمِّن
+  ///   `Tajawal-Bold` بلا تحذير واحد. يحرسه `pdf_arabic_font_test.dart`.
+  ///
+  /// **ولماذا لا نتراجع إلى Helvetica عند الفشل؟**
+  ///   التراجع الصامت كان يُنتج مستنداً يبدو ناجحاً وهو غير مقروء. برنامج
+  ///   عربي بالكامل لا معنى لتراجعه إلى خط بلا عربية — الأصدق أن يفشل
+  ///   بوضوح فيُعرف السبب فوراً.
+  Future<({pw.Font regular, pw.Font bold})> _loadFonts() async {
+    if (_arabicRegular != null && _arabicBold != null) {
+      return (regular: _arabicRegular!, bold: _arabicBold!);
     }
-    return _arabicFont!;
+    final regularData = await rootBundle.load('assets/fonts/Tajawal-Regular.ttf');
+    final boldData = await rootBundle.load('assets/fonts/Tajawal-Bold.ttf');
+    _arabicRegular = pw.Font.ttf(regularData);
+    _arabicBold = pw.Font.ttf(boldData);
+    return (regular: _arabicRegular!, bold: _arabicBold!);
+  }
+
+  /// بناء نمط المستند بالخطوط العربية كاملةً
+  ///
+  /// يملأ **الأربعة** لا `base` وحده: أي فراغ منها يعود تلقائياً إلى
+  /// Helvetica بلا عربية. و«المائل» يُربَط بالخط العادي لأن Tajawal بلا
+  /// نسخة مائلة — والعادي أفضل ألف مرة من Helvetica-Oblique الفارغة.
+  ///
+  /// و`fontFallback` شبكة أمان أخيرة لأي نمط لم نتوقّعه.
+  pw.ThemeData _themeWith(({pw.Font regular, pw.Font bold}) fonts) {
+    return pw.ThemeData.withFont(
+      base: fonts.regular,
+      bold: fonts.bold,
+      italic: fonts.regular,
+      boldItalic: fonts.bold,
+      fontFallback: [fonts.regular, fonts.bold],
+    );
   }
 
   /// بناء ترويسة الشركة أعلى أي مستند — الشعار يميناً والاسم بجواره
@@ -112,7 +162,7 @@ class PdfService {
     VoucherModel voucher, {
     PdfCompanyHeader header = PdfCompanyHeader.empty,
   }) async {
-    final font = await _loadFont();
+    final fonts = await _loadFonts();
     final pdf = pw.Document();
     final isKabd = voucher.voucherType == 'kabd';
     final title = isKabd ? 'سند قبض مالي' : 'سند صرف مالي';
@@ -122,7 +172,7 @@ class PdfService {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a5,
-        theme: pw.ThemeData.withFont(base: font),
+        theme: _themeWith(fonts),
         build: (pw.Context context) {
           return pw.Directionality(
             textDirection: pw.TextDirection.rtl,
@@ -210,13 +260,13 @@ class PdfService {
     double openingBalance,
     String periodText,
   ) async {
-    final font = await _loadFont();
+    final fonts = await _loadFonts();
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(base: font),
+        theme: _themeWith(fonts),
         build: (pw.Context context) {
           return [
             pw.Directionality(
@@ -260,13 +310,13 @@ class PdfService {
     List<VoucherModel> vouchers,
     double totalAmount,
   ) async {
-    final font = await _loadFont();
+    final fonts = await _loadFonts();
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(base: font),
+        theme: _themeWith(fonts),
         build: (pw.Context context) {
           return [
             pw.Directionality(
