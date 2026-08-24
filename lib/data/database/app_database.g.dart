@@ -9052,6 +9052,595 @@ class ItemTypesCompanion extends UpdateCompanion<ItemType> {
   }
 }
 
+class $AttachmentsTable extends Attachments
+    with TableInfo<$AttachmentsTable, Attachment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _entityTypeMeta =
+      const VerificationMeta('entityType');
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+      'entity_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<int> entityId = GeneratedColumn<int>(
+      'entity_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _fileNameMeta =
+      const VerificationMeta('fileName');
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+      'file_name', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 255),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _relativePathMeta =
+      const VerificationMeta('relativePath');
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+      'relative_path', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 500),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _mimeTypeMeta =
+      const VerificationMeta('mimeType');
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+      'mime_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _sizeBytesMeta =
+      const VerificationMeta('sizeBytes');
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+      'size_bytes', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+      'sha256', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _uploadedByUserIdMeta =
+      const VerificationMeta('uploadedByUserId');
+  @override
+  late final GeneratedColumn<int> uploadedByUserId = GeneratedColumn<int>(
+      'uploaded_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        entityType,
+        entityId,
+        fileName,
+        relativePath,
+        mimeType,
+        sizeBytes,
+        sha256,
+        uploadedByUserId,
+        notes,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attachments';
+  @override
+  VerificationContext validateIntegrity(Insertable<Attachment> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+          _entityTypeMeta,
+          entityType.isAcceptableOrUnknown(
+              data['entity_type']!, _entityTypeMeta));
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(_fileNameMeta,
+          fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta));
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+          _relativePathMeta,
+          relativePath.isAcceptableOrUnknown(
+              data['relative_path']!, _relativePathMeta));
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(_mimeTypeMeta,
+          mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta));
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(_sizeBytesMeta,
+          sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta));
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(_sha256Meta,
+          sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta));
+    }
+    if (data.containsKey('uploaded_by_user_id')) {
+      context.handle(
+          _uploadedByUserIdMeta,
+          uploadedByUserId.isAcceptableOrUnknown(
+              data['uploaded_by_user_id']!, _uploadedByUserIdMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Attachment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Attachment(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      entityType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_type'])!,
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}entity_id'])!,
+      fileName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}file_name'])!,
+      relativePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}relative_path'])!,
+      mimeType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mime_type'])!,
+      sizeBytes: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}size_bytes'])!,
+      sha256: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sha256'])!,
+      uploadedByUserId: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}uploaded_by_user_id']),
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $AttachmentsTable createAlias(String alias) {
+    return $AttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class Attachment extends DataClass implements Insertable<Attachment> {
+  final int id;
+
+  /// نوع الكيان: 'advance' (سلفة مشروع) | 'voucher' (سند)
+  ///
+  /// ربط متعدّد الأشكال بدل جدولَي مرفقات منفصلين: المرفق سلوكه واحد مهما
+  /// كان صاحبه، وفصله يعني تكرار كل استعلام ودالة مرّتين.
+  final String entityType;
+
+  /// معرّف الكيان — **بلا مفتاح خارجي عمداً**
+  ///
+  /// لأن العمود يشير إلى جدولين مختلفين حسب `entity_type`، ولا يدعم SQLite
+  /// مفتاحاً خارجياً شرطياً. النظافة مسؤولية طبقة الحذف: راجع
+  /// `AttachmentsDao.deleteForEntity`.
+  final int entityId;
+
+  /// اسم الملف كما اختاره المستخدم — للعرض فقط
+  final String fileName;
+
+  /// المسار **النسبي** من جذر المرفقات — يستعمل `/` دائماً
+  ///
+  /// نوحّد الفاصل على `/` حتى على ويندوز: القاعدة قد تُفتَح على الماك،
+  /// وفاصل ويندوز `\` يصير هناك جزءاً من اسم الملف لا فاصلاً.
+  final String relativePath;
+
+  /// نوع المحتوى: 'application/pdf' · 'image/jpeg' …
+  final String mimeType;
+
+  /// حجم الملف بالبايت — لعرضه وللتحقق من سلامة النسخ
+  final int sizeBytes;
+
+  /// بصمة SHA-256 للمحتوى
+  ///
+  /// غرضها الأول كشف إرفاق **نفس الملف مرّتين** على الكيان نفسه، والثاني
+  /// التحقّق أن الملف على القرص لم يُستبدَل أو يتلف منذ إرفاقه.
+  final String sha256;
+
+  /// من أرفق الملف
+  final int? uploadedByUserId;
+
+  /// ملاحظة اختيارية على المرفق (وصف محتواه)
+  final String notes;
+
+  /// وقت الإرفاق
+  final DateTime createdAt;
+  const Attachment(
+      {required this.id,
+      required this.entityType,
+      required this.entityId,
+      required this.fileName,
+      required this.relativePath,
+      required this.mimeType,
+      required this.sizeBytes,
+      required this.sha256,
+      this.uploadedByUserId,
+      required this.notes,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<int>(entityId);
+    map['file_name'] = Variable<String>(fileName);
+    map['relative_path'] = Variable<String>(relativePath);
+    map['mime_type'] = Variable<String>(mimeType);
+    map['size_bytes'] = Variable<int>(sizeBytes);
+    map['sha256'] = Variable<String>(sha256);
+    if (!nullToAbsent || uploadedByUserId != null) {
+      map['uploaded_by_user_id'] = Variable<int>(uploadedByUserId);
+    }
+    map['notes'] = Variable<String>(notes);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return AttachmentsCompanion(
+      id: Value(id),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      fileName: Value(fileName),
+      relativePath: Value(relativePath),
+      mimeType: Value(mimeType),
+      sizeBytes: Value(sizeBytes),
+      sha256: Value(sha256),
+      uploadedByUserId: uploadedByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uploadedByUserId),
+      notes: Value(notes),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Attachment.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Attachment(
+      id: serializer.fromJson<int>(json['id']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<int>(json['entityId']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      mimeType: serializer.fromJson<String>(json['mimeType']),
+      sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      sha256: serializer.fromJson<String>(json['sha256']),
+      uploadedByUserId: serializer.fromJson<int?>(json['uploadedByUserId']),
+      notes: serializer.fromJson<String>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<int>(entityId),
+      'fileName': serializer.toJson<String>(fileName),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'mimeType': serializer.toJson<String>(mimeType),
+      'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'sha256': serializer.toJson<String>(sha256),
+      'uploadedByUserId': serializer.toJson<int?>(uploadedByUserId),
+      'notes': serializer.toJson<String>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Attachment copyWith(
+          {int? id,
+          String? entityType,
+          int? entityId,
+          String? fileName,
+          String? relativePath,
+          String? mimeType,
+          int? sizeBytes,
+          String? sha256,
+          Value<int?> uploadedByUserId = const Value.absent(),
+          String? notes,
+          DateTime? createdAt}) =>
+      Attachment(
+        id: id ?? this.id,
+        entityType: entityType ?? this.entityType,
+        entityId: entityId ?? this.entityId,
+        fileName: fileName ?? this.fileName,
+        relativePath: relativePath ?? this.relativePath,
+        mimeType: mimeType ?? this.mimeType,
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+        sha256: sha256 ?? this.sha256,
+        uploadedByUserId: uploadedByUserId.present
+            ? uploadedByUserId.value
+            : this.uploadedByUserId,
+        notes: notes ?? this.notes,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  Attachment copyWithCompanion(AttachmentsCompanion data) {
+    return Attachment(
+      id: data.id.present ? data.id.value : this.id,
+      entityType:
+          data.entityType.present ? data.entityType.value : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      uploadedByUserId: data.uploadedByUserId.present
+          ? data.uploadedByUserId.value
+          : this.uploadedByUserId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Attachment(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('fileName: $fileName, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('sha256: $sha256, ')
+          ..write('uploadedByUserId: $uploadedByUserId, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      entityType,
+      entityId,
+      fileName,
+      relativePath,
+      mimeType,
+      sizeBytes,
+      sha256,
+      uploadedByUserId,
+      notes,
+      createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Attachment &&
+          other.id == this.id &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.fileName == this.fileName &&
+          other.relativePath == this.relativePath &&
+          other.mimeType == this.mimeType &&
+          other.sizeBytes == this.sizeBytes &&
+          other.sha256 == this.sha256 &&
+          other.uploadedByUserId == this.uploadedByUserId &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt);
+}
+
+class AttachmentsCompanion extends UpdateCompanion<Attachment> {
+  final Value<int> id;
+  final Value<String> entityType;
+  final Value<int> entityId;
+  final Value<String> fileName;
+  final Value<String> relativePath;
+  final Value<String> mimeType;
+  final Value<int> sizeBytes;
+  final Value<String> sha256;
+  final Value<int?> uploadedByUserId;
+  final Value<String> notes;
+  final Value<DateTime> createdAt;
+  const AttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.uploadedByUserId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AttachmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String entityType,
+    required int entityId,
+    required String fileName,
+    required String relativePath,
+    this.mimeType = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.uploadedByUserId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  })  : entityType = Value(entityType),
+        entityId = Value(entityId),
+        fileName = Value(fileName),
+        relativePath = Value(relativePath);
+  static Insertable<Attachment> custom({
+    Expression<int>? id,
+    Expression<String>? entityType,
+    Expression<int>? entityId,
+    Expression<String>? fileName,
+    Expression<String>? relativePath,
+    Expression<String>? mimeType,
+    Expression<int>? sizeBytes,
+    Expression<String>? sha256,
+    Expression<int>? uploadedByUserId,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (fileName != null) 'file_name': fileName,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (sha256 != null) 'sha256': sha256,
+      if (uploadedByUserId != null) 'uploaded_by_user_id': uploadedByUserId,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AttachmentsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? entityType,
+      Value<int>? entityId,
+      Value<String>? fileName,
+      Value<String>? relativePath,
+      Value<String>? mimeType,
+      Value<int>? sizeBytes,
+      Value<String>? sha256,
+      Value<int?>? uploadedByUserId,
+      Value<String>? notes,
+      Value<DateTime>? createdAt}) {
+    return AttachmentsCompanion(
+      id: id ?? this.id,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      fileName: fileName ?? this.fileName,
+      relativePath: relativePath ?? this.relativePath,
+      mimeType: mimeType ?? this.mimeType,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      sha256: sha256 ?? this.sha256,
+      uploadedByUserId: uploadedByUserId ?? this.uploadedByUserId,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<int>(entityId.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (uploadedByUserId.present) {
+      map['uploaded_by_user_id'] = Variable<int>(uploadedByUserId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('fileName: $fileName, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('sha256: $sha256, ')
+          ..write('uploadedByUserId: $uploadedByUserId, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ExchangeRatesTable extends ExchangeRates
     with TableInfo<$ExchangeRatesTable, ExchangeRate> {
   @override
@@ -9976,6 +10565,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AdvancesTable advances = $AdvancesTable(this);
   late final $AdvanceLinesTable advanceLines = $AdvanceLinesTable(this);
   late final $ItemTypesTable itemTypes = $ItemTypesTable(this);
+  late final $AttachmentsTable attachments = $AttachmentsTable(this);
   late final $ExchangeRatesTable exchangeRates = $ExchangeRatesTable(this);
   late final $AuditLogTable auditLog = $AuditLogTable(this);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
@@ -9993,6 +10583,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final ExchangeRatesDao exchangeRatesDao =
       ExchangeRatesDao(this as AppDatabase);
   late final AdvancesDao advancesDao = AdvancesDao(this as AppDatabase);
+  late final AttachmentsDao attachmentsDao =
+      AttachmentsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10014,6 +10606,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         advances,
         advanceLines,
         itemTypes,
+        attachments,
         exchangeRates,
         auditLog
       ];
@@ -16313,6 +16906,260 @@ typedef $$ItemTypesTableProcessedTableManager = ProcessedTableManager<
     (ItemType, BaseReferences<_$AppDatabase, $ItemTypesTable, ItemType>),
     ItemType,
     PrefetchHooks Function()>;
+typedef $$AttachmentsTableCreateCompanionBuilder = AttachmentsCompanion
+    Function({
+  Value<int> id,
+  required String entityType,
+  required int entityId,
+  required String fileName,
+  required String relativePath,
+  Value<String> mimeType,
+  Value<int> sizeBytes,
+  Value<String> sha256,
+  Value<int?> uploadedByUserId,
+  Value<String> notes,
+  Value<DateTime> createdAt,
+});
+typedef $$AttachmentsTableUpdateCompanionBuilder = AttachmentsCompanion
+    Function({
+  Value<int> id,
+  Value<String> entityType,
+  Value<int> entityId,
+  Value<String> fileName,
+  Value<String> relativePath,
+  Value<String> mimeType,
+  Value<int> sizeBytes,
+  Value<String> sha256,
+  Value<int?> uploadedByUserId,
+  Value<String> notes,
+  Value<DateTime> createdAt,
+});
+
+class $$AttachmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+      column: $table.fileName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relativePath => $composableBuilder(
+      column: $table.relativePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+      column: $table.mimeType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+      column: $table.sizeBytes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sha256 => $composableBuilder(
+      column: $table.sha256, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get uploadedByUserId => $composableBuilder(
+      column: $table.uploadedByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$AttachmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+      column: $table.fileName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relativePath => $composableBuilder(
+      column: $table.relativePath,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+      column: $table.mimeType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+      column: $table.sizeBytes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sha256 => $composableBuilder(
+      column: $table.sha256, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get uploadedByUserId => $composableBuilder(
+      column: $table.uploadedByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$AttachmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => column);
+
+  GeneratedColumn<int> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<String> get relativePath => $composableBuilder(
+      column: $table.relativePath, builder: (column) => column);
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumn<int> get uploadedByUserId => $composableBuilder(
+      column: $table.uploadedByUserId, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$AttachmentsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AttachmentsTable,
+    Attachment,
+    $$AttachmentsTableFilterComposer,
+    $$AttachmentsTableOrderingComposer,
+    $$AttachmentsTableAnnotationComposer,
+    $$AttachmentsTableCreateCompanionBuilder,
+    $$AttachmentsTableUpdateCompanionBuilder,
+    (Attachment, BaseReferences<_$AppDatabase, $AttachmentsTable, Attachment>),
+    Attachment,
+    PrefetchHooks Function()> {
+  $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttachmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AttachmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AttachmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> entityType = const Value.absent(),
+            Value<int> entityId = const Value.absent(),
+            Value<String> fileName = const Value.absent(),
+            Value<String> relativePath = const Value.absent(),
+            Value<String> mimeType = const Value.absent(),
+            Value<int> sizeBytes = const Value.absent(),
+            Value<String> sha256 = const Value.absent(),
+            Value<int?> uploadedByUserId = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              AttachmentsCompanion(
+            id: id,
+            entityType: entityType,
+            entityId: entityId,
+            fileName: fileName,
+            relativePath: relativePath,
+            mimeType: mimeType,
+            sizeBytes: sizeBytes,
+            sha256: sha256,
+            uploadedByUserId: uploadedByUserId,
+            notes: notes,
+            createdAt: createdAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String entityType,
+            required int entityId,
+            required String fileName,
+            required String relativePath,
+            Value<String> mimeType = const Value.absent(),
+            Value<int> sizeBytes = const Value.absent(),
+            Value<String> sha256 = const Value.absent(),
+            Value<int?> uploadedByUserId = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              AttachmentsCompanion.insert(
+            id: id,
+            entityType: entityType,
+            entityId: entityId,
+            fileName: fileName,
+            relativePath: relativePath,
+            mimeType: mimeType,
+            sizeBytes: sizeBytes,
+            sha256: sha256,
+            uploadedByUserId: uploadedByUserId,
+            notes: notes,
+            createdAt: createdAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$AttachmentsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $AttachmentsTable,
+    Attachment,
+    $$AttachmentsTableFilterComposer,
+    $$AttachmentsTableOrderingComposer,
+    $$AttachmentsTableAnnotationComposer,
+    $$AttachmentsTableCreateCompanionBuilder,
+    $$AttachmentsTableUpdateCompanionBuilder,
+    (Attachment, BaseReferences<_$AppDatabase, $AttachmentsTable, Attachment>),
+    Attachment,
+    PrefetchHooks Function()>;
 typedef $$ExchangeRatesTableCreateCompanionBuilder = ExchangeRatesCompanion
     Function({
   Value<int> id,
@@ -16785,6 +17632,8 @@ class $AppDatabaseManager {
       $$AdvanceLinesTableTableManager(_db, _db.advanceLines);
   $$ItemTypesTableTableManager get itemTypes =>
       $$ItemTypesTableTableManager(_db, _db.itemTypes);
+  $$AttachmentsTableTableManager get attachments =>
+      $$AttachmentsTableTableManager(_db, _db.attachments);
   $$ExchangeRatesTableTableManager get exchangeRates =>
       $$ExchangeRatesTableTableManager(_db, _db.exchangeRates);
   $$AuditLogTableTableManager get auditLog =>

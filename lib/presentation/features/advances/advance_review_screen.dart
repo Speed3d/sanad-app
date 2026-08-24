@@ -18,7 +18,10 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import '../../../core/auth/permissions.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/models/advance_model.dart';
+import '../../../core/services/attachment_service.dart';
+import '../../../data/database/daos/attachments_dao.dart';
 import '../../providers/advance_providers.dart';
+import '../../widgets/common/attachments_panel.dart';
 import '../../providers/auth_provider.dart';
 import 'widgets/advance_summary_bar.dart';
 import 'widgets/post_advance_dialog.dart';
@@ -132,6 +135,24 @@ class _ReviewBody extends ConsumerWidget {
           // شريط حالة للسلف غير القابلة للتحرير
           if (!advance.isEditable)
             _StateBanner(advance: advance),
+
+          // ── مرفقات السلفة (المرحلة ج) ────────────────────────────────
+          // الفواتير والوصولات هي الدليل المادّي على مصاريف السلفة.
+          // السلفة الملغاة للقراءة فقط: لا معنى لإرفاق دليل على ما أُلغي.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: AttachmentsPanel(
+              entityType: AttachmentEntity.advance,
+              entityId: advance.id,
+              year: advance.advanceDate.year,
+              folderName: AttachmentService.advanceFolder(
+                advanceNumber: advance.advanceNumber,
+                projectName: advance.projectName,
+              ),
+              title: 'مرفقات السلفة',
+              readOnly: advance.isCancelled,
+            ),
+          ),
 
           Expanded(
             child: linesAsync.when(

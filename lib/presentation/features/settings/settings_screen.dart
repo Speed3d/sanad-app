@@ -19,6 +19,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'tabs/attachments_tab.dart';
 import 'tabs/company_tab.dart';
 import 'tabs/appearance_tab.dart';
 // import 'tabs/language_tab.dart'; // مُعطَّل مؤقتاً — انظر ملاحظة قسم اللغة أدناه
@@ -46,7 +47,7 @@ class _SettingsSection {
   });
 }
 
-/// الأقسام الثمانية مرتَّبة حسب الأهمية
+/// الأقسام التسعة مرتَّبة حسب الأهمية
 final List<_SettingsSection> _sections = [
   _SettingsSection(
     title: 'بيانات الشركة',
@@ -87,6 +88,12 @@ final List<_SettingsSection> _sections = [
     subtitle: 'الحسابات والصلاحيات',
     icon: Icons.manage_accounts_outlined,
     builder: () => const UsersTab(),
+  ),
+  _SettingsSection(
+    title: 'المرفقات',
+    subtitle: 'مجلد حفظ الفواتير والوصولات',
+    icon: Icons.attach_file,
+    builder: () => const AttachmentsTab(),
   ),
   _SettingsSection(
     title: 'النسخ الاحتياطي',

@@ -1118,7 +1118,7 @@ class _ItemTypeNamesProviderElement
   String? get kind => (origin as ItemTypeNamesProvider).kind;
 }
 
-String _$advanceNotifierHash() => r'31a39a3c45962937227b285176e968eec2bcee11';
+String _$advanceNotifierHash() => r'50c9cd6a791cd629f1f941e90ba58580754f5273';
 
 /// مدير عمليات السلف
 ///

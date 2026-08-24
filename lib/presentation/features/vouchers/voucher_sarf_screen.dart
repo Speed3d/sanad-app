@@ -25,7 +25,10 @@ import '../../../domain/models/voucher_model.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
+import '../../../core/services/attachment_service.dart';
+import '../../../data/database/daos/attachments_dao.dart';
 import '../../widgets/common/item_type_selector.dart';
+import '../../widgets/common/attachments_panel.dart';
 
 // ملاحظة (ب-١ — 2026-08-23): حُذفت من هنا قائمتان ثابتتان بأنواع البنود
 // (_kItemTypes و _kItemTypeLabels). كانتا تعرضان ٨ بنود مكتوبة في الكود
@@ -613,6 +616,25 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // ── مرفقات السند (المرحلة ج) ──────────────────────────────
+              //
+              // تظهر في **وضع التعديل فقط**: المرفق يحتاج معرّف سند يرتبط به،
+              // والسند الجديد لا معرّف له قبل الحفظ. لو عُرضت عند الإنشاء
+              // لأُرفق الملف بمعرّف لا وجود له بعد.
+              if (widget.isEdit && _editVoucher != null)
+                AttachmentsPanel(
+                  entityType: AttachmentEntity.voucher,
+                  entityId: _editVoucher!.id,
+                  year: _editVoucher!.voucherDate.year,
+                  folderName: AttachmentService.voucherFolder(
+                    voucherNumber: _editVoucher!.voucherNumber,
+                    voucherType: _editVoucher!.voucherType,
+                  ),
+                  title: 'مرفقات السند',
+                ),
+
               const SizedBox(height: 24),
 
               // ── أزرار الإجراءات ───────────────────────────────────────────

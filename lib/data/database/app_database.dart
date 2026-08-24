@@ -37,6 +37,7 @@ import 'tables/exchange_rates_table.dart';
 import 'tables/advances_table.dart';
 import 'tables/advance_lines_table.dart';
 import 'tables/item_types_table.dart';
+import 'tables/attachments_table.dart';
 import 'views/treasury_balance_view.dart';
 
 // ── استيراد الـ DAOs ──────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ import 'daos/partners_dao.dart';
 import 'daos/audit_log_dao.dart';
 import 'daos/exchange_rates_dao.dart';
 import 'daos/advances_dao.dart';
+import 'daos/attachments_dao.dart';
 
 // الملف المُولَّد تلقائياً بواسطة build_runner — لا تعدّله
 part 'app_database.g.dart';
@@ -92,6 +94,9 @@ part 'app_database.g.dart';
     AdvanceLines,
     ItemTypes,
 
+    // ── المرفقات (Schema v6) ───────────────────────────────────────────────
+    Attachments,
+
     // ── المساعد ────────────────────────────────────────────────────────────
     ExchangeRates,
     AuditLog,
@@ -109,6 +114,7 @@ part 'app_database.g.dart';
     AuditLogDao,
     ExchangeRatesDao,
     AdvancesDao,
+    AttachmentsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -126,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -196,6 +202,36 @@ class AppDatabase extends _$AppDatabase {
 
         // بذور أنواع البنود — idempotent (insertOrIgnore) فلا تُكرّر شيئاً
         // لو نُفِّذت الترقية أكثر من مرة أو كان الجدول مبذوراً أصلاً.
+        await _seedItemTypes();
+      }
+
+      // ── الترقية إلى الإصدار 6 (المرفقات + تمييز سلفة الموظف) ──────────
+      if (from < 6) {
+        // جدول attachments أُنشئ أعلاه عبر createAll().
+
+        // ── ترحيل نوع البند: 'سلفة' ← 'سلفة موظف' ────────────────────────
+        //
+        // **لماذا الترحيل ضروري؟** (قرار المالك 2026-08-24)
+        //   `Advances` (سلفة مشروع) و`CashAdvances` (سلفة موظف) يحملان الاسم
+        //   نفسه بالعربية. سندات سلف الموظفين كانت تُنشأ بنوع بند `'سلفة'`
+        //   حرفياً، فيظهر في تقرير «المصروفات حسب البند» باسم غامض لا يدلّ
+        //   على أنه يخصّ الموظفين.
+        //
+        //   تغيير القيمة في الكود وحده كان سيُنتج **قيمتين لمعنى واحد**:
+        //   السندات القديمة `'سلفة'` والجديدة `'سلفة موظف'` — فينقسم البند
+        //   في التقرير صفّين. لهذا يجب أن يمشي الترحيل مع تغيير الكود معاً.
+        //
+        //   نُحدّث السندات القديمة كلها، ثم نُصحّح صفّ البند في `item_types`.
+        await customStatement(
+          "UPDATE vouchers SET item_type = 'سلفة موظف' "
+          "WHERE item_type = 'سلفة'",
+        );
+
+        // الصفّ القديم يُحذف بعد نقل السندات — لا نتركه ليُختار من جديد.
+        // insertOrIgnore في _seedItemTypes سيضيف 'سلفة موظف' تلقائياً.
+        await customStatement(
+          "DELETE FROM item_types WHERE name = 'سلفة'",
+        );
         await _seedItemTypes();
       }
 
@@ -358,6 +394,21 @@ class AppDatabase extends _$AppDatabase {
       ON advance_lines (advance_id, row_number)
     ''');
 
+    // ── فهرس المرفقات (Schema v6) ───────────────────────────────────────
+    // الاستعلام الوحيد تقريباً: «أعطني مرفقات هذا الكيان» — مركّب لأن
+    // entity_id وحده يتكرّر بين الجدولين (سلفة رقم ٣ وسند رقم ٣).
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_attachments_entity
+      ON attachments (entity_type, entity_id, created_at)
+    ''');
+
+    // كشف الملف المكرّر على الكيان نفسه ببصمته
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_attachments_sha
+      ON attachments (sha256)
+      WHERE sha256 != ''
+    ''');
+
     // السندات المرتبطة بسلفة — لحساب المُرسَل والمصروف
     await customStatement('''
       CREATE INDEX IF NOT EXISTS idx_vouchers_advance
@@ -418,6 +469,8 @@ class AppDatabase extends _$AppDatabase {
       final advanceCount = await countOf('advances');
 
       // ── المسح بالترتيب الآمن (الابن قبل الأب) ────────────────────────
+      // المرفقات أولاً: صفوفها تشير إلى سلف وسندات على وشك الحذف
+      await delete(attachments).go();
       await delete(advanceLines).go();
       await delete(advances).go();
       await delete(cashAdvanceRepayments).go();
@@ -522,7 +575,8 @@ class AppDatabase extends _$AppDatabase {
       (name: 'إيجار', kind: 'sarf', order: 110),
       (name: 'مصاريف تشغيل', kind: 'sarf', order: 120),
       (name: 'رسوم وضرائب', kind: 'sarf', order: 130),
-      (name: 'سلفة', kind: 'sarf', order: 140),
+      // «سلفة موظف» صراحةً لا «سلفة» — تمييزاً عن سلفة المشروع
+      (name: 'سلفة موظف', kind: 'sarf', order: 140),
       // ── بنود القبض ──────────────────────────────────────────────────
       (name: 'رأس مال', kind: 'kabd', order: 200),
       (name: 'دفعة عميل', kind: 'kabd', order: 210),

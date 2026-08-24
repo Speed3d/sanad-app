@@ -80,6 +80,9 @@ abstract final class AuditTables {
   /// جدول سلف المشاريع (≠ cash_advances سلف الموظفين)
   static const String advances = 'advances';
 
+  /// جدول المرفقات (Schema v6)
+  static const String attachments = 'attachments';
+
   /// حدث على مستوى النظام (لا يرتبط بجدول محدد)
   static const String system = 'system';
 }
@@ -420,6 +423,58 @@ class AuditLogger {
             'deleted_amount': amount,
             'currency': currency,
             'note': 'soft_delete',
+          }),
+        ));
+  }
+
+  // ── أحداث المرفقات (Schema v6) ────────────────────────────────────────────
+
+  /// تسجيل إرفاق ملف بسلفة أو سند
+  ///
+  /// المرفق دليل مادّي على السند — فإرفاقه وحذفه حدثان يستحقّان الأثر تماماً
+  /// كتعديل مبلغ. ومن دون التسجيل لا يُعرف من أرفق فاتورة ولا من أزالها.
+  Future<void> logAttachmentAdded({
+    required int userId,
+    required String username,
+    required String entityType,
+    required int entityId,
+    required String fileName,
+    required int sizeBytes,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.attachments,
+          action: AuditActions.insert,
+          recordId: entityId,
+          meta: _toMeta({
+            'entity_type': entityType,
+            'file_name': fileName,
+            'size_bytes': sizeBytes,
+          }),
+        ));
+  }
+
+  /// تسجيل حذف مرفق
+  ///
+  /// نحفظ اسم الملف لأنه يختفي من الفهرس بعد الحذف — فيبقى في السجل أثرٌ
+  /// لما أُزيل لا مجرّد أن شيئاً أُزيل.
+  Future<void> logAttachmentDeleted({
+    required int userId,
+    required String username,
+    required String entityType,
+    required int entityId,
+    required String fileName,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.attachments,
+          action: AuditActions.delete,
+          recordId: entityId,
+          meta: _toMeta({
+            'entity_type': entityType,
+            'file_name': fileName,
           }),
         ));
   }

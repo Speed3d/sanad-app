@@ -54,6 +54,17 @@ abstract final class AppSettingsKeys {
   /// الافتراضي: منع (الأأمن مالياً) — يمكن للمالك تغييره من الإعدادات
   static const String enforceBalanceCheck = 'enforce_balance_check';
 
+  // ── المرفقات (Schema v6) ─────────────────────────────────────────────────
+
+  /// المجلد الجذر لتخزين المرفقات — مثل 'D:\SanadFiles'
+  ///
+  /// **تُخزَّن المسارات في قاعدة البيانات نسبيةً لهذا الجذر لا مطلقة.**
+  /// فنقل المجلد أو تغيّر حرف القرص يحتاج تعديل هذا المفتاح وحده، بدل أن
+  /// يكسر كل رابط مرفق في النظام. راجع `attachments_table.dart`.
+  ///
+  /// فارغ = لم يُعيَّن بعد، فتُعطَّل شاشات الإرفاق برسالة واضحة.
+  static const String attachmentsRoot = 'attachments_root';
+
   /// نمط المزامنة السحابية: 'local' = نسخة محلية إضافية | 'drive' = Google Drive
   /// الافتراضي: local (لأن مزامنة Drive تحتاج إعداد OAuth خارجي بعد)
   static const String cloudSyncMode = 'cloud_sync_mode';

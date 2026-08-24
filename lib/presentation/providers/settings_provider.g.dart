@@ -51,7 +51,7 @@ final companyLogoProvider = AutoDisposeFutureProvider<Uint8List?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CompanyLogoRef = AutoDisposeFutureProviderRef<Uint8List?>;
-String _$pdfCompanyHeaderHash() => r'72cc58fbaa6a977346b6e59ca7fbf3b3e0939859';
+String _$pdfCompanyHeaderHash() => r'e6508625b2aed40777cc415ae1677cb8610803b2';
 
 /// هوية الشركة الجاهزة لترويسة الـ PDF — الاسم والشعار معاً
 ///

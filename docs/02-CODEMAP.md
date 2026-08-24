@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-08-23 (بعد ب-٣)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-08-24 (بعد المرحلة ج)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -35,6 +35,7 @@ lib/
 | `services/fiscal_period_guard.dart` | `ensureActive` — يرمي إن كانت الفترة مُقفَلة | **إلزامي** قبل أي كتابة محاسبية |
 | `services/backup_crypto_service.dart` | AES-256-GCM + PBKDF2 · صيغة SMBAK2 | النسخ الاحتياطي المشفَّر |
 | `services/cloud_backup_service.dart` | نسخة محلية إضافية (**ليست سحابة** — التسمية صادقة) | نسخة ثانية على الجهاز |
+| `services/attachment_service.dart` | نسخ المرفقات · بصمة SHA-256 · تنقية المسارات · الفتح عبر `explorer` | أي تعامل مع ملفات المرفقات — **لا تلمس نظام الملفات مباشرةً** |
 | `services/smart_alert_service.dart` | تنبيهات: رصيد منخفض · سلف معلّقة قديمة | شريط التنبيهات في لوحة التحكم |
 | `services/pdf_service.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم) | طباعة السندات. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء** |
 | `auth/permissions.dart` | **مصدر الحقيقة الوحيد للصلاحيات** — `AppPermission` + `user.can()` | أي فحص صلاحية. **لا تكتب `role == 'admin'` يدوياً أبداً** |
@@ -84,6 +85,7 @@ lib/
 | `employees` · `cash_advances` · `cash_advance_repayments` · `salary_payments` | الموارد البشرية | ⚠️ `cash_advances` = سلفة **موظف** |
 | `contractors` · `partners` | الأطراف الخارجية | |
 | `advances` · `advance_lines` · `item_types` | **سلف المشاريع** (Schema v5) | ⚠️ ≠ `cash_advances` |
+| `attachments` | فهرس مرفقات السلف والسندات (Schema v6) | **المسار نسبي لا مطلق** · `entity_id` بلا مفتاح خارجي (يشير لجدولين) |
 | `exchange_rates` · `audit_log` | مساعدة | |
 
 **الـ VIEW:** `views/treasury_balance_view.dart` — `v_treasury_balances`.
@@ -98,6 +100,7 @@ lib/
 | `advances_dao` | `getDeficitCreditors()` من تدين لهم الشركة · `postAdvance()` **ذرّية** · `cancelAdvance()` · `getSentAmount()` · `getPostedSpent()` |
 | `users_dao` | `registerFailedLogin()` **زيادة ذرّية** · `updatePasswordHash()` |
 | `treasuries_dao` | `getTreasuryBalance()` — يقرأ من الـ VIEW |
+| `attachments_dao` | `watchForEntity()` · `findDuplicate()` · `deleteForEntity()` **يُعيد الصفوف** ليحذف المستدعي ملفاتها |
 | `audit_log_dao` | `logSimpleAction()` · `getLogsByTable()` · `getRecentLogs()` |
 | `app_settings_dao` | `getString/setString` · `getBool/setBool` · `getBlob/setBlob` |
 
@@ -130,7 +133,7 @@ lib/
 | `excel_import_screen` | `/reports/excel-import` | يُنتج مسودة لا سندات |
 | `fiscal_screen` + `purge_period_dialog` | `/fiscal` | إقفال · إعادة فتح · حذف · محو قسري |
 | `backup_screen` | `/backup` | معطَّل على الويب |
-| `settings_screen` + ٨ تبويبات | `/settings` | |
+| `settings_screen` + ٩ تبويبات | `/settings` | منها `attachments_tab` (مجلد المرفقات) |
 | `audit_screen` | `/audit` | |
 
 ### Providers (`presentation/providers/`)
@@ -146,6 +149,7 @@ lib/
 |---|---|
 | `app_components.dart` | مكوّنات مشتركة (حالات فارغة، بطاقات…) — **افحصه قبل بناء ودجت جديد** |
 | `reports/report_widgets.dart` | `ReportDateField` · `ReportSummaryCard` · `ReportPlaceholder` — **لأي تبويب تقرير جديد** |
+| `attachments_panel.dart` | `AttachmentsPanel` — لوحة المرفقات للسلف والسندات معاً |
 | `item_type_selector.dart` | `ItemTypeSelector` شرائح البنود من جدول `item_types` · `ItemTypeFilterDropdown` قائمة فلترة. **استعملهما — لا تكتب قائمة بنود ثابتة في الكود** |
 | `app_shell.dart` | القشرة: NavigationRail / NavigationBar |
 | `error_screen.dart` | ٤٠٤ و٤٠٣ |
@@ -174,6 +178,21 @@ ctrl.dispose();   // الحوار ما زال يُعاد بناؤه!
 إن احتجت متحكّماً فعلاً (تركيز، تحديد نصّ)، اجعل الحوار `StatefulWidget`
 يملكه ويتخلّص منه في `dispose()`. **يحرسه اختبار آلي:**
 `test/unit/dialog_controller_lifecycle_test.dart`
+
+### ✅ المرفقات: المسار نسبي والترتيب مقصود
+```
+الإرفاق:  انسخ الملف  ثم  سجّل الصفّ
+الحذف:    احذف الصفّ  ثم  امحُ الملف
+```
+في الحالتين الخطأ الأسوأ — **فهرس يشير إلى ملف غير موجود** — مستحيل بنيوياً.
+والمسار المخزَّن **نسبي بفاصل `/`** دائماً: نقل المجلد أو تغيّر حرف القرص أو
+فتح القاعدة على الماك لا يكسر شيئاً.
+
+### ✅ اختبر `onUpgrade` لا `onCreate` وحده
+`schema_v6_upgrade_test.dart` هو **أول اختبار لمسار الترقية في المشروع**.
+كل اختبارات المخطط السابقة (v4 · v5) تفحص قواعد **جديدة** فقط — بينما
+`onUpgrade` هو الشيفرة الوحيدة التي تلمس بيانات المالك الموجودة.
+أي ترحيل جديد يجب أن يمرّ باختبار مثله.
 
 ### ✅ تسمية السلف — لا تكتب «سلفة» وحدها
 `Advances` (مشروع) و`CashAdvances` (موظف) يحملان الاسم نفسه بالعربية.
@@ -251,6 +270,8 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **الـ Schema** | `database` · `schema_v4` · `schema_v5` |
 | **حقول التتبّع** | `voucher_tracking_fields` · `voucher_filter_values` |
 | **التقارير** | `expense_reports` ← يحرس **قرارات محاسبية** لا كوداً |
+| **المرفقات** | `schema_v6` · `attachment_service` |
+| **الترقية** | `schema_v6_upgrade` ← **الوحيد الذي يختبر `onUpgrade`** |
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` ← يفحص **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |

@@ -31,10 +31,12 @@ import 'package:path_provider/path_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/attachment_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../../core/auth/permissions.dart';
 import '../../../core/constants/app_settings_keys.dart';
 import '../../../core/services/backup_crypto_service.dart';
+import '../../../core/services/attachment_service.dart';
 import '../../../core/services/cloud_backup_service.dart';
 import '../../../core/utils/audit_logger.dart';
 
@@ -92,6 +94,144 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   }
 
   // ── تصدير النسخة الاحتياطية ──────────────────────────────────────────────
+
+  /// نسخة احتياطية **شاملة**: قاعدة البيانات + ملفات المرفقات
+  ///
+  /// ═══ لماذا مجلد لا ملف مضغوط؟ (قرار المالك 2026-08-23) ═══
+  ///   الضغط يتطلّب إعلان حزمة `archive` صراحةً في `pubspec.yaml` — وهو ما
+  ///   يقع تحت شرط «لا تبعية جديدة بلا موافقة». والمجلد أبسط وأشفّ: يراه
+  ///   المالك ويتصفّحه ويضغطه بنقرة يمين إن أراد، ولا يحتاج البرنامج لفكّه
+  ///   عند الاستعادة.
+  ///
+  /// ═══ ⚠️ ملاحظة صدق ═══
+  ///   قاعدة البيانات داخل النسخة **مشفَّرة** بكلمة المرور، أما ملفات
+  ///   المرفقات فتُنسَخ **كما هي بلا تشفير** — لأن تشفير كل ملف على حدة
+  ///   يعني أن المالك لا يستطيع فتح فاتورته إلا عبر البرنامج، وهو ثمن باهظ.
+  ///   نقول ذلك صراحةً في ملف البيان وفي رسالة النتيجة بدل تركه يُفترَض.
+  Future<void> _exportFullBackup() async {
+    final pass = _passwordCtrl.text;
+    if (pass.isEmpty) {
+      _setStatus('أدخل كلمة المرور أولاً', error: true);
+      return;
+    }
+    if (pass.length < _kMinBackupPasswordLen) {
+      _setStatus(
+        'كلمة المرور قصيرة جداً — يجب ألا تقل عن $_kMinBackupPasswordLen أحرف',
+        error: true,
+      );
+      return;
+    }
+    if (pass != _confirmCtrl.text) {
+      _setStatus('كلمتا المرور غير متطابقتين', error: true);
+      return;
+    }
+
+    setState(() => _working = true);
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final dbFile = io.File('${dir.path}/sales_management_db.sqlite');
+      if (!dbFile.existsSync()) {
+        _setStatus('لم يُعثَر على ملف قاعدة البيانات', error: true);
+        return;
+      }
+
+      // دمج WAL قبل النسخ — وإلا ضاعت آخر السندات المُثبَّتة
+      await ref.read(appDatabaseProvider).checkpointWal();
+
+      final now = DateTime.now();
+      String two(int v) => v.toString().padLeft(2, '0');
+      final stamp = '${now.year}${two(now.month)}${two(now.day)}'
+          '_${two(now.hour)}${two(now.minute)}';
+      final outDir = io.Directory('${dir.path}/sanad_backup_$stamp');
+      await outDir.create(recursive: true);
+
+      // ── ١) قاعدة البيانات مشفَّرة ────────────────────────────────────
+      final encrypted = await _encryptBytes(await dbFile.readAsBytes(), pass);
+      await io.File('${outDir.path}/database.smbak')
+          .writeAsBytes(encrypted, flush: true);
+
+      // ── ٢) المرفقات ─────────────────────────────────────────────────
+      //
+      // ننسخ من **الفهرس** لا بمسح المجلد: الفهرس هو الحقيقة، وأي ملف في
+      // المخزن لا يشير إليه صفّ هو مخلّفات لا تستحق النسخ.
+      final root = ref.read(attachmentsRootProvider).valueOrNull ?? '';
+      final rows = await ref.read(appDatabaseProvider).attachmentsDao.getAll();
+
+      var copied = 0;
+      var missing = 0;
+      var bytes = 0;
+
+      if (root.trim().isNotEmpty && rows.isNotEmpty) {
+        for (final a in rows) {
+          final src = io.File(
+            AttachmentService.absolutePathOf(
+              root: root,
+              relativePath: a.relativePath,
+            ),
+          );
+          if (!src.existsSync()) {
+            missing++;
+            continue;
+          }
+          final dst = io.File('${outDir.path}/attachments/${a.relativePath}');
+          await dst.parent.create(recursive: true);
+          await src.copy(dst.path);
+          copied++;
+          bytes += a.sizeBytes;
+        }
+      }
+
+      // ── ٣) بيان النسخة ──────────────────────────────────────────────
+      // يقرأه إنسان بعد سنة ولا يتذكّر ما في المجلد ولا كيف يستعيده
+      final manifest = StringBuffer()
+        ..writeln('نسخة احتياطية شاملة — نظام سند')
+        ..writeln('التاريخ: ${now.toIso8601String()}')
+        ..writeln('')
+        ..writeln('المحتويات:')
+        ..writeln('  database.smbak   — قاعدة البيانات (مشفَّرة SMBAK2)')
+        ..writeln('  attachments/     — $copied ملف مرفق')
+        ..writeln('')
+        ..writeln('⚠️ تنبيه أمني:')
+        ..writeln('  قاعدة البيانات مشفَّرة بكلمة المرور التي اخترتها.')
+        ..writeln('  ملفات المرفقات منسوخة **بلا تشفير** — احفظ هذا المجلد')
+        ..writeln('  في مكان آمن إن كانت الفواتير تحوي بيانات حسّاسة.')
+        ..writeln('')
+        ..writeln('الاستعادة:')
+        ..writeln('  ١. النسخ الاحتياطي ← استعادة ← اختر database.smbak')
+        ..writeln('  ٢. انسخ محتوى attachments/ إلى مجلد المرفقات المُعيَّن')
+        ..writeln('     في: الإعدادات ← المرفقات');
+      if (missing > 0) {
+        manifest
+          ..writeln('')
+          ..writeln('⚠️ $missing مرفقاً مفقوداً من القرص ولم يُنسَخ.');
+      }
+      await io.File('${outDir.path}/البيان.txt')
+          .writeAsString(manifest.toString(), flush: true);
+
+      final actor = ref.read(authNotifierProvider.notifier).currentUser;
+      if (actor != null) {
+        await ref.read(auditLoggerProvider).logBackupCreated(
+              userId: actor.id,
+              username: actor.username,
+              filePath: outDir.path,
+            );
+      }
+
+      final mb = (bytes / (1024 * 1024)).toStringAsFixed(1);
+      final warn = missing > 0
+          ? '\n⚠️ $missing مرفقاً مفقوداً من القرص لم يُنسَخ.'
+          : '';
+      _setStatus(
+        '✅ نسخة شاملة في:\n${outDir.path}\n'
+        'قاعدة البيانات (مشفَّرة) + $copied مرفقاً ($mb ميغابايت)\n'
+        'ℹ️ المرفقات منسوخة بلا تشفير — راجع «البيان.txt».$warn',
+      );
+    } catch (e) {
+      _setStatus('تعذّر إنشاء النسخة الشاملة: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
 
   Future<void> _exportBackup() async {
     final pass = _passwordCtrl.text;
@@ -396,6 +536,21 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+
+            // ── النسخة الشاملة (المرحلة ج) ───────────────────────────
+            // منفصلة عن التصدير العادي لأنها أبطأ وأكبر بكثير — لا يجوز
+            // أن تُفاجئ من أراد نسخة سريعة لقاعدة البيانات وحدها.
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed:
+                    (_working || kIsWeb) ? null : _exportFullBackup,
+                icon: const Icon(Icons.folder_zip_outlined),
+                label: const Text('نسخة شاملة (قاعدة البيانات + المرفقات)'),
+              ),
+            ),
+
             if (!canRestore) ...[
               const SizedBox(height: 6),
               Text(

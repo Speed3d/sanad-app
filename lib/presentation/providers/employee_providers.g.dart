@@ -529,7 +529,7 @@ final salaryNotifierProvider =
 );
 
 typedef _$SalaryNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
-String _$advanceNotifierHash() => r'c4dd6001d7c9ee2cad9377a8db7e53cf1b2465da';
+String _$advanceNotifierHash() => r'05f89f6c472235b288bb842e83c7e1f67a07903a';
 
 /// Notifier لإدارة السلف وأقساط السداد
 ///
