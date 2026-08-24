@@ -31,7 +31,7 @@ class AdvanceSummaryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final hasDeficit = summary.deficit > 0;
 
     return Card(

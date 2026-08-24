@@ -338,7 +338,7 @@ class _LineCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('yyyy/MM/dd');
 
     return Card(
@@ -753,7 +753,7 @@ class _EditLineSheetState extends ConsumerState<_EditLineSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('yyyy/MM/dd');
     final l = widget.line;
 

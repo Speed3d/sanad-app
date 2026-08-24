@@ -204,7 +204,7 @@ class _Results extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final async = ref.watch(
       expensesByItemTypeProvider(
         startDate: startDate,
@@ -327,7 +327,7 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final share = total > 0 ? row.totalEquivalentIqd / total : 0.0;
     final barFactor = maxValue > 0 ? row.totalEquivalentIqd / maxValue : 0.0;
 

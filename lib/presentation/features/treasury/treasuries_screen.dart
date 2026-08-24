@@ -483,7 +483,7 @@ class _SummaryBar extends StatelessWidget {
       if (b.isActive) activeCount++;
     }
 
-    final fmtIqd = NumberFormat('#,##0.##');
+    final fmtIqd = NumberFormat('#,##0');
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),

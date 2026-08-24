@@ -177,7 +177,7 @@ class _AdvanceReportCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('yyyy/MM/dd');
     final summaryAsync = ref.watch(advanceSummaryProvider(advance.id));
     final linesAsync = ref.watch(advanceLinesProvider(advance.id));

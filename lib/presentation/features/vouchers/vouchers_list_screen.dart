@@ -25,6 +25,9 @@ import '../../providers/settings_provider.dart';
 import '../../providers/voucher_providers.dart';
 import '../../widgets/common/item_type_selector.dart';
 
+// ── أجزاء المكتبة ───────────────────────────────────────────────────
+part 'vouchers_list_widgets.dart';
+
 /// شاشة السندات الرئيسية مع تبويبات الفلترة والبحث
 class VouchersListScreen extends ConsumerStatefulWidget {
   const VouchersListScreen({super.key});
@@ -47,6 +50,33 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
   // null = بلا فلترة (الكل).
   String? _itemTypeFilter;
   String? _projectFilter;
+
+  // ── فلترة بالتاريخ والمبلغ (طلب المالك 2026-08-24) ──────────────────
+  // «أريد سنداً بتاريخ معيّن أو مبلغ معيّن» — لم يكن لهما سبيل: البحث
+  // النصّي لا يفهم النطاقات، وفلتر الخزينة لا يضيّق زمنياً.
+  // null في كل حقل = بلا تقييد من تلك الجهة.
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  double? _minAmount;
+  double? _maxAmount;
+
+  /// هل لوحة الفلاتر المتقدّمة مفتوحة؟
+  bool _advancedOpen = false;
+
+  /// عدد الفلاتر المتقدّمة الفعّالة — يظهر شارةً على الزرّ
+  int get _advancedCount =>
+      (_fromDate != null ? 1 : 0) +
+      (_toDate != null ? 1 : 0) +
+      (_minAmount != null ? 1 : 0) +
+      (_maxAmount != null ? 1 : 0);
+
+  /// مسح الفلاتر المتقدّمة وحدها
+  void _clearAdvanced() => setState(() {
+        _fromDate = null;
+        _toDate = null;
+        _minAmount = null;
+        _maxAmount = null;
+      });
 
   @override
   void initState() {
@@ -307,6 +337,56 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   onProject: (v) => setState(() => _projectFilter = v),
                 ),
 
+                // ── الفلاتر المتقدّمة: التاريخ والمبلغ ──────────────────
+                // مطويّة افتراضياً: الإدخال اليومي لا يحتاجها، وإظهارها
+                // دائماً يُزاحم الشاشة. الشارة الرقمية تمنع نسيانها مضبوطة.
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => setState(
+                            () => _advancedOpen = !_advancedOpen),
+                        icon: Icon(
+                          _advancedOpen
+                              ? Icons.expand_less
+                              : Icons.tune_rounded,
+                          size: 18,
+                        ),
+                        label: Text(
+                          _advancedCount > 0
+                              ? 'فلاتر متقدّمة ($_advancedCount)'
+                              : 'فلاتر متقدّمة',
+                          style: TextStyle(
+                            fontWeight: _advancedCount > 0
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (_advancedCount > 0)
+                        TextButton.icon(
+                          onPressed: _clearAdvanced,
+                          icon: const Icon(Icons.filter_alt_off_outlined,
+                              size: 17),
+                          label: const Text('مسح'),
+                        ),
+                    ],
+                  ),
+                ),
+
+                if (_advancedOpen)
+                  _AdvancedFilters(
+                    fromDate: _fromDate,
+                    toDate: _toDate,
+                    minAmount: _minAmount,
+                    maxAmount: _maxAmount,
+                    onFrom: (d) => setState(() => _fromDate = d),
+                    onTo: (d) => setState(() => _toDate = d),
+                    onMin: (v) => setState(() => _minAmount = v),
+                    onMax: (v) => setState(() => _maxAmount = v),
+                  ),
+
                 const SizedBox(height: 16),
 
                 // شريط التبويبات (الكل / قبض / صرف / تحويل)
@@ -341,6 +421,10 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   treasuryId: _selectedTreasuryId,
                   itemType: _itemTypeFilter,
                   project: _projectFilter,
+                  fromDate: _fromDate,
+                  toDate: _toDate,
+                  minAmount: _minAmount,
+                  maxAmount: _maxAmount,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -350,6 +434,10 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   treasuryId: _selectedTreasuryId,
                   itemType: _itemTypeFilter,
                   project: _projectFilter,
+                  fromDate: _fromDate,
+                  toDate: _toDate,
+                  minAmount: _minAmount,
+                  maxAmount: _maxAmount,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -359,6 +447,10 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   treasuryId: _selectedTreasuryId,
                   itemType: _itemTypeFilter,
                   project: _projectFilter,
+                  fromDate: _fromDate,
+                  toDate: _toDate,
+                  minAmount: _minAmount,
+                  maxAmount: _maxAmount,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -368,6 +460,10 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                   treasuryId: _selectedTreasuryId,
                   itemType: _itemTypeFilter,
                   project: _projectFilter,
+                  fromDate: _fromDate,
+                  toDate: _toDate,
+                  minAmount: _minAmount,
+                  maxAmount: _maxAmount,
                   treasuryMap: treasuryMap,
                   onTapVoucher: (v) => _navigateToVoucherDetail(v),
                 ),
@@ -458,567 +554,5 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
     if (confirmed != true || !mounted) return;
     // deleteSarf يستدعي softDeleteVoucher الذي يحذف طرفَي التحويل معاً
     await ref.read(voucherSarfNotifierProvider.notifier).deleteSarf(v.id);
-  }
-}
-
-// ── فلاتر البند والمشروع ─────────────────────────────────────────────────────
-
-/// صفّ الفلاتر الثانوية — يظهر كلّ فلتر فقط حين توجد قيم فعلاً
-///
-/// **لماذا الظهور المشروط؟** (ب-١ — 2026-08-23)
-///   في قاعدة بيانات جديدة لا توجد مشاريع بعد، فقائمة «المشروع» ستحوي خياراً
-///   واحداً هو «الكل» — ضجيج بصري يشغل مساحة بلا فائدة. وحين يبدأ المالك
-///   بإدخال المشاريع يظهر الفلتر تلقائياً.
-///
-/// **ولماذا القيم المستعملة فقط؟** جدول `item_types` فيه ٢١ بنداً مبذوراً.
-/// عرضها كلها يعني أن أغلب الخيارات تُعطي نتيجة فارغة فيظنّ المستخدم الفلتر
-/// معطوباً. راجع `VouchersDao.watchUsedItemTypes`.
-class _SecondaryFilters extends ConsumerWidget {
-  const _SecondaryFilters({
-    required this.itemType,
-    required this.project,
-    required this.onItemType,
-    required this.onProject,
-  });
-
-  final String? itemType;
-  final String? project;
-  final ValueChanged<String?> onItemType;
-  final ValueChanged<String?> onProject;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final types = ref.watch(usedItemTypesProvider).valueOrNull ?? const [];
-    final projects = ref.watch(usedProjectsProvider).valueOrNull ?? const [];
-
-    // لا فلاتر متاحة بعد — لا نشغل مساحة بصفّ فارغ
-    if (types.isEmpty && projects.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Row(
-        children: [
-          if (types.isNotEmpty)
-            Expanded(
-              child: ItemTypeFilterDropdown(
-                values: types,
-                selected: itemType,
-                onChanged: onItemType,
-              ),
-            ),
-          if (types.isNotEmpty && projects.isNotEmpty)
-            const SizedBox(width: 12),
-          if (projects.isNotEmpty)
-            Expanded(
-              child: ItemTypeFilterDropdown(
-                values: projects,
-                selected: project,
-                onChanged: onProject,
-                label: 'المشروع',
-                icon: Icons.location_city_outlined,
-              ),
-            ),
-          // زرّ مسح سريع — الوصول لكل قائمة واختيار «الكل» عمل متكرّر
-          if (itemType != null || project != null) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: 'مسح الفلاتر',
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 20),
-              onPressed: () {
-                onItemType(null);
-                onProject(null);
-              },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ── تبويب قائمة السندات ──────────────────────────────────────────────────────
-
-class _VoucherTab extends ConsumerWidget {
-  final String? typeFilter;
-  final String query;
-  final int? treasuryId;
-
-  /// فلترة بنوع البند — null = الكل
-  final String? itemType;
-
-  /// فلترة باسم المشروع — null = الكل
-  final String? project;
-
-  final AsyncValue<Map<int, TreasuryModel>> treasuryMap;
-  final void Function(VoucherModel) onTapVoucher;
-
-  const _VoucherTab({
-    required this.typeFilter,
-    required this.query,
-    required this.treasuryId,
-    required this.itemType,
-    required this.project,
-    required this.treasuryMap,
-    required this.onTapVoucher,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // تبويب بنوع محدد — نراقب مزوّداً واحداً فقط (لا اشتراكات زائدة)
-    if (typeFilter != null) {
-      final streamAsync = ref.watch(vouchersByTypeProvider(typeFilter!));
-      return streamAsync.when(
-        data: (list) => _renderList(context, list, isDark),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('خطأ: $e')),
-      );
-    }
-
-    // تبويب "الكل" — دمج الصرف (+صادر) والقبض (+وارد) = كل الأنواع الحركية
-    final sarfAsync = ref.watch(vouchersByTypeProvider('sarf'));
-    final kabdAsync = ref.watch(vouchersByTypeProvider('kabd'));
-
-    if (sarfAsync.isLoading || kabdAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final combined = <VoucherModel>[
-      ...sarfAsync.valueOrNull ?? [],
-      ...kabdAsync.valueOrNull ?? [],
-    ]..sort((a, b) => b.voucherDate.compareTo(a.voucherDate));
-
-    return _renderList(context, combined, isDark);
-  }
-
-  /// سبب خلوّ القائمة — يُسمّي الفلتر الفعّال بدل رسالة عامة
-  String _emptyReason() {
-    final active = <String>[
-      if (query.isNotEmpty) 'البحث',
-      if (treasuryId != null) 'الخزينة',
-      if (itemType != null) 'البند "$itemType"',
-      if (project != null) 'المشروع "$project"',
-    ];
-    if (active.isEmpty) return 'لا توجد سندات بعد';
-    return 'لا توجد سندات مطابقة لـ ${active.join(' و')}';
-  }
-
-  Widget _renderList(
-      BuildContext context, List<VoucherModel> list, bool isDark) {
-    var filtered = list;
-
-    // فلترة البحث
-    if (query.isNotEmpty) {
-      final q = query.toLowerCase();
-      filtered = filtered.where((v) {
-        final numStr = v.voucherNumber.toString();
-        final person = v.personName.toLowerCase();
-        final reason = v.reason.toLowerCase();
-        return numStr.contains(q) || person.contains(q) || reason.contains(q);
-      }).toList();
-    }
-
-    // فلترة الخزينة
-    if (treasuryId != null) {
-      filtered = filtered.where((v) => v.treasuryId == treasuryId).toList();
-    }
-
-    // فلترة نوع البند — مطابقة تامة لا جزئية: البنود قيم من قائمة مضبوطة
-    // لا نصّ حرّ، والمطابقة الجزئية تجعل «سلفة» تلتقط «سلفة موظف» أيضاً.
-    if (itemType != null) {
-      filtered = filtered.where((v) => v.itemType == itemType).toList();
-    }
-
-    // فلترة المشروع — العمود nullable فالسندات بلا مشروع تُستبعَد ضمناً
-    if (project != null) {
-      filtered = filtered.where((v) => v.projectName == project).toList();
-    }
-
-    if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 56,
-              color: context.colors.subtext,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              // نُسمّي الفلتر الفعّال بدل رسالة عامة: المستخدم قد يكون نسي
-              // فلتراً مضبوطاً في تبويب آخر فيظنّ السندات اختفت.
-              _emptyReason(),
-              style: TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w600,
-                color: context.colors.subtext,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final tMap = treasuryMap.valueOrNull ?? {};
-
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-      itemCount: filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (ctx, i) => _VoucherRowCard(
-        voucher: filtered[i],
-        treasury: tMap[filtered[i].treasuryId],
-        onTap: () => onTapVoucher(filtered[i]),
-      ),
-    );
-  }
-}
-
-// ── كارت السند الفردي (Voucher Item Card) ───────────────────────────────────
-
-// ConsumerWidget لا StatelessWidget: زر الطباعة يحتاج ترويسة الشركة
-// من المزوّدات (ب-٣)
-class _VoucherRowCard extends ConsumerWidget {
-  final VoucherModel voucher;
-  final TreasuryModel? treasury;
-  final VoidCallback onTap;
-
-  const _VoucherRowCard({
-    required this.voucher,
-    required this.treasury,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isKabd = voucher.isKabd;
-    final isTransfer = voucher.voucherType.contains('transfer');
-
-    final Color badgeBg = isKabd
-        ? Colors.green.withValues(alpha: 0.12)
-        : isTransfer
-            ? Colors.blue.withValues(alpha: 0.12)
-            : Colors.red.withValues(alpha: 0.12);
-
-    final Color badgeText = isKabd
-        ? Colors.green.shade600
-        : isTransfer
-            ? Colors.blue.shade600
-            : Colors.red.shade600;
-
-    final fmtDate = DateFormat('yyyy/MM/dd', 'ar');
-    final fmtNum = NumberFormat('#,##0.##');
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: context.colors.border,
-          ),
-        ),
-        child: Row(
-          children: [
-            // شارة نوع السند
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: badgeBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                voucher.typeDisplayName,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: badgeText,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            // رقم السند
-            Text(
-              '#${voucher.voucherNumber}',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: context.colors.subtext,
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            // المستلم / البيان
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    voucher.personName.isNotEmpty
-                        ? voucher.personName
-                        : (voucher.reason.isNotEmpty
-                            ? voucher.reason
-                            : 'سند بدون اسم'),
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: context.colors.text,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (treasury != null)
-                    Text(
-                      'خزينة: ${treasury!.name}',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: context.colors.subtext,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // التاريخ
-            Text(
-              fmtDate.format(voucher.voucherDate),
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.subtext,
-              ),
-            ),
-            const SizedBox(width: 20),
-
-            // المبلغ
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${fmtNum.format(voucher.amount)} ${voucher.currency == 'IQD' ? 'د.ع' : '\$'}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: badgeText,
-                    fontFamily: 'Cairo',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 12),
-
-            // زر الطباعة
-            IconButton(
-              icon: Icon(
-                Icons.print_outlined,
-                size: 19,
-                color: context.colors.subtext,
-              ),
-              tooltip: 'طباعة PDF',
-              // نمرّر ترويسة الشركة إن كانت جاهزة؛ وإن لم تُحمَّل بعد
-              // يُطبَع السند بلا ترويسة بدل تعطيل الزر
-              onPressed: () => PdfPrintHelper.printVoucherReceipt(
-                context,
-                voucher,
-                header: ref.read(pdfCompanyHeaderProvider).valueOrNull ??
-                    PdfCompanyHeader.empty,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── بلاطة خيار إضافة سند ────────────────────────────────────────────────────
-
-class _AddVoucherTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color chipBg;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _AddVoucherTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.chipBg,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: context.colors.surface2,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: context.colors.border,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: chipBg,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: context.colors.text,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: context.colors.subtext,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── ورقة تفاصيل سند للقراءة فقط ──────────────────────────────────────────────
-
-/// عرض تفاصيل سند لا يُعدَّل (تحويل أو رصيد افتتاحي)
-///
-/// وُجدت لإصلاح ح-١: كانت سندات التحويل تُفتح في شاشة تعديل الصرف/القبض
-/// فيُعدَّل طرف واحد دون توأمه. الآن تُعرض هنا للقراءة، مع زر حذف يحذف
-/// الطرفين معاً عند الاقتضاء.
-class _VoucherDetailsSheet extends StatelessWidget {
-  const _VoucherDetailsSheet({
-    required this.voucher,
-    required this.title,
-    required this.note,
-    this.onDelete,
-  });
-
-  final VoucherModel voucher;
-  final String title;
-  final String note;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
-    final dateFmt = DateFormat('yyyy/MM/dd');
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.sync_alt, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(title, style: theme.textTheme.titleMedium),
-              const Spacer(),
-              Text('#${voucher.voucherNumber}',
-                  style: theme.textTheme.bodySmall),
-            ],
-          ),
-          const Divider(height: 20),
-          _row('المبلغ', '${fmt.format(voucher.amount)} ${voucher.currency}'),
-          _row('التاريخ', dateFmt.format(voucher.voucherDate)),
-          if (voucher.reason.isNotEmpty) _row('البيان', voucher.reason),
-          if (voucher.personName.isNotEmpty) _row('الشخص', voucher.personName),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline, size: 15),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(note, style: theme.textTheme.bodySmall),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('إغلاق'),
-                ),
-              ),
-              if (onDelete != null) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.error,
-                    ),
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('حذف التحويل'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 90,
-            child: Text(label,
-                style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          ),
-          Expanded(
-            child: Text(value,
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
   }
 }

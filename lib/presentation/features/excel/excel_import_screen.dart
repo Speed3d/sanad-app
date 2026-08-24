@@ -358,7 +358,17 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
         title: const Text('استيراد مصاريف سلفة مشروع'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).maybePop(),
+          // ⚠️ `maybePop` وحدها لا تكفي: الوصول إلى هذه الشاشة يتم بـ
+          //   `context.go()` من لوحة التحكم، وهي **تستبدل** المسار ولا
+          //   تُكدّسه — فلا يوجد ما يُرجَع إليه والزرّ يبدو معطّلاً.
+          //   (بلاغ المالك 2026-08-24)
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.reports);
+            }
+          },
         ),
       ),
       body: Stepper(
@@ -769,7 +779,7 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
 
     final parsed = _parseRows();
     final total = parsed.lines.fold<double>(0, (s, l) => s + l.amount);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final displayErrors = _errors.isNotEmpty ? _errors : parsed.errors;
 
     return Column(

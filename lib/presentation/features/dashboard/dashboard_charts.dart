@@ -350,7 +350,14 @@ class _DailyVouchersPieChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final today = DateTime.now();
+    // ⚠️ نُطبّع التاريخ إلى يوم بلا وقت — **سبب المؤشّر الذي لا يتوقّف**.
+    //
+    //   `dailySummaryProvider` عائلي يُفهرَس بمعامله. و`DateTime.now()`
+    //   تتغيّر كل ميلي ثانية، فكل إعادة بناء كانت تُنشئ **مزوّداً جديداً
+    //   بمفتاح جديد** يبدأ التحميل من الصفر ولا يصل إلى بيانات أبداً.
+    //   (بلاغ المالك 2026-08-24)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final summaryAsync = ref.watch(dailySummaryProvider(today));
 
     return summaryAsync.when(

@@ -3,7 +3,7 @@
 > نظام إدارة خزائن ومحاسبة نقدية لشركة مقاولات ومشاريع عراقية
 > واجهة عربية RTL بالكامل · المنصة الهدف: ويندوز سطح المكتب
 
-[![tests](https://img.shields.io/badge/tests-316%20passing-brightgreen)]()
+[![tests](https://img.shields.io/badge/tests-342%20passing-brightgreen)]()
 [![analyzer](https://img.shields.io/badge/analyzer-0%20issues-brightgreen)]()
 [![schema](https://img.shields.io/badge/schema-v6-blue)]()
 
@@ -74,7 +74,7 @@ flutter test
 ```
 
 **الشرطان إلزاميان:** المحلّل 0 مشاكل · الاختبارات كلها ناجحة ولا ينخفض عددها
-عن **316**. راجع [docs/03-RULES.md](docs/03-RULES.md).
+عن **342**. راجع [docs/03-RULES.md](docs/03-RULES.md).
 
 ---
 

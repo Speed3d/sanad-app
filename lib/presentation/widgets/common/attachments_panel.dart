@@ -9,6 +9,7 @@
 // يُحذف من خارج البرنامج.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/extensions/date_extensions.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -256,9 +257,7 @@ class _AttachmentTileState extends ConsumerState<_AttachmentTile> {
       subtitle: Text(
         missing
             ? 'الملف مفقود من القرص — حُذف أو نُقل من خارج البرنامج'
-            : '${_size(a.sizeBytes)} · '
-                '${a.createdAt.year}/${a.createdAt.month.toString().padLeft(2, '0')}/'
-                '${a.createdAt.day.toString().padLeft(2, '0')}',
+            : '${_size(a.sizeBytes)} · ${a.createdAt.toDateString()}',
         style: theme.textTheme.labelSmall?.copyWith(
           color: missing
               ? theme.colorScheme.error

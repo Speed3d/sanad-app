@@ -15,7 +15,6 @@ import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:math' as math;
 import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../core/constants/app_routes.dart';
@@ -34,7 +33,10 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final today = DateTime.now();
+    // يوم بلا وقت — `DateTime.now()` كمفتاح عائلي تُنشئ مزوّداً جديداً في
+    // كل إعادة بناء فلا ينتهي التحميل أبداً (راجع dashboard_charts.dart)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
     return Scaffold(
       body: RefreshIndicator(
@@ -54,8 +56,8 @@ class DashboardScreen extends ConsumerWidget {
             const SmartAlertBanner(),
             const SizedBox(height: 20),
 
-            // ── 2. بطاقة الرصيد القيادية (Hero Balance Card) ────────────────
-            const _HeroBalanceCard(),
+            // ── 2. بطاقات الخزائن القيادية ─────────────────────────────────
+            const _HeroTreasuryCards(),
             const SizedBox(height: 14),
 
             // ── 3. ملخص الإحصائيات الثلاثي (قبض / صرف / صافي) ──────────────
@@ -66,15 +68,10 @@ class DashboardScreen extends ConsumerWidget {
             const DashboardChartsSection(),
             const SizedBox(height: 20),
 
-            // ── 5. قسم بطاقات الخزائن الأفقية ──────────────────────────────
-            _SectionHeader(
-              title: 'الخزائن',
-              actionLabel: 'عرض الكل',
-              onAction: () => context.go(AppRoutes.treasury),
-            ),
-            const SizedBox(height: 10),
-            const _TreasuriesHorizontalRow(),
-            const SizedBox(height: 24),
+            // ملاحظة (2026-08-24): حُذف قسم «الخزائن» السفلي — صارت بطاقات
+            // الخزائن القيادية في الأعلى تعرض الشيء نفسه بتصميم أوضح،
+            // فكان القسمان يكرّران بعضهما بتصميمين مختلفين (قرار المالك).
+            // زر «عرض الكل» انتقل إلى قسم الإحصائيات أدناه.
 
             // ── 6. إحصائيات سريعة ──────────────────────────────────────────
             const _SectionHeader(title: 'إحصائيات سريعة'),
@@ -94,26 +91,87 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── 2. بطاقة الرصيد القيادية (Hero Balance Card مع الهالة الذهبية) ────────────
+// ── 2. بطاقات الخزائن القيادية (Hero Treasury Cards) ─────────────────────────
+//
+// **بدل بطاقة «إجمالي الأرصدة» الواحدة** (طلب المالك 2026-08-24):
+//   الرقم المجمَّع لا يجيب عن السؤال الذي يُطرَح فعلاً كل صباح — «كم في
+//   خزنة البصرة؟» — بل يُخفيه. خزنتان إحداهما بعشرة ملايين والأخرى بعجز
+//   نصف مليون تظهران رقماً واحداً يبدو صحّياً.
+//
+// كل خزينة بطاقة بتصميم البطاقة القيادية نفسه، تُمرَّر أفقياً. والخزينة
+// بالعجز تُبرَز بلون تحذيري وتسمية صريحة.
 
-class _HeroBalanceCard extends ConsumerWidget {
-  const _HeroBalanceCard();
+class _HeroTreasuryCards extends ConsumerWidget {
+  const _HeroTreasuryCards();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final balanceAsync = ref.watch(totalTreasuryBalanceProvider);
-    final fmt = NumberFormat('#,##0.##');
+    final balancesAsync = ref.watch(treasuryBalancesProvider);
 
-    return Container(
+    return balancesAsync.when(
+      loading: () => const SizedBox(
+        height: 168,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SizedBox(
+        height: 168,
+        child: Center(child: Text('تعذّر تحميل الخزائن: $e')),
+      ),
+      data: (list) {
+        final active = list.where((t) => t.isActive).toList();
+        if (active.isEmpty) {
+          return _HeroEmptyCard(
+            onTap: () => context.go(AppRoutes.treasury),
+          );
+        }
+        // خزينة واحدة لا تحتاج تمريراً أفقياً — تأخذ العرض كاملاً
+        if (active.length == 1) {
+          return _HeroTreasuryCard(balance: active.first, fullWidth: true);
+        }
+        return SizedBox(
+          height: 168,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: active.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (_, i) =>
+                _HeroTreasuryCard(balance: active[i]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// بطاقة خزينة واحدة بتصميم البطاقة القيادية
+class _HeroTreasuryCard extends StatelessWidget {
+  const _HeroTreasuryCard({required this.balance, this.fullWidth = false});
+
+  final TreasuryBalanceModel balance;
+  final bool fullWidth;
+
+  /// تسمية عربية لنوع الخزينة
+  String get _kindLabel => switch (balance.treasuryKind) {
+        'contractor' => 'خزنة مقاول',
+        'partner' => 'خزنة شريك',
+        _ => 'خزنة رئيسية',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0');
+    // العجز يعني أن الشركة مدينة — يُبرَز ولا يُترك رقماً سالباً عابراً
+    final inDeficit = balance.balanceIqd < -0.001;
+    final accent = inDeficit ? const Color(0xFFF87171) : const Color(0xFFE0BC66);
+
+    final card = Container(
+      width: fullWidth ? double.infinity : 260,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0F172A),
-            Color(0xFF18233A),
-          ],
+          colors: [Color(0xFF0F172A), Color(0xFF18233A)],
         ),
         boxShadow: [
           BoxShadow(
@@ -125,7 +183,7 @@ class _HeroBalanceCard extends ConsumerWidget {
       ),
       child: Stack(
         children: [
-          // الهالة الضوئية الذهبية (Golden Radial Glow)
+          // الهالة الضوئية — تتبع لون الحالة
           Positioned(
             top: -60,
             left: -40,
@@ -136,103 +194,161 @@ class _HeroBalanceCard extends ConsumerWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFFE0BC66).withValues(alpha: 0.22),
+                    accent.withValues(alpha: 0.22),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
-
-          // المحتوى الداخلي
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  children: [
+                    Icon(
+                      inDeficit
+                          ? Icons.trending_down
+                          : Icons.account_balance_wallet_outlined,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        balance.treasuryName,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.account_balance_wallet_outlined,
-                          size: 18,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'إجمالي الأرصدة',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    balanceAsync.when(
-                      loading: () => const CircularProgressIndicator(color: Color(0xFFE0BC66)),
-                      error: (e, _) => Text(
-                        'خطأ في التحميل',
-                        style: TextStyle(color: Colors.red.shade300, fontSize: 14),
-                      ),
-                      data: (bal) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    RichText(
+                      text: TextSpan(
                         children: [
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: fmt.format(bal.totalIqd),
-                                  style: const TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                    fontFamily: 'Cairo',
-                                  ),
-                                ),
-                                const TextSpan(text: ' '),
-                                TextSpan(
-                                  text: 'د.ع',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white.withValues(alpha: 0.6),
-                                    fontFamily: 'Cairo',
-                                  ),
-                                ),
-                              ],
+                          TextSpan(
+                            // القيمة المطلقة مع تسمية «عجز» صريحة أوضح من
+                            // إشارة سالبة قد تُقرأ خطأً في لمحة
+                            text: fmt.format(balance.balanceIqd.abs()),
+                            style: TextStyle(
+                              fontSize: fullWidth ? 36 : 28,
+                              fontWeight: FontWeight.w800,
+                              color: inDeficit ? accent : Colors.white,
+                              letterSpacing: -0.5,
+                              fontFamily: 'Cairo',
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '\$ ${fmt.format(bal.totalUsd)}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFE0BC66),
+                          const TextSpan(text: ' '),
+                          TextSpan(
+                            text: 'د.ع',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontFamily: 'Cairo',
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          inDeficit ? 'عجز · $_kindLabel' : _kindLabel,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: inDeficit
+                                ? accent
+                                : Colors.white.withValues(alpha: 0.55),
+                          ),
+                        ),
+                        // الدولار يظهر فقط حين يوجد — لا صفر بلا معنى
+                        if (balance.balanceUsd.abs() > 0.001) ...[
+                          const SizedBox(width: 10),
+                          Text(
+                            '\$ ${NumberFormat('#,##0.00').format(balance.balanceUsd)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFE0BC66),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
-
-                // (أُزيلت شارة النمو "+4.2%" — كانت رقماً ثابتاً مُلفَّقاً بلا
-                //  مقياس واضح. تدقيق 2026-08-06.)
               ],
             ),
           ),
         ],
       ),
     );
+
+    // النقر يفتح شاشة الخزائن — بديل زرّ «عرض الكل» الذي حُذف مع القسم
+    // السفلي المكرَّر، فيبقى الطريق إلى التفاصيل قائماً
+    final tappable = InkWell(
+      onTap: () => context.go(AppRoutes.treasury),
+      borderRadius: BorderRadius.circular(20),
+      child: card,
+    );
+    return fullWidth ? tappable : SizedBox(height: 168, child: tappable);
   }
 }
+
+/// بطاقة بديلة حين لا توجد خزائن بعد
+class _HeroEmptyCard extends StatelessWidget {
+  const _HeroEmptyCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 168,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0F172A), Color(0xFF18233A)],
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_business_outlined,
+                size: 34, color: Colors.white.withValues(alpha: 0.5)),
+            const SizedBox(height: 10),
+            Text(
+              'لا توجد خزائن بعد — اضغط لإنشاء أول خزينة',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 // ── 3. كروت الملخصات الثلاثية (Stat Cards) ───────────────────────────────────
 
@@ -263,7 +379,7 @@ class _DailyStatCardsRow extends ConsumerWidget {
     final yesterday = DateTime(date.year, date.month, date.day)
         .subtract(const Duration(days: 1));
     final yesterdayAsync = ref.watch(dailySummaryProvider(yesterday));
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
 
     return summaryAsync.when(
       loading: () => const SizedBox(
@@ -424,166 +540,6 @@ class _StatTile extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             'د.ع  ·  $subtitle',
-            style: TextStyle(
-              fontSize: 11,
-              color: context.colors.subtext,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── 5. بطاقات الخزائن الأفقية المحدثة (مع شريط التقدم الذهبي) ───────────────
-
-class _TreasuriesHorizontalRow extends ConsumerWidget {
-  const _TreasuriesHorizontalRow();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final stream = ref.watch(treasuryBalancesProvider);
-
-    return stream.when(
-      loading: () => const SizedBox(
-        height: 120,
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => Text('خطأ: $e'),
-      data: (balances) {
-        if (balances.isEmpty) {
-          return const SizedBox(
-            height: 80,
-            child: Center(child: Text('لا توجد خزائن مسجّلة')),
-          );
-        }
-
-        final maxBal = balances.map((b) => b.balanceIqd).fold<double>(1, (max, v) => v > max ? v : max);
-
-        return SizedBox(
-          height: 124,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: balances.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (ctx, i) {
-              final bal = balances[i];
-              final pct = math.max(0.06, (bal.balanceIqd / maxBal)).clamp(0.06, 1.0);
-              return _TreasuryCardItem(balance: bal, percent: pct);
-            },
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TreasuryCardItem extends StatelessWidget {
-  final TreasuryBalanceModel balance;
-  final double percent;
-
-  const _TreasuryCardItem({
-    required this.balance,
-    required this.percent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0.##');
-
-    final Color dotColor = balance.treasuryKind == 'main'
-        ? const Color(0xFFE0BC66)
-        : balance.treasuryKind == 'contractor'
-            ? const Color(0xFF2563EB)
-            : const Color(0xFF0F172A);
-
-    return Container(
-      width: 175,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.colors.border,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: dotColor,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  balance.treasuryName,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: context.colors.text,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: fmt.format(balance.balanceIqd),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: context.colors.text,
-                    fontFamily: 'Cairo',
-                  ),
-                ),
-                const TextSpan(text: ' '),
-                TextSpan(
-                  text: 'د.ع',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.subtext,
-                    fontFamily: 'Cairo',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // شريط النسبة المئوية الذهبي الفاخر
-          Container(
-            height: 5,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: context.colors.surface2,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerRight,
-              widthFactor: percent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0BC66),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-          ),
-          Text(
-            '${balance.totalVouchers} سند مسجّل',
             style: TextStyle(
               fontSize: 11,
               color: context.colors.subtext,
@@ -832,13 +788,9 @@ class _ActionTileItem extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
 
   const _SectionHeader({
     required this.title,
-    this.actionLabel,
-    this.onAction,
   });
 
   @override
@@ -855,18 +807,6 @@ class _SectionHeader extends StatelessWidget {
             color: context.colors.text,
           ),
         ),
-        if (actionLabel != null)
-          InkWell(
-            onTap: onAction,
-            child: Text(
-              actionLabel!,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: context.colors.gold,
-              ),
-            ),
-          ),
       ],
     );
   }

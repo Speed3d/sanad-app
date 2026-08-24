@@ -96,7 +96,7 @@ class _PostAdvanceDialogState extends State<PostAdvanceDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final s = widget.summary;
 
     return AlertDialog(

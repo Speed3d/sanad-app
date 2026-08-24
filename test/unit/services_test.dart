@@ -33,11 +33,17 @@ void main() {
   });
 
   group('اختبارات التنبيهات الذكية (SmartAlertService)', () {
-    test('يجب أن يُولد تنبيه رصيد منخفض عندما يكون إجمالي الأرصدة 0', () async {
+    test('⭐ لا تنبيه «رصيد منخفض» — حُذف بطلب المالك', () async {
+      // حُذف في 2026-08-24: الحدّ كان رقماً ثابتاً (مليون دينار) لا يعرف
+      // طبيعة الخزينة، فخزنة مشروع صغيرة تُظهر تحذيراً أحمر دائماً حتى صار
+      // ضجيجاً يُتجاهَل — وتنبيه يُتجاهَل دائماً يُدرّب العين على تخطّي
+      // الشريط كلّه، فيضيع معه التنبيه المهمّ.
       final alerts = await alertService.checkAllAlerts();
-      final lowBalanceAlert = alerts.where((a) => a.id == 'low_total_balance');
-      expect(lowBalanceAlert.isNotEmpty, isTrue);
-      expect(lowBalanceAlert.first.severity, equals(AlertSeverity.warning));
+      expect(
+        alerts.where((a) => a.id == 'low_total_balance'),
+        isEmpty,
+        reason: 'إعادته تتطلّب حدّاً لكل خزينة لا رقماً واحداً للجميع',
+      );
     });
 
     test('يجب كشف السُلف المعلقة القديمة إذا تجاوزت 30 يوماً', () async {

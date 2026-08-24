@@ -74,25 +74,15 @@ class SmartAlertService {
   Future<List<SmartAlert>> checkAllAlerts() async {
     final alerts = <SmartAlert>[];
 
-    // 1. فحص أرصدة الخزائن من VIEW الأرصدة
-    try {
-      final totals = await _db.treasuriesDao.getTotalBalance();
-      if (totals.totalIqd < kLowBalanceThresholdIQD) {
-        alerts.add(
-          SmartAlert(
-            id: 'low_total_balance',
-            title: 'تحذير: رصيد الخزائن منخفض',
-            description:
-                'إجمالي رصيد الخزائن الحالي هو ${totals.totalIqd.toStringAsFixed(0)} د.ع، وهو أقل من الحد الأدنى المقترح (1,000,000 د.ع).',
-            severity: AlertSeverity.warning,
-            createdAt: DateTime.now(),
-            actionLabel: 'استعراض الخزائن',
-          ),
-        );
-      }
-    } catch (_) {
-      // ابتلاع الأخطاء لعدم إيقاف الشاشة
-    }
+        // ملاحظة (2026-08-24): حُذف تنبيه «رصيد الخزائن منخفض» بطلب المالك.
+    //
+    //   السبب: الحدّ كان رقماً ثابتاً (مليون دينار) لا يعرف طبيعة الخزينة.
+    //   خزنة مشروع صغيرة رصيدها ٥٠٠ ألف حالة طبيعية تماماً، فكان التنبيه
+    //   الأحمر يظهر دائماً حتى صار ضجيجاً يُتجاهَل — وتنبيه يُتجاهَل دائماً
+    //   أسوأ من لا تنبيه، لأنه يُدرّب العين على تخطّي الشريط كلّه.
+    //
+    //   ورصيد كل خزينة ظاهر أصلاً في لوحة التحكم وشاشة الخزائن.
+    //   إن أُعيد يوماً فليكن بحدّ لكل خزينة على حدة لا رقماً واحداً للجميع.
 
     // 2. فحص السُلف المعلقة القديمة
     //

@@ -370,7 +370,7 @@ class _AuditLogCard extends StatelessWidget {
           ),
           const SizedBox(width: 3),
           Text(
-            dateFmt.format(log.createdAt),
+            dateFmt.format(log.createdAt.toLocal()),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -449,7 +449,7 @@ class _AuditDetailSheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        dateFmt.format(log.createdAt),
+                        dateFmt.format(log.createdAt.toLocal()),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

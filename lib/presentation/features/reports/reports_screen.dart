@@ -227,7 +227,7 @@ class _AccountStatementResults extends ConsumerWidget {
         endDate: endDate,
       ),
     );
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('yyyy/MM/dd');
 
     return statAsync.when(
@@ -424,7 +424,7 @@ class _DailySummaryResults extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final summaryAsync = ref.watch(dailySummaryProvider(date));
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('EEEE، d MMMM yyyy', 'ar');
 
     return summaryAsync.when(
@@ -694,7 +694,7 @@ class _PeriodReportResults extends ConsumerWidget {
         voucherType: voucherType,
       ),
     );
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('yyyy/MM/dd');
 
     return vouchersAsync.when(

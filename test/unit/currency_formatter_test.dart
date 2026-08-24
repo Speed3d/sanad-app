@@ -17,9 +17,13 @@ import 'package:sales_management/core/utils/currency_formatter.dart';
 void main() {
   group('اختبارات تنسيق العملات (CurrencyFormatter)', () {
     // ── 1. تنسيق الدينار العراقي (IQD) ───────────────────────────────────────
-    test('formatIQD يجب أن ينسّق المبالغ مع 3 منازل عشرية ورمز العملة', () {
-      expect(CurrencyFormatter.formatIQD(1500000.5), equals('1,500,000.500 د.ع'));
-      expect(CurrencyFormatter.formatIQD(0), equals('0.000 د.ع'));
+    test('formatIQD ينسّق المبالغ **بلا كسور** مع رمز العملة', () {
+      // تغيّر بطلب المالك (2026-08-24): كان `#,##0.000` فيعرض 1,000.000.
+      // الدينار العراقي بلا فلوس متداوَلة، فالمنازل الثلاث أصفار دائمة
+      // تُطيل الرقم وتُصعّب قراءته. راجع display_format_test.dart
+      expect(CurrencyFormatter.formatIQD(1500000.5), equals('1,500,001 د.ع'));
+      expect(CurrencyFormatter.formatIQD(1500000), equals('1,500,000 د.ع'));
+      expect(CurrencyFormatter.formatIQD(0), equals('0 د.ع'));
     });
 
     test('formatIQDCompact يجب أن يقدم صياغة مختصرة للأرقام الكبيرة', () {

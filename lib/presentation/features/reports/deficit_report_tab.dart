@@ -33,7 +33,7 @@ class DeficitReportTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
 
     final balancesAsync = ref.watch(allTreasuryBalancesProvider);
     final creditorsAsync = ref.watch(deficitCreditorsProvider);
@@ -301,7 +301,7 @@ class _DeficitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final red = Colors.red.shade700;
 
     return Card(
@@ -359,7 +359,7 @@ class _CreditorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fmt = NumberFormat('#,##0.##');
+    final fmt = NumberFormat('#,##0');
     final orange = Colors.orange.shade800;
 
     return Card(

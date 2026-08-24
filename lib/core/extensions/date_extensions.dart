@@ -28,34 +28,53 @@ import 'package:intl/intl.dart';
 
 /// امتدادات DateTime — تنسيق التواريخ والمقارنات
 extension DateExtensions on DateTime {
+  // ═══ توقيت بغداد لا UTC (بلاغ المالك 2026-08-24) ═══════════════════════
+  //
+  // **المشكلة:** أعمدة `created_at` و`updated_at` تُملأ بـ
+  // `currentDateAndTime` أي `CURRENT_TIMESTAMP` من SQLite — وهي **UTC**.
+  // ويقرأها Drift كـ `DateTime` عليه علامة `isUtc = true`. فكان السند
+  // المُدخَل الساعة ١:٣٠ ظهراً في بغداد يُعرَض ١٠:٣٠ — أي ناقص ثلاث ساعات
+  // بالضبط (بغداد UTC+3).
+  //
+  // **الحل:** `.toLocal()` قبل كل تنسيق.
+  //   • القيم المخزَّنة UTC (مثل `created_at`) تتحوّل لتوقيت الجهاز
+  //   • القيم المحلية أصلاً (مثل `voucher_date`) لا تتأثر — `toLocal()`
+  //     على تاريخ `isUtc = false` **لا تفعل شيئاً**
+  //
+  // ولهذا وُضع الإصلاح هنا لا في كل شاشة: موضع واحد يغطّي الحالتين ويغطّي
+  // البيانات القديمة والجديدة معاً.
+
+  /// نسخة بتوقيت الجهاز — راجع الشرح أعلاه
+  DateTime get _local => isUtc ? toLocal() : this;
+
   // ── التنسيق الأساسي ───────────────────────────────────────────────────────
 
   /// تنسيق التاريخ فقط بالصيغة (يوم/شهر/سنة)
   ///
   /// مثال: DateTime(2026, 8, 6) → '06/08/2026'
   String toDateString() {
-    return DateFormat('dd/MM/yyyy').format(this);
+    return DateFormat('dd/MM/yyyy').format(_local);
   }
 
   /// تنسيق التاريخ والوقت معاً
   ///
   /// مثال: DateTime(2026, 8, 6, 17, 30) → '06/08/2026 17:30'
   String toDateTimeString() {
-    return DateFormat('dd/MM/yyyy HH:mm').format(this);
+    return DateFormat('dd/MM/yyyy HH:mm').format(_local);
   }
 
   /// تنسيق الوقت فقط (ساعة:دقيقة)
   ///
   /// مثال: DateTime(2026, 8, 6, 17, 30) → '17:30'
   String toTimeString() {
-    return DateFormat('HH:mm').format(this);
+    return DateFormat('HH:mm').format(_local);
   }
 
   /// تنسيق التاريخ بالكامل مع الوقت والثواني (للـ Audit Log)
   ///
   /// مثال: → '06/08/2026 17:30:45'
   String toFullDateTimeString() {
-    return DateFormat('dd/MM/yyyy HH:mm:ss').format(this);
+    return DateFormat('dd/MM/yyyy HH:mm:ss').format(_local);
   }
 
   // ── التنسيق العربي ────────────────────────────────────────────────────────
@@ -64,14 +83,14 @@ extension DateExtensions on DateTime {
   ///
   /// مثال: → 'الأربعاء، 6 أغسطس 2026'
   String toArabicDate() {
-    return DateFormat('EEEE، d MMMM yyyy', 'ar').format(this);
+    return DateFormat('EEEE، d MMMM yyyy', 'ar').format(_local);
   }
 
   /// تنسيق التاريخ بالعربي بدون اسم اليوم
   ///
   /// مثال: → '6 أغسطس 2026'
   String toArabicDateShort() {
-    return DateFormat('d MMMM yyyy', 'ar').format(this);
+    return DateFormat('d MMMM yyyy', 'ar').format(_local);
   }
 
   /// تنسيق الشهر والسنة فقط بالعربي
@@ -79,7 +98,7 @@ extension DateExtensions on DateTime {
   /// مثال: → 'أغسطس 2026'
   /// الاستخدام: لعناوين التقارير الشهرية
   String toArabicMonthYear() {
-    return DateFormat('MMMM yyyy', 'ar').format(this);
+    return DateFormat('MMMM yyyy', 'ar').format(_local);
   }
 
   /// تنسيق ذكي يعرض 'اليوم', 'أمس', أو التاريخ الكامل
@@ -101,7 +120,7 @@ extension DateExtensions on DateTime {
   /// مثال: → '2026-08-06_17-30'
   /// الاستخدام: أسماء ملفات النسخ الاحتياطي وتصدير Excel
   String toFileSafeString() {
-    return DateFormat('yyyy-MM-dd_HH-mm').format(this);
+    return DateFormat('yyyy-MM-dd_HH-mm').format(_local);
   }
 
   /// تنسيق ISO 8601 لتخزينه في قاعدة البيانات
