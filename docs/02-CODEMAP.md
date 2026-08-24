@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-08-24 (بعد المرحلة د)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-08-24** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -119,17 +119,17 @@ lib/
 | الشاشة | المسار | ملاحظة |
 |---|---|---|
 | `splash_screen` · `login_screen` · `first_run_screen` | خارج الـ Shell | |
-| `dashboard_screen` + `dashboard_charts` | `/dashboard` | بيانات حقيقية (`weeklyLiquidity`) |
-| `vouchers_list_screen` | `/vouchers` | ٤ تبويبات · فلاتر: بحث · خزينة · **بند · مشروع** (ب-١) |
+| `dashboard_screen` + `dashboard_charts` | `/dashboard` | **بطاقات الخزائن** بدل الإجمالي · ٣ مخططات · بيانات حقيقية |
+| `vouchers_list_screen` + جزء | `/vouchers` | ٤ تبويبات · بحث في **٩ حقول** · فلاتر: خزينة · بند · مشروع · **نطاق تاريخ ومبلغ**. قُسِّم بـ `part`: `vouchers_list_widgets` |
 | `voucher_sarf_screen` · `voucher_kabd_screen` | `/vouchers/sarf` · `/kabd` | ✅ الودجتات المشتركة في `voucher_form_widgets.dart` |
 | `voucher_transfer_screen` | `/vouchers/transfer` | ربط اختياري بسلفة |
-| `treasuries_screen` | `/treasury` | تحذير المسودات المعلّقة |
+| `treasuries_screen` + جزء | `/treasury` | تحذير المسودات المعلّقة · قُسِّم بـ `part`: `treasury_card` |
 | `advances_list_screen` · `advance_review_screen` | `/advances` | شاشة المراجعة أهمّها |
 | `employees_screen` + جزآن | `/employees` | ✅ قُسِّم بـ `part`: `employee_detail_sheet` · `employee_dialogs` |
 | `contractors_screen` · `partners_screen` | | |
 | `reports_screen` + ٣ ملفات تبويبات | `/reports` | **٦ تبويبات** · الودجتات المشتركة في `report_widgets.dart` |
 | `excel_import_screen` | `/reports/excel-import` | يُنتج مسودة لا سندات |
-| `fiscal_screen` + `purge_period_dialog` | `/fiscal` | إقفال · إعادة فتح · حذف · محو قسري |
+| `fiscal_screen` + جزء + `purge_period_dialog` | `/fiscal` | إقفال · إعادة فتح · حذف · محو قسري · قُسِّم بـ `part`: `fiscal_period_card` |
 | `backup_screen` | `/backup` | معطَّل على الويب |
 | `settings_screen` + ٩ تبويبات | `/settings` | منها `attachments_tab` (مجلد المرفقات) |
 | `audit_screen` | `/audit` | |
@@ -185,6 +185,18 @@ color: isDark ? textDark : textLight // ❌ كان ١٦٤ مرة قبل المر
 `AppPalette` يحمل ٩ ألوان (`bg` · `surface` · `surface2` · `text` · `subtext`
 · `border` · `gold` · `onGold` · `sidebar` · `danger`). يحرس الحدَّ اختبار
 `tech_debt_guard_test.dart`.
+
+### 📎 أجزاء المكتبات — أين تجد الصنف
+
+الملفات المقسَّمة بـ `part`. الأصناف فيها **خاصة** (`_X`) لكنها مرئية عبر
+المكتبة كلها، فابحث في المجموعة لا في ملف واحد.
+
+| المكتبة | الأجزاء |
+|---|---|
+| `employees_screen.dart` | `employee_detail_sheet.dart` · `employee_dialogs.dart` |
+| `treasuries_screen.dart` | `treasury_card.dart` |
+| `fiscal_screen.dart` | `fiscal_period_card.dart` |
+| `vouchers_list_screen.dart` | `vouchers_list_widgets.dart` |
 
 ### ✅ الملف الكبير يُقسَّم بـ `part` لا بملف مستقل
 `part` يُبقي الأصناف **خاصة** (`_X`) فلا تتسرّب، ولا تحتاج إعادة تسمية.
