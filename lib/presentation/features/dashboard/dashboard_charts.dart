@@ -8,6 +8,7 @@
 //   3. BarChart  — الرسم البياني الشريط لمقارنة أرصدة الخزائن المختلفة
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,10 +38,10 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          color: context.colors.border,
         ),
       ),
       child: Column(
@@ -56,12 +57,12 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+                      color: context.colors.surface2,
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Icon(
                       Icons.show_chart_rounded,
-                      color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+                      color: context.colors.gold,
                       size: 18,
                     ),
                   ),
@@ -71,7 +72,7 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textDark : AppColors.textLight,
+                      color: context.colors.text,
                     ),
                   ),
                 ],
@@ -125,8 +126,8 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
               icon,
               size: 14,
               color: isSelected
-                  ? (isDark ? const Color(0xFFE0BC66) : AppColors.navy)
-                  : (isDark ? AppColors.subtextDark : AppColors.subtextLight),
+                  ? (context.colors.gold)
+                  : (context.colors.subtext),
             ),
             const SizedBox(width: 4),
             Text(
@@ -135,8 +136,8 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? (isDark ? const Color(0xFFE0BC66) : AppColors.navy)
-                    : (isDark ? AppColors.subtextDark : AppColors.subtextLight),
+                    ? (context.colors.gold)
+                    : (context.colors.subtext),
               ),
             ),
           ],
@@ -220,9 +221,9 @@ class _LiquiditySplineChart extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _buildLegendDot('قبض', Colors.green.shade600, isDark),
+            _buildLegendDot(context, 'قبض', Colors.green.shade600),
             const SizedBox(width: 16),
-            _buildLegendDot('صرف', Colors.red.shade600, isDark),
+            _buildLegendDot(context, 'صرف', Colors.red.shade600),
           ],
         ),
         const SizedBox(height: 10),
@@ -233,7 +234,7 @@ class _LiquiditySplineChart extends ConsumerWidget {
                 show: true,
                 drawVerticalLine: false,
                 getDrawingHorizontalLine: (val) => FlLine(
-                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  color: context.colors.border,
                   strokeWidth: 0.8,
                 ),
               ),
@@ -255,7 +256,7 @@ class _LiquiditySplineChart extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                              color: context.colors.subtext,
                             ),
                           ),
                         );
@@ -317,7 +318,11 @@ class _LiquiditySplineChart extends ConsumerWidget {
     );
   }
 
-  Widget _buildLegendDot(String label, Color color, bool isDark) {
+  /// نقطة في مفتاح المخطط
+  ///
+  /// تستقبل [context] لا `bool isDark` بعد اعتماد `AppPalette`
+  /// (المرحلة د) — اللون يُقرأ من الثيم لا يُحسَب بشرط.
+  Widget _buildLegendDot(BuildContext context, String label, Color color) {
     return Row(
       children: [
         Container(
@@ -331,7 +336,7 @@ class _LiquiditySplineChart extends ConsumerWidget {
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+            color: context.colors.subtext,
           ),
         ),
       ],
@@ -347,7 +352,6 @@ class _DailyVouchersPieChart extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final today = DateTime.now();
     final summaryAsync = ref.watch(dailySummaryProvider(today));
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return summaryAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -362,7 +366,7 @@ class _DailyVouchersPieChart extends ConsumerWidget {
             child: Text(
               'لا توجد حركات مالية مسجّلة اليوم',
               style: TextStyle(
-                color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                color: context.colors.subtext,
                 fontSize: 13,
               ),
             ),

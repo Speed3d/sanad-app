@@ -8,11 +8,11 @@
 //   - حقول إدخال موحدة بنفس الأنماط والرموز المستعلمة في أرجاء النظام
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../domain/models/auth_state.dart';
 import '../../providers/auth_provider.dart';
 
@@ -47,8 +47,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
     final isDesktop = size.width >= 768;
 
@@ -56,7 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = authState is AuthLoading;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
+      backgroundColor: context.colors.bg,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -143,10 +141,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                      color: context.colors.border,
                     ),
                   ),
                   child: Form(
@@ -161,7 +159,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           enabled: !isLoading,
                           style: TextStyle(
                             fontSize: 13.5,
-                            color: isDark ? AppColors.textDark : AppColors.textLight,
+                            color: context.colors.text,
                           ),
                           decoration: InputDecoration(
                             labelText: 'اسم المستخدم',
@@ -191,7 +189,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           enabled: !isLoading,
                           style: TextStyle(
                             fontSize: 13.5,
-                            color: isDark ? AppColors.textDark : AppColors.textLight,
+                            color: context.colors.text,
                           ),
                           decoration: InputDecoration(
                             labelText: 'كلمة المرور',
@@ -227,8 +225,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ElevatedButton(
                           onPressed: isLoading ? null : _tryLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
-                            foregroundColor: isDark ? AppColors.navy : Colors.white,
+                            backgroundColor: context.colors.gold,
+                            foregroundColor: context.colors.onGold,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,

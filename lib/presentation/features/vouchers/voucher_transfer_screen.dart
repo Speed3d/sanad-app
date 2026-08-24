@@ -14,7 +14,8 @@ class VoucherTransferScreen extends ConsumerStatefulWidget {
   const VoucherTransferScreen({super.key});
 
   @override
-  ConsumerState<VoucherTransferScreen> createState() => _VoucherTransferScreenState();
+  ConsumerState<VoucherTransferScreen> createState() =>
+      _VoucherTransferScreenState();
 }
 
 class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
@@ -49,17 +50,23 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
   void _onSave() async {
     if (!_formKey.currentState!.validate()) return;
     if (_fromTreasuryId == null || _toTreasuryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يرجى تحديد الخزينة المُرسِلة والمُستقبِلة'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('يرجى تحديد الخزينة المُرسِلة والمُستقبِلة'),
+          backgroundColor: Colors.red));
       return;
     }
     if (_fromTreasuryId == _toTreasuryId) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يمكن التحويل لنفس الخزينة'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('لا يمكن التحويل لنفس الخزينة'),
+          backgroundColor: Colors.red));
       return;
     }
 
     final amount = double.tryParse(_amountCtrl.text) ?? 0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('المبلغ يجب أن يكون أكبر من صفر'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('المبلغ يجب أن يكون أكبر من صفر'),
+          backgroundColor: Colors.red));
       return;
     }
 
@@ -105,16 +112,17 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
       }
     }
 
-    final success = await ref.read(voucherTransferNotifierProvider.notifier).createTransfer(
-          fromTreasuryId: _fromTreasuryId!,
-          toTreasuryId: _toTreasuryId!,
-          amount: amount,
-          currency: _currency,
-          voucherDate: _voucherDate,
-          reason: _reasonCtrl.text.trim(),
-          exchangeRate: exRate,
-          advanceId: advanceId,
-        );
+    final success =
+        await ref.read(voucherTransferNotifierProvider.notifier).createTransfer(
+              fromTreasuryId: _fromTreasuryId!,
+              toTreasuryId: _toTreasuryId!,
+              amount: amount,
+              currency: _currency,
+              voucherDate: _voucherDate,
+              reason: _reasonCtrl.text.trim(),
+              exchangeRate: exRate,
+              advanceId: advanceId,
+            );
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -264,17 +272,20 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
       }
     });
     final settingsAsync = ref.watch(primaryCurrencyProvider);
-    
+
     // نستمع لحالة التحويل لعرض رسائل الخطأ ومعرفة متى يتم التحميل
     ref.listen<AsyncValue<String?>>(
       voucherTransferNotifierProvider,
       (prev, next) {
         if (next is AsyncError) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.error.toString()), backgroundColor: Colors.red));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(next.error.toString()),
+              backgroundColor: Colors.red));
         }
       },
     );
-    final isWorking = ref.watch(voucherTransferNotifierProvider) is AsyncLoading;
+    final isWorking =
+        ref.watch(voucherTransferNotifierProvider) is AsyncLoading;
 
     return Scaffold(
       appBar: AppBar(
@@ -312,7 +323,8 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          Icon(Icons.sync_alt, size: 40, color: Colors.indigo.shade400),
+                          Icon(Icons.sync_alt,
+                              size: 40, color: Colors.indigo.shade400),
                           const SizedBox(height: 8),
                           Text(
                             'تحويل الأموال بين الخزائن المختلفة',
@@ -350,12 +362,14 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                               child: Text(t.name),
                             );
                           }).toList(),
-                          onChanged: (val) => setState(() => _fromTreasuryId = val),
+                          onChanged: (val) =>
+                              setState(() => _fromTreasuryId = val),
                           validator: (val) => val == null ? 'مطلوب' : null,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Icon(Icons.arrow_forward_rounded, color: Colors.grey),
+                      const Icon(Icons.arrow_forward_rounded,
+                          color: Colors.grey),
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<int>(
@@ -370,10 +384,13 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                               child: Text(t.name),
                             );
                           }).toList(),
-                          onChanged: (val) => setState(() => _toTreasuryId = val),
+                          onChanged: (val) =>
+                              setState(() => _toTreasuryId = val),
                           validator: (val) {
                             if (val == null) return 'مطلوب';
-                            if (val == _fromTreasuryId) return 'يجب أن تختلف عن المُرسِلة';
+                            if (val == _fromTreasuryId) {
+                              return 'يجب أن تختلف عن المُرسِلة';
+                            }
                             return null;
                           },
                         ),
@@ -393,9 +410,11 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                             labelText: 'المبلغ *',
                             prefixIcon: Icon(Icons.attach_money),
                           ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*')),
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d+\.?\d*')),
                           ],
                           validator: (val) {
                             if (val == null || val.isEmpty) return 'مطلوب';
@@ -408,11 +427,14 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(labelText: 'العملة'),
+                          decoration:
+                              const InputDecoration(labelText: 'العملة'),
                           initialValue: _currency,
                           items: const [
-                            DropdownMenuItem(value: 'IQD', child: Text('دينار (IQD)')),
-                            DropdownMenuItem(value: 'USD', child: Text('دولار (USD)')),
+                            DropdownMenuItem(
+                                value: 'IQD', child: Text('دينار (IQD)')),
+                            DropdownMenuItem(
+                                value: 'USD', child: Text('دولار (USD)')),
                           ],
                           onChanged: (val) {
                             if (val != null) setState(() => _currency = val);
@@ -429,9 +451,11 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                         labelText: 'سعر الصرف',
                         prefixIcon: Icon(Icons.currency_exchange),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d*')),
                       ],
                     ),
                   ],
@@ -489,10 +513,12 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.save),
-                      label: Text(isWorking ? 'جارٍ التحويل...' : 'تنفيذ التحويل'),
+                      label:
+                          Text(isWorking ? 'جارٍ التحويل...' : 'تنفيذ التحويل'),
                     ),
                   ),
                 ],

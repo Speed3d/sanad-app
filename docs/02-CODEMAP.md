@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-08-24 (بعد المرحلة ج)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-08-24 (بعد المرحلة د)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -43,6 +43,7 @@ lib/
 | `constants/app_routes.dart` | مسارات go_router | أي تنقّل |
 | `constants/app_settings_keys.dart` | مفاتيح الإعدادات | **لا تكتب مفتاح إعداد كنصّ حرفي** |
 | `theme/app_theme.dart` · `app_colors.dart` · `app_text_styles.dart` | الثيم Material 3 | التصميم |
+| `theme/app_theme_extension.dart` | **`AppPalette`** — ألوان سند كامتداد ثيم | **`context.colors.x`** بدل أي شرط `isDark ?` |
 | `router/app_router.dart` | go_router + حماية المسارات بـ RBAC | إضافة شاشة جديدة |
 
 ### 🟠 حيّة جزئياً — استعملها بدل كتابة بديل
@@ -57,12 +58,9 @@ lib/
 
 | الملف | الحجم | القرار |
 |---|---|---|
-| `errors/app_exception.dart` | ٢١ KB | **لا تبنِ عليه.** إمّا يُوصَل فعلياً أو يُحذف — قرار مؤجَّل |
-| `utils/input_validators.dart` | ١١ KB | **لا تبنِ عليه.** التحقق يتم يدوياً في كل شاشة حالياً |
+| ~~`errors/app_exception.dart`~~ | — | ✅ **حُذف** (المرحلة د) — كان يكرّر نمط `StateError` القائم. المشروع يرمي `StateError` برسالة عربية كاملة تعرضها الواجهة |
+| ~~`utils/input_validators.dart`~~ | — | ✅ **أُحيي ووُصِّل** (المرحلة د) — استعمله في أي تحقّق جديد بدل كتابة مدقّق يدوي |
 | `l10n/` كله (`app_ar.arb` · `app_en.arb` · `generated/`) | — | مولَّد بالكامل و**صفر استخدام**. كل النصوص عربية مكتوبة يدوياً في الكود. مبدّل اللغة مقفل بصدق. **خارج النطاق** بقرار المنصة |
-| `domain/usecases/` | مجلد فارغ | منطق الأعمال في Repositories والProviders |
-| `data/database/migrations/` | مجلد فارغ | الترقيات في `app_database.dart` |
-| `presentation/widgets/forms/` | مجلد فارغ | — |
 
 > 📌 **القاعدة:** إن احتجت تحقّقاً من مدخلات أو صنف استثناء — **افحص الملفات
 > الميتة أعلاه أولاً**. إمّا تستعملها فتحييها، أو تقرّر حذفها. لا تكتب بديلاً
@@ -123,11 +121,11 @@ lib/
 | `splash_screen` · `login_screen` · `first_run_screen` | خارج الـ Shell | |
 | `dashboard_screen` + `dashboard_charts` | `/dashboard` | بيانات حقيقية (`weeklyLiquidity`) |
 | `vouchers_list_screen` | `/vouchers` | ٤ تبويبات · فلاتر: بحث · خزينة · **بند · مشروع** (ب-١) |
-| `voucher_sarf_screen` · `voucher_kabd_screen` | `/vouchers/sarf` · `/kabd` | ⚠️ **~١١٠٠ سطر مكرّر بينهما** |
+| `voucher_sarf_screen` · `voucher_kabd_screen` | `/vouchers/sarf` · `/kabd` | ✅ الودجتات المشتركة في `voucher_form_widgets.dart` |
 | `voucher_transfer_screen` | `/vouchers/transfer` | ربط اختياري بسلفة |
 | `treasuries_screen` | `/treasury` | تحذير المسودات المعلّقة |
 | `advances_list_screen` · `advance_review_screen` | `/advances` | شاشة المراجعة أهمّها |
-| `employees_screen` | `/employees` | **٩٦ KB — أكبر ملف**، مرشّح للتقسيم |
+| `employees_screen` + جزآن | `/employees` | ✅ قُسِّم بـ `part`: `employee_detail_sheet` · `employee_dialogs` |
 | `contractors_screen` · `partners_screen` | | |
 | `reports_screen` + ٣ ملفات تبويبات | `/reports` | **٦ تبويبات** · الودجتات المشتركة في `report_widgets.dart` |
 | `excel_import_screen` | `/reports/excel-import` | يُنتج مسودة لا سندات |
@@ -178,6 +176,20 @@ ctrl.dispose();   // الحوار ما زال يُعاد بناؤه!
 إن احتجت متحكّماً فعلاً (تركيز، تحديد نصّ)، اجعل الحوار `StatefulWidget`
 يملكه ويتخلّص منه في `dispose()`. **يحرسه اختبار آلي:**
 `test/unit/dialog_controller_lifecycle_test.dart`
+
+### ✅ الألوان من الثيم لا بشرط
+```dart
+color: context.colors.text          // ✅
+color: isDark ? textDark : textLight // ❌ كان ١٦٤ مرة قبل المرحلة د
+```
+`AppPalette` يحمل ٩ ألوان (`bg` · `surface` · `surface2` · `text` · `subtext`
+· `border` · `gold` · `onGold` · `sidebar` · `danger`). يحرس الحدَّ اختبار
+`tech_debt_guard_test.dart`.
+
+### ✅ الملف الكبير يُقسَّم بـ `part` لا بملف مستقل
+`part` يُبقي الأصناف **خاصة** (`_X`) فلا تتسرّب، ولا تحتاج إعادة تسمية.
+سوابق: `employees_screen` · `treasuries_screen` · `fiscal_screen`.
+**الحدّ ١٢٠٠ سطر** ويحرسه اختبار.
 
 ### ✅ المرفقات: المسار نسبي والترتيب مقصود
 ```
@@ -273,7 +285,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **المرفقات** | `schema_v6` · `attachment_service` |
 | **الترقية** | `schema_v6_upgrade` ← **الوحيد الذي يختبر `onUpgrade`** |
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
-| **حرّاس الأنماط** | `dialog_controller_lifecycle` ← يفحص **المصدر** لا السلوك |
+| **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** ← يفحصان **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |
 
 ⚠️ **حدّ بنيوي:** `flutter test` يعمل على الـ VM بـ `NativeDatabase` — فهو

@@ -13,14 +13,11 @@
 //   - Validation كامل قبل الحفظ
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'voucher_form_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
-import '../../../data/database/app_database.dart';
-import '../../../domain/models/treasury_model.dart';
 import '../../../domain/models/voucher_model.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/treasury_providers.dart';
@@ -33,7 +30,6 @@ import '../../widgets/common/attachments_panel.dart';
 // ملاحظة (ب-١ — 2026-08-23): حُذفت من هنا قائمتان ثابتتان بأنواع الإيرادات.
 // كانتا تعرضان ٧ بنود مكتوبة في الكود بينما جدول `item_types` يديره المالك
 // من الإعدادات — فما يضيفه لم يكن يظهر هنا. راجع ItemTypeSelector.
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // الشاشة الرئيسية
@@ -49,8 +45,7 @@ class VoucherKabdScreen extends ConsumerStatefulWidget {
   bool get isEdit => editId != null;
 
   @override
-  ConsumerState<VoucherKabdScreen> createState() =>
-      _VoucherKabdScreenState();
+  ConsumerState<VoucherKabdScreen> createState() => _VoucherKabdScreenState();
 }
 
 class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
@@ -240,9 +235,8 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      final ok = await ref
-          .read(voucherKabdNotifierProvider.notifier)
-          .deleteKabd(id);
+      final ok =
+          await ref.read(voucherKabdNotifierProvider.notifier).deleteKabd(id);
       if (ok && mounted) context.pop();
     }
   }
@@ -257,8 +251,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
     if (widget.isEdit) {
       ref.watch(voucherByIdProvider(widget.editId!)).whenData((v) {
         if (v != null && !_initialized) {
-          WidgetsBinding.instance
-              .addPostFrameCallback((_) => _prefillForm(v));
+          WidgetsBinding.instance.addPostFrameCallback((_) => _prefillForm(v));
         }
       });
     }
@@ -297,8 +290,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
     final isOperating = ref.watch(voucherKabdNotifierProvider).isLoading;
     final treasuriesAsync = ref.watch(allTreasuriesProvider);
     final rateAsync = ref.watch(exchangeRateProvider);
-    final periodAsync =
-        ref.watch(fiscalPeriodForDateProvider(_voucherDate));
+    final periodAsync = ref.watch(fiscalPeriodForDateProvider(_voucherDate));
 
     return Scaffold(
       appBar: AppBar(
@@ -327,7 +319,8 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── شريط الفترة المالية ───────────────────────────────────────
-              _KabdFiscalBanner(periodAsync: periodAsync),
+              VoucherFiscalPeriodBanner(
+                  accent: Colors.green.shade700, periodAsync: periodAsync),
               const SizedBox(height: 16),
 
               // ── بطاقة النموذج الرئيسية ────────────────────────────────────
@@ -345,12 +338,14 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // ── الخزينة ─────────────────────────────────────────
-                      const _KabdSectionLabel(
+                      VoucherSectionLabel(
+                        accent: Colors.green.shade700,
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'الخزينة',
                       ),
                       const SizedBox(height: 8),
-                      _KabdTreasuryDropdown(
+                      VoucherTreasuryDropdown(
+                        accent: Colors.green.shade700,
                         treasuriesAsync: treasuriesAsync,
                         selectedId: _selectedTreasuryId,
                         onChanged: (id) =>
@@ -360,36 +355,42 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                       const SizedBox(height: 20),
 
                       // ── المبلغ والعملة ──────────────────────────────────
-                      const _KabdSectionLabel(
+                      VoucherSectionLabel(
+                        accent: Colors.green.shade700,
                         icon: Icons.attach_money,
                         label: 'المبلغ والعملة',
                       ),
                       const SizedBox(height: 8),
-                      _KabdAmountCurrencyRow(
+                      VoucherAmountCurrencyRow(
+                        accent: Colors.green.shade700,
                         amountCtrl: _amountCtrl,
                         currency: _currency,
-                        onCurrencyChanged: (c) =>
-                            setState(() => _currency = c),
+                        onCurrencyChanged: (c) => setState(() => _currency = c),
                         enabled: !isOperating,
                       ),
                       if (_currency == 'USD')
-                        _KabdExchangeRateHint(rateAsync: rateAsync),
+                        VoucherExchangeRateHint(
+                            accent: Colors.green.shade700,
+                            rateAsync: rateAsync),
                       const SizedBox(height: 20),
 
                       // ── التاريخ ─────────────────────────────────────────
-                      const _KabdSectionLabel(
+                      VoucherSectionLabel(
+                        accent: Colors.green.shade700,
                         icon: Icons.calendar_today_outlined,
                         label: 'تاريخ السند',
                       ),
                       const SizedBox(height: 8),
-                      _KabdDateField(
+                      VoucherDatePickerField(
+                        accent: Colors.green.shade700,
                         date: _voucherDate,
                         onTap: isOperating ? null : _pickDate,
                       ),
                       const SizedBox(height: 20),
 
                       // ── الدافع والسبب ────────────────────────────────────
-                      const _KabdSectionLabel(
+                      VoucherSectionLabel(
+                        accent: Colors.green.shade700,
                         icon: Icons.person_outline,
                         label: 'الدافع والسبب',
                       ),
@@ -401,8 +402,7 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                         decoration: const InputDecoration(
                           labelText: 'اسم الدافع / المُودِع',
                           hintText: 'مثال: شركة الوفاء...',
-                          prefixIcon:
-                              Icon(Icons.person_outline, size: 20),
+                          prefixIcon: Icon(Icons.person_outline, size: 20),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -415,15 +415,15 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                         decoration: const InputDecoration(
                           labelText: 'السبب / الوصف',
                           hintText: 'مثال: دفعة أولى لمشروع...',
-                          prefixIcon:
-                              Icon(Icons.notes_outlined, size: 20),
+                          prefixIcon: Icon(Icons.notes_outlined, size: 20),
                           alignLabelWithHint: true,
                         ),
                       ),
                       const SizedBox(height: 20),
 
                       // ── نوع الإيراد ─────────────────────────────────────
-                      const _KabdSectionLabel(
+                      VoucherSectionLabel(
+                        accent: Colors.green.shade700,
                         icon: Icons.label_outline,
                         label: 'نوع الإيراد',
                       ),
@@ -431,14 +431,14 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
                       ItemTypeSelector(
                         kind: 'kabd',
                         selected: _itemType,
-                        onSelected: (t) =>
-                            setState(() => _itemType = t),
+                        onSelected: (t) => setState(() => _itemType = t),
                         enabled: !isOperating,
                       ),
                       const SizedBox(height: 20),
 
                       // ── الرقم المرجعي ────────────────────────────────────
-                      const _KabdSectionLabel(
+                      VoucherSectionLabel(
+                        accent: Colors.green.shade700,
                         icon: Icons.tag,
                         label: 'الأرقام المرجعية',
                       ),
@@ -506,7 +506,8 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
               const SizedBox(height: 24),
 
               // ── أزرار الإجراءات ───────────────────────────────────────────
-              _KabdActionButtons(
+              VoucherActionButtons(
+                accent: Colors.green.shade700,
                 isEdit: widget.isEdit,
                 isOperating: isOperating,
                 onSave: _submit,
@@ -517,458 +518,6 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// مكوّنات مساعدة — مخصصة لسند القبض (لون أخضر)
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ── شريط الفترة المالية ─────────────────────────────────────────────────────
-
-class _KabdFiscalBanner extends StatelessWidget {
-  final AsyncValue<FiscalPeriod?> periodAsync;
-
-  const _KabdFiscalBanner({required this.periodAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return periodAsync.when(
-      data: (period) {
-        if (period == null) {
-          return Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Colors.orange.shade700, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'لا توجد فترة مالية نشطة لهذا التاريخ\nيرجى مراجعة إعدادات الفترات المالية',
-                    style: TextStyle(
-                      color: Colors.orange.shade800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        final fmt = DateFormat('dd/MM/yyyy', 'ar');
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.event_available,
-                  color: Colors.green.shade700, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'الفترة المالية: ${period.name}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green.shade800,
-                        fontSize: 13,
-                      ),
-                    ),
-                    Text(
-                      '${fmt.format(period.startDate)} — ${fmt.format(period.endDate)}',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'نشطة',
-                  style: TextStyle(
-                    color: Colors.green.shade800,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      loading: () => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'جاري التحقق من الفترة المالية...',
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-// ── تسمية القسم ─────────────────────────────────────────────────────────────
-
-class _KabdSectionLabel extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _KabdSectionLabel({
-    required this.icon,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.green.shade700),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Colors.green.shade700,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Dropdown الخزائن ─────────────────────────────────────────────────────────
-
-class _KabdTreasuryDropdown extends StatelessWidget {
-  final AsyncValue<List<TreasuryModel>> treasuriesAsync;
-  final int? selectedId;
-  final ValueChanged<int?> onChanged;
-  final bool enabled;
-
-  const _KabdTreasuryDropdown({
-    required this.treasuriesAsync,
-    required this.selectedId,
-    required this.onChanged,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return treasuriesAsync.when(
-      data: (treasuries) {
-        final active = treasuries.where((t) => t.isActive).toList();
-        if (active.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: const Text(
-              'لا توجد خزائن نشطة — أضف خزينة أولاً',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
-        final effectiveId = selectedId != null &&
-                active.any((t) => t.id == selectedId)
-            ? selectedId
-            : null;
-        return DropdownButtonFormField<int>(
-          key: ValueKey(effectiveId),
-          initialValue: effectiveId,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'اختر الخزينة',
-            prefixIcon: Icon(
-              Icons.account_balance_wallet_outlined,
-              size: 20,
-            ),
-          ),
-          hint: const Text('اختر الخزينة'),
-          items: active
-              .map(
-                (t) => DropdownMenuItem<int>(
-                  value: t.id,
-                  child: Row(
-                    children: [
-                      _KabdKindDot(kind: t.kind),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(t.name)),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: enabled ? onChanged : null,
-          validator: (v) =>
-              v == null ? 'يرجى اختيار الخزينة' : null,
-        );
-      },
-      loading: () => const LinearProgressIndicator(),
-      error: (e, _) => Text(
-        'خطأ في تحميل الخزائن: $e',
-        style: const TextStyle(color: Colors.red),
-      ),
-    );
-  }
-}
-
-// ── نقطة نوع الخزينة ─────────────────────────────────────────────────────────
-
-class _KabdKindDot extends StatelessWidget {
-  final String kind;
-
-  const _KabdKindDot({required this.kind});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (kind) {
-      'main' => Colors.blue.shade400,
-      'contractor' => Colors.orange.shade400,
-      'partner' => Colors.purple.shade400,
-      _ => Colors.grey.shade400,
-    };
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-// ── حقل المبلغ والعملة ──────────────────────────────────────────────────────
-
-class _KabdAmountCurrencyRow extends StatelessWidget {
-  final TextEditingController amountCtrl;
-  final String currency;
-  final ValueChanged<String> onCurrencyChanged;
-  final bool enabled;
-
-  const _KabdAmountCurrencyRow({
-    required this.amountCtrl,
-    required this.currency,
-    required this.onCurrencyChanged,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            controller: amountCtrl,
-            enabled: enabled,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'^\d*\.?\d{0,3}'),
-              ),
-            ],
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'المبلغ المستلَم',
-              hintText: '0',
-              prefixIcon: Icon(Icons.attach_money, size: 20),
-            ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'المبلغ مطلوب';
-              final val = double.tryParse(v.replaceAll(',', ''));
-              if (val == null) return 'رقم غير صالح';
-              if (val <= 0) return 'يجب أن يكون > 0';
-              return null;
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'IQD', label: Text('د.ع')),
-                  ButtonSegment(value: 'USD', label: Text('\$')),
-                ],
-                selected: {currency},
-                onSelectionChanged: enabled
-                    ? (s) => onCurrencyChanged(s.first)
-                    : null,
-                style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── تلميح سعر الصرف ──────────────────────────────────────────────────────────
-
-class _KabdExchangeRateHint extends StatelessWidget {
-  final AsyncValue<double> rateAsync;
-
-  const _KabdExchangeRateHint({required this.rateAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    final rate = rateAsync.valueOrNull ?? 1310.0;
-    final fmt = NumberFormat('#,##0', 'ar');
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline,
-              size: 14, color: Colors.green.shade700),
-          const SizedBox(width: 6),
-          Text(
-            '1 \$ = ${fmt.format(rate)} د.ع (السعر الحالي)',
-            style: TextStyle(
-                fontSize: 12, color: Colors.green.shade700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── حقل التاريخ ─────────────────────────────────────────────────────────────
-
-class _KabdDateField extends StatelessWidget {
-  final DateTime date;
-  final VoidCallback? onTap;
-
-  const _KabdDateField({required this.date, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final fmt = DateFormat('EEEE، dd MMMM yyyy', 'ar');
-    // InputDecorator بدل TextFormField+Controller — حقل عرض فقط بلا تسريب.
-    return GestureDetector(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'التاريخ',
-          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-          suffixIcon: Icon(
-            Icons.arrow_drop_down,
-            color: Colors.green.shade700,
-          ),
-        ),
-        child: Text(fmt.format(date)),
-      ),
-    );
-  }
-}
-
-class _KabdActionButtons extends StatelessWidget {
-  final bool isEdit;
-  final bool isOperating;
-  final VoidCallback onSave;
-  final VoidCallback onCancel;
-
-  const _KabdActionButtons({
-    required this.isEdit,
-    required this.isOperating,
-    required this.onSave,
-    required this.onCancel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: isOperating ? null : onCancel,
-            icon: const Icon(Icons.close, size: 18),
-            label: const Text('إلغاء'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: FilledButton.icon(
-            onPressed: isOperating ? null : onSave,
-            icon: isOperating
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Icon(
-                    isEdit
-                        ? Icons.save_outlined
-                        : Icons.add_circle_outline,
-                    size: 18,
-                  ),
-            label: Text(isEdit ? 'حفظ التعديلات' : 'إنشاء السند'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              backgroundColor: Colors.green.shade700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

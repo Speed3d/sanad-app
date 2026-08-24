@@ -8,12 +8,12 @@
 //   - التنقل السفلي المطور للموبايل
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/auth/permissions.dart';
 import '../../../core/constants/app_routes.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_provider.dart';
@@ -199,7 +199,7 @@ class _DesktopShell extends ConsumerWidget {
           // ── 1. الشريط الجانبي المطور (Sidebar 256px) ───────────────────────
           Container(
             width: 256,
-            color: isDark ? AppColors.navySidebarDark : AppColors.navySidebarLight,
+            color: context.colors.sidebar,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -459,8 +459,6 @@ class _DesktopTopbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     final todayLabel = _formatTodayArabicDate();
 
@@ -468,10 +466,10 @@ class _DesktopTopbar extends StatelessWidget {
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: context.colors.surface,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            color: context.colors.border,
           ),
         ),
       ),
@@ -488,7 +486,7 @@ class _DesktopTopbar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppColors.textDark : AppColors.textLight,
+                  color: context.colors.text,
                 ),
               ),
               if (isDashboard) ...[
@@ -497,7 +495,7 @@ class _DesktopTopbar extends StatelessWidget {
                   todayLabel,
                   style: TextStyle(
                     fontSize: 12.5,
-                    color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                    color: context.colors.subtext,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -537,9 +535,9 @@ class _DesktopTopbar extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+                  color: context.colors.surface2,
                   border: Border.all(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    color: context.colors.border,
                   ),
                 ),
                 child: const Center(
@@ -589,7 +587,6 @@ class _TopbarIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: onPressed,
@@ -600,16 +597,16 @@ class _TopbarIconButton extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              color: context.colors.border,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+            color: context.colors.subtext,
           ),
         ),
       ),

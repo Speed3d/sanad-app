@@ -9,6 +9,7 @@
 //   - نافذة الخيارات السفلية لإنشاء سند جديد (صرف / قبض / تحويل)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,7 +17,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_routes.dart';
 import '../../../core/services/pdf_print_helper.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../domain/models/treasury_model.dart';
 import '../../../domain/models/voucher_model.dart';
 import '../../providers/treasury_providers.dart';
@@ -64,11 +64,9 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
 
   /// إظهار نافذة اختيار نوع السند الجديد
   void _showAddSheet() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -82,7 +80,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
               width: 44,
               height: 5,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+                color: context.colors.surface2,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -92,7 +90,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 20),
@@ -153,8 +151,6 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final treasuriesAsync = ref.watch(allTreasuriesProvider);
 
     final treasuryMap = treasuriesAsync.whenData(
@@ -167,7 +163,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
           // ── شريط الأدوات والبحث والفلترة ───────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
-            color: isDark ? AppColors.bgDark : AppColors.bgLight,
+            color: context.colors.bg,
             child: Column(
               children: [
                 Row(
@@ -177,28 +173,28 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                       child: Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                          color: context.colors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                            color: context.colors.border,
                           ),
                         ),
                         child: TextField(
                           controller: _searchCtrl,
                           style: TextStyle(
                             fontSize: 13.5,
-                            color: isDark ? AppColors.textDark : AppColors.textLight,
+                            color: context.colors.text,
                           ),
                           decoration: InputDecoration(
                             hintText: 'بحث برقم السند، الاسم، البيان...',
                             hintStyle: TextStyle(
                               fontSize: 13,
-                              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                              color: context.colors.subtext,
                             ),
                             prefixIcon: Icon(
                               Icons.search_rounded,
                               size: 20,
-                              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                              color: context.colors.subtext,
                             ),
                             suffixIcon: _query.isNotEmpty
                                 ? IconButton(
@@ -210,7 +206,8 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                                   )
                                 : null,
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 10),
                           ),
                         ),
                       ),
@@ -223,10 +220,10 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                         height: 44,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                          color: context.colors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                            color: context.colors.border,
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -236,15 +233,15 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                               'كل الخزائن',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isDark ? AppColors.textDark : AppColors.textLight,
+                                color: context.colors.text,
                               ),
                             ),
                             icon: Icon(
                               Icons.filter_list_rounded,
                               size: 18,
-                              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                              color: context.colors.subtext,
                             ),
-                            dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                            dropdownColor: context.colors.surface,
                             items: [
                               DropdownMenuItem<int?>(
                                 value: null,
@@ -252,7 +249,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                                   'كل الخزائن',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                                    color: context.colors.text,
                                   ),
                                 ),
                               ),
@@ -263,13 +260,14 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                                     t.name,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: isDark ? AppColors.textDark : AppColors.textLight,
+                                      color: context.colors.text,
                                     ),
                                   ),
                                 ),
                               ),
                             ],
-                            onChanged: (v) => setState(() => _selectedTreasuryId = v),
+                            onChanged: (v) =>
+                                setState(() => _selectedTreasuryId = v),
                           ),
                         ),
                       ),
@@ -285,10 +283,12 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                       icon: const Icon(Icons.add_rounded, size: 18),
                       label: const Text('سند جديد'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? AppColors.goldDark : AppColors.goldLight,
-                        foregroundColor: isDark ? AppColors.navy : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: context.colors.gold,
+                        foregroundColor: context.colors.onGold,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                     ),
@@ -312,11 +312,13 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
                 // شريط التبويبات (الكل / قبض / صرف / تحويل)
                 TabBar(
                   controller: _tabCtrl,
-                  indicatorColor: isDark ? AppColors.goldDark : AppColors.navy,
-                  labelColor: isDark ? AppColors.goldDark : AppColors.navy,
-                  unselectedLabelColor: isDark ? AppColors.subtextDark : AppColors.subtextLight,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
-                  unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5),
+                  indicatorColor: context.colors.gold,
+                  labelColor: context.colors.gold,
+                  unselectedLabelColor: context.colors.subtext,
+                  labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 13.5),
+                  unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500, fontSize: 13.5),
                   tabs: const [
                     Tab(text: 'الكل'),
                     Tab(text: 'سندات القبض'),
@@ -407,9 +409,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
       context: context,
       builder: (ctx) => _VoucherDetailsSheet(
         voucher: v,
-        title: v.voucherType == 'transfer_out'
-            ? 'تحويل صادر'
-            : 'تحويل وارد',
+        title: v.voucherType == 'transfer_out' ? 'تحويل صادر' : 'تحويل وارد',
         note: 'التحويل سندان مرتبطان ولا يُعدَّل أحدهما بمعزل عن الآخر.\n'
             'لتصحيحه: احذفه (يُحذف الطرفان معاً) ثم أنشئه من جديد.',
         onDelete: () => _confirmDeleteVoucher(v),
@@ -604,7 +604,8 @@ class _VoucherTab extends ConsumerWidget {
     return 'لا توجد سندات مطابقة لـ ${active.join(' و')}';
   }
 
-  Widget _renderList(BuildContext context, List<VoucherModel> list, bool isDark) {
+  Widget _renderList(
+      BuildContext context, List<VoucherModel> list, bool isDark) {
     var filtered = list;
 
     // فلترة البحث
@@ -642,7 +643,7 @@ class _VoucherTab extends ConsumerWidget {
             Icon(
               Icons.receipt_long_outlined,
               size: 56,
-              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+              color: context.colors.subtext,
             ),
             const SizedBox(height: 14),
             Text(
@@ -652,7 +653,7 @@ class _VoucherTab extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                color: context.colors.subtext,
               ),
             ),
           ],
@@ -692,9 +693,6 @@ class _VoucherRowCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     final isKabd = voucher.isKabd;
     final isTransfer = voucher.voucherType.contains('transfer');
 
@@ -719,10 +717,10 @@ class _VoucherRowCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            color: context.colors.border,
           ),
         ),
         child: Row(
@@ -751,7 +749,7 @@ class _VoucherRowCard extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                color: context.colors.subtext,
               ),
             ),
             const SizedBox(width: 16),
@@ -762,11 +760,15 @@ class _VoucherRowCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    voucher.personName.isNotEmpty ? voucher.personName : (voucher.reason.isNotEmpty ? voucher.reason : 'سند بدون اسم'),
+                    voucher.personName.isNotEmpty
+                        ? voucher.personName
+                        : (voucher.reason.isNotEmpty
+                            ? voucher.reason
+                            : 'سند بدون اسم'),
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textDark : AppColors.textLight,
+                      color: context.colors.text,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -776,7 +778,7 @@ class _VoucherRowCard extends ConsumerWidget {
                       'خزينة: ${treasury!.name}',
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                        color: context.colors.subtext,
                       ),
                     ),
                 ],
@@ -788,7 +790,7 @@ class _VoucherRowCard extends ConsumerWidget {
               fmtDate.format(voucher.voucherDate),
               style: TextStyle(
                 fontSize: 12,
-                color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                color: context.colors.subtext,
               ),
             ),
             const SizedBox(width: 20),
@@ -815,7 +817,7 @@ class _VoucherRowCard extends ConsumerWidget {
               icon: Icon(
                 Icons.print_outlined,
                 size: 19,
-                color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                color: context.colors.subtext,
               ),
               tooltip: 'طباعة PDF',
               // نمرّر ترويسة الشركة إن كانت جاهزة؛ وإن لم تُحمَّل بعد
@@ -855,18 +857,16 @@ class _AddVoucherTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+          color: context.colors.surface2,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            color: context.colors.border,
           ),
         ),
         child: Column(
@@ -885,7 +885,7 @@ class _AddVoucherTile extends StatelessWidget {
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
                 fontSize: 13,
               ),
             ),
@@ -894,7 +894,7 @@ class _AddVoucherTile extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 fontSize: 11,
-                color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                color: context.colors.subtext,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -952,8 +952,7 @@ class _VoucherDetailsSheet extends StatelessWidget {
           _row('المبلغ', '${fmt.format(voucher.amount)} ${voucher.currency}'),
           _row('التاريخ', dateFmt.format(voucher.voucherDate)),
           if (voucher.reason.isNotEmpty) _row('البيان', voucher.reason),
-          if (voucher.personName.isNotEmpty)
-            _row('الشخص', voucher.personName),
+          if (voucher.personName.isNotEmpty) _row('الشخص', voucher.personName),
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
@@ -1015,8 +1014,8 @@ class _VoucherDetailsSheet extends StatelessWidget {
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ],
       ),

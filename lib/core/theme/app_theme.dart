@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import 'app_theme_extension.dart';
 import 'app_text_styles.dart';
 
 /// الثيم الرئيسي للتطبيق — Light و Dark
@@ -75,6 +76,12 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       brightness: brightness,
+      // ── ألوان سند كامتداد ثيم (المرحلة د) ──────────────────────────
+      // تُقرأ في الودجتات عبر `context.colors` بدل ١٣٨ شرط
+      // `isDark ? xDark : xLight` كانت موزّعة على ٨ ملفات.
+      extensions: [
+        brightness == Brightness.dark ? AppPalette.dark : AppPalette.light,
+      ],
     );
 
     // تطبيق الخط العربي (Cairo) على TextTheme الأساسية

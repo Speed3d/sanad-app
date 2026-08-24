@@ -11,6 +11,7 @@
 //   7. شبكة الإجراءات السريعة (سند صرف / قبض / تحويل / تقارير / إكسل / النسخ)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,7 +19,6 @@ import 'dart:math' as math;
 import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../core/constants/app_routes.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../domain/models/treasury_model.dart';
 import '../../providers/contractor_providers.dart';
 import '../../providers/employee_providers.dart';
@@ -375,16 +375,14 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          color: context.colors.border,
         ),
       ),
       child: Column(
@@ -407,7 +405,7 @@ class _StatTile extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                  color: context.colors.subtext,
                 ),
               ),
             ],
@@ -428,7 +426,7 @@ class _StatTile extends StatelessWidget {
             'د.ع  ·  $subtitle',
             style: TextStyle(
               fontSize: 11,
-              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+              color: context.colors.subtext,
             ),
           ),
         ],
@@ -491,8 +489,6 @@ class _TreasuryCardItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final fmt = NumberFormat('#,##0.##');
 
     final Color dotColor = balance.treasuryKind == 'main'
@@ -505,10 +501,10 @@ class _TreasuryCardItem extends StatelessWidget {
       width: 175,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          color: context.colors.border,
         ),
       ),
       child: Column(
@@ -532,7 +528,7 @@ class _TreasuryCardItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                    color: context.colors.text,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -550,7 +546,7 @@ class _TreasuryCardItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.textDark : AppColors.textLight,
+                    color: context.colors.text,
                     fontFamily: 'Cairo',
                   ),
                 ),
@@ -560,7 +556,7 @@ class _TreasuryCardItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                    color: context.colors.subtext,
                     fontFamily: 'Cairo',
                   ),
                 ),
@@ -572,7 +568,7 @@ class _TreasuryCardItem extends StatelessWidget {
             height: 5,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+              color: context.colors.surface2,
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(
@@ -590,7 +586,7 @@ class _TreasuryCardItem extends StatelessWidget {
             '${balance.totalVouchers} سند مسجّل',
             style: TextStyle(
               fontSize: 11,
-              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+              color: context.colors.subtext,
             ),
           ),
         ],
@@ -654,16 +650,14 @@ class _QuickStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          color: context.colors.border,
         ),
       ),
       child: Column(
@@ -673,13 +667,13 @@ class _QuickStatCard extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+              color: context.colors.surface2,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
               size: 20,
-              color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+              color: context.colors.gold,
             ),
           ),
           const SizedBox(height: 10),
@@ -688,7 +682,7 @@ class _QuickStatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: isDark ? AppColors.textDark : AppColors.textLight,
+              color: context.colors.text,
             ),
           ),
           const SizedBox(height: 2),
@@ -697,7 +691,7 @@ class _QuickStatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+              color: context.colors.subtext,
             ),
           ),
         ],
@@ -713,7 +707,6 @@ class _QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final actions = [
       _ActionTileData(
@@ -740,22 +733,22 @@ class _QuickActionsGrid extends StatelessWidget {
       _ActionTileData(
         label: 'التقارير',
         icon: Icons.bar_chart_rounded,
-        chipBg: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
-        color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+        chipBg: context.colors.surface2,
+        color: context.colors.gold,
         route: AppRoutes.reports,
       ),
       _ActionTileData(
         label: 'استيراد إكسل',
         icon: Icons.work_outline_rounded,
-        chipBg: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
-        color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+        chipBg: context.colors.surface2,
+        color: context.colors.gold,
         route: AppRoutes.excelImport,
       ),
       _ActionTileData(
         label: 'النسخ الاحتياطي',
         icon: Icons.schedule_rounded,
-        chipBg: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
-        color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+        chipBg: context.colors.surface2,
+        color: context.colors.gold,
         route: AppRoutes.backup,
       ),
     ];
@@ -794,17 +787,16 @@ class _ActionTileItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: () => context.go(data.route),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            color: context.colors.border,
           ),
         ),
         child: Column(
@@ -825,7 +817,7 @@ class _ActionTileItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               textAlign: TextAlign.center,
             ),
@@ -851,7 +843,6 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -861,7 +852,7 @@ class _SectionHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: isDark ? AppColors.textDark : AppColors.textLight,
+            color: context.colors.text,
           ),
         ),
         if (actionLabel != null)
@@ -872,7 +863,7 @@ class _SectionHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.goldDark : AppColors.goldLight,
+                color: context.colors.gold,
               ),
             ),
           ),

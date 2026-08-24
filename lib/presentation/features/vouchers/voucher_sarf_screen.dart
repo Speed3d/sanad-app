@@ -13,14 +13,11 @@
 //   - Validation كامل قبل الحفظ
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'voucher_form_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
-import '../../../data/database/app_database.dart';
-import '../../../domain/models/treasury_model.dart';
 import '../../../domain/models/voucher_model.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/treasury_providers.dart';
@@ -35,7 +32,6 @@ import '../../widgets/common/attachments_panel.dart';
 // بينما جدول `item_types` في قاعدة البيانات فيه ٢١ بنداً يديرها المالك من
 // الإعدادات — فكان ما يضيفه لا يظهر هنا إطلاقاً. حلّ محلّهما
 // ItemTypeSelector الذي يقرأ من الجدول مباشرةً.
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // الشاشة الرئيسية
@@ -193,8 +189,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
     final rawAmount = _amountCtrl.text.replaceAll(',', '').trim();
     final amount = double.tryParse(rawAmount) ?? 0;
 
-    final rate =
-        ref.read(exchangeRateProvider).valueOrNull ?? 1310.0;
+    final rate = ref.read(exchangeRateProvider).valueOrNull ?? 1310.0;
 
     final notifier = ref.read(voucherSarfNotifierProvider.notifier);
     bool success;
@@ -269,9 +264,8 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      final ok = await ref
-          .read(voucherSarfNotifierProvider.notifier)
-          .deleteSarf(id);
+      final ok =
+          await ref.read(voucherSarfNotifierProvider.notifier).deleteSarf(id);
       if (ok && mounted) context.pop();
     }
   }
@@ -286,8 +280,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
     if (widget.isEdit) {
       ref.watch(voucherByIdProvider(widget.editId!)).whenData((v) {
         if (v != null && !_initialized) {
-          WidgetsBinding.instance
-              .addPostFrameCallback((_) => _prefillForm(v));
+          WidgetsBinding.instance.addPostFrameCallback((_) => _prefillForm(v));
         }
       });
     }
@@ -320,16 +313,14 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
       );
     });
 
-    final isOperating =
-        ref.watch(voucherSarfNotifierProvider).isLoading;
+    final isOperating = ref.watch(voucherSarfNotifierProvider).isLoading;
 
     // الخزائن والإعدادات
     final treasuriesAsync = ref.watch(allTreasuriesProvider);
     final rateAsync = ref.watch(exchangeRateProvider);
 
     // الفترة المالية للتاريخ المحدد
-    final periodAsync =
-        ref.watch(fiscalPeriodForDateProvider(_voucherDate));
+    final periodAsync = ref.watch(fiscalPeriodForDateProvider(_voucherDate));
 
     return Scaffold(
       appBar: AppBar(
@@ -358,7 +349,8 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── شريط الفترة المالية ───────────────────────────────────────
-              _FiscalPeriodBanner(periodAsync: periodAsync),
+              VoucherFiscalPeriodBanner(
+                  accent: theme.colorScheme.error, periodAsync: periodAsync),
               const SizedBox(height: 16),
 
               // ── بطاقة النموذج الرئيسية ────────────────────────────────────
@@ -376,12 +368,14 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // ── الخزينة ─────────────────────────────────────────
-                      _SectionLabel(
+                      VoucherSectionLabel(
+                        accent: theme.colorScheme.error,
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'الخزينة',
                       ),
                       const SizedBox(height: 8),
-                      _TreasuryDropdown(
+                      VoucherTreasuryDropdown(
+                        accent: theme.colorScheme.error,
                         treasuriesAsync: treasuriesAsync,
                         selectedId: _selectedTreasuryId,
                         onChanged: (id) =>
@@ -391,37 +385,43 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                       const SizedBox(height: 20),
 
                       // ── المبلغ والعملة ──────────────────────────────────
-                      _SectionLabel(
+                      VoucherSectionLabel(
+                        accent: theme.colorScheme.error,
                         icon: Icons.attach_money,
                         label: 'المبلغ والعملة',
                       ),
                       const SizedBox(height: 8),
-                      _AmountCurrencyRow(
+                      VoucherAmountCurrencyRow(
+                        accent: theme.colorScheme.error,
                         amountCtrl: _amountCtrl,
                         currency: _currency,
-                        onCurrencyChanged: (c) =>
-                            setState(() => _currency = c),
+                        onCurrencyChanged: (c) => setState(() => _currency = c),
                         enabled: !isOperating,
                       ),
                       // سعر الصرف عند اختيار USD
                       if (_currency == 'USD')
-                        _ExchangeRateHint(rateAsync: rateAsync),
+                        VoucherExchangeRateHint(
+                            accent: theme.colorScheme.error,
+                            rateAsync: rateAsync),
                       const SizedBox(height: 20),
 
                       // ── التاريخ ─────────────────────────────────────────
-                      _SectionLabel(
+                      VoucherSectionLabel(
+                        accent: theme.colorScheme.error,
                         icon: Icons.calendar_today_outlined,
                         label: 'تاريخ السند',
                       ),
                       const SizedBox(height: 8),
-                      _DatePickerField(
+                      VoucherDatePickerField(
+                        accent: theme.colorScheme.error,
                         date: _voucherDate,
                         onTap: isOperating ? null : _pickDate,
                       ),
                       const SizedBox(height: 20),
 
                       // ── المستلم والسبب ──────────────────────────────────
-                      _SectionLabel(
+                      VoucherSectionLabel(
+                        accent: theme.colorScheme.error,
                         icon: Icons.person_outline,
                         label: 'المستلم والسبب',
                       ),
@@ -433,8 +433,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                         decoration: const InputDecoration(
                           labelText: 'اسم المستلم',
                           hintText: 'مثال: أحمد محمد...',
-                          prefixIcon:
-                              Icon(Icons.person_outline, size: 20),
+                          prefixIcon: Icon(Icons.person_outline, size: 20),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -447,15 +446,15 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                         decoration: const InputDecoration(
                           labelText: 'السبب / الوصف',
                           hintText: 'وصف مختصر للعملية...',
-                          prefixIcon:
-                              Icon(Icons.notes_outlined, size: 20),
+                          prefixIcon: Icon(Icons.notes_outlined, size: 20),
                           alignLabelWithHint: true,
                         ),
                       ),
                       const SizedBox(height: 20),
 
                       // ── نوع البند ───────────────────────────────────────
-                      _SectionLabel(
+                      VoucherSectionLabel(
+                        accent: theme.colorScheme.error,
                         icon: Icons.label_outline,
                         label: 'نوع البند',
                       ),
@@ -463,8 +462,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                       ItemTypeSelector(
                         kind: 'sarf',
                         selected: _itemType,
-                        onSelected: (t) =>
-                            setState(() => _itemType = t),
+                        onSelected: (t) => setState(() => _itemType = t),
                         enabled: !isOperating,
                       ),
                       const SizedBox(height: 20),
@@ -476,7 +474,8 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                       // الأعمدة قائمة في قاعدة البيانات منذ Schema v2 ولم
                       // تكن الشاشة تعرضها، فكان الجواب مستحيلاً.
                       // كلها اختيارية — لا تُثقل الإدخال اليومي السريع.
-                      _SectionLabel(
+                      VoucherSectionLabel(
+                        accent: theme.colorScheme.error,
                         icon: Icons.assignment_outlined,
                         label: 'تتبّع المصروف (اختياري)',
                       ),
@@ -566,10 +565,10 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                           // الرقم المرجعي
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _SectionLabel(
+                                VoucherSectionLabel(
+                                  accent: theme.colorScheme.error,
                                   icon: Icons.tag,
                                   label: 'الرقم المرجعي',
                                 ),
@@ -578,8 +577,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                                   controller: _refNumCtrl,
                                   enabled: !isOperating,
                                   textInputAction: TextInputAction.done,
-                                  keyboardType:
-                                      TextInputType.text,
+                                  keyboardType: TextInputType.text,
                                   decoration: const InputDecoration(
                                     labelText: 'رقم الشيك / أمر الدفع',
                                     hintText: 'اختياري...',
@@ -596,7 +594,8 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                           // إقفال الصندوق
                           Column(
                             children: [
-                              _SectionLabel(
+                              VoucherSectionLabel(
+                                accent: theme.colorScheme.error,
                                 icon: Icons.lock_outline,
                                 label: 'إقفال الصندوق',
                               ),
@@ -605,8 +604,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                                 value: _closeSafe,
                                 onChanged: isOperating
                                     ? null
-                                    : (v) =>
-                                        setState(() => _closeSafe = v),
+                                    : (v) => setState(() => _closeSafe = v),
                               ),
                             ],
                           ),
@@ -638,7 +636,8 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
               const SizedBox(height: 24),
 
               // ── أزرار الإجراءات ───────────────────────────────────────────
-              _ActionButtons(
+              VoucherActionButtons(
+                accent: theme.colorScheme.error,
                 isEdit: widget.isEdit,
                 isOperating: isOperating,
                 onSave: _submit,
@@ -649,472 +648,6 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// مكوّنات مساعدة
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ── شريط الفترة المالية ─────────────────────────────────────────────────────
-
-class _FiscalPeriodBanner extends StatelessWidget {
-  final AsyncValue<FiscalPeriod?> periodAsync;
-
-  const _FiscalPeriodBanner({required this.periodAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return periodAsync.when(
-      data: (period) {
-        if (period == null) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Colors.orange.shade700, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'لا توجد فترة مالية نشطة لهذا التاريخ\nيرجى مراجعة إعدادات الفترات المالية',
-                    style: TextStyle(
-                      color: Colors.orange.shade800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        final fmt = DateFormat('dd/MM/yyyy', 'ar');
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.event_available,
-                  color: theme.colorScheme.primary, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'الفترة المالية: ${period.name}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                        fontSize: 13,
-                      ),
-                    ),
-                    Text(
-                      '${fmt.format(period.startDate)} — ${fmt.format(period.endDate)}',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'نشطة',
-                  style: TextStyle(
-                    color: Colors.green.shade800,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      loading: () => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'جاري التحقق من الفترة المالية...',
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-// ── تسمية القسم ─────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _SectionLabel({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: theme.colorScheme.primary),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Dropdown الخزائن ─────────────────────────────────────────────────────────
-
-class _TreasuryDropdown extends StatelessWidget {
-  final AsyncValue<List<TreasuryModel>> treasuriesAsync;
-  final int? selectedId;
-  final ValueChanged<int?> onChanged;
-  final bool enabled;
-
-  const _TreasuryDropdown({
-    required this.treasuriesAsync,
-    required this.selectedId,
-    required this.onChanged,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return treasuriesAsync.when(
-      data: (treasuries) {
-        final active =
-            treasuries.where((t) => t.isActive).toList();
-        if (active.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: const Text(
-              'لا توجد خزائن نشطة — أضف خزينة أولاً',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
-        final effectiveId = selectedId != null &&
-                active.any((t) => t.id == selectedId)
-            ? selectedId
-            : null;
-        return DropdownButtonFormField<int>(
-          key: ValueKey(effectiveId),
-          initialValue: effectiveId,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'اختر الخزينة',
-            prefixIcon: Icon(
-              Icons.account_balance_wallet_outlined,
-              size: 20,
-            ),
-          ),
-          hint: const Text('اختر الخزينة'),
-          items: active
-              .map(
-                (t) => DropdownMenuItem<int>(
-                  value: t.id,
-                  child: Row(
-                    children: [
-                      _KindDot(kind: t.kind),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(t.name)),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: enabled ? onChanged : null,
-          validator: (v) =>
-              v == null ? 'يرجى اختيار الخزينة' : null,
-        );
-      },
-      loading: () => const LinearProgressIndicator(),
-      error: (e, _) => Text(
-        'خطأ في تحميل الخزائن: $e',
-        style: const TextStyle(color: Colors.red),
-      ),
-    );
-  }
-}
-
-// ── نقطة نوع الخزينة ─────────────────────────────────────────────────────────
-
-class _KindDot extends StatelessWidget {
-  final String kind;
-
-  const _KindDot({required this.kind});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (kind) {
-      'main' => Colors.blue.shade400,
-      'contractor' => Colors.orange.shade400,
-      'partner' => Colors.purple.shade400,
-      _ => Colors.grey.shade400,
-    };
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-// ── حقل المبلغ والعملة ──────────────────────────────────────────────────────
-
-class _AmountCurrencyRow extends StatelessWidget {
-  final TextEditingController amountCtrl;
-  final String currency;
-  final ValueChanged<String> onCurrencyChanged;
-  final bool enabled;
-
-  const _AmountCurrencyRow({
-    required this.amountCtrl,
-    required this.currency,
-    required this.onCurrencyChanged,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // حقل المبلغ
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            controller: amountCtrl,
-            enabled: enabled,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'^\d*\.?\d{0,3}'),
-              ),
-            ],
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'المبلغ',
-              hintText: '0',
-              prefixIcon:
-                  Icon(Icons.attach_money, size: 20),
-            ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'المبلغ مطلوب';
-              final val = double.tryParse(v.replaceAll(',', ''));
-              if (val == null) return 'رقم غير صالح';
-              if (val <= 0) return 'يجب أن يكون > 0';
-              return null;
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        // تبديل العملة
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'IQD', label: Text('د.ع')),
-                  ButtonSegment(value: 'USD', label: Text('\$')),
-                ],
-                selected: {currency},
-                onSelectionChanged: enabled
-                    ? (s) => onCurrencyChanged(s.first)
-                    : null,
-                style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── تلميح سعر الصرف ──────────────────────────────────────────────────────────
-
-class _ExchangeRateHint extends StatelessWidget {
-  final AsyncValue<double> rateAsync;
-
-  const _ExchangeRateHint({required this.rateAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    final rate = rateAsync.valueOrNull ?? 1310.0;
-    final fmt = NumberFormat('#,##0', 'ar');
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline,
-            size: 14,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '1 \$ = ${fmt.format(rate)} د.ع (السعر الحالي)',
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── حقل التاريخ ─────────────────────────────────────────────────────────────
-
-class _DatePickerField extends StatelessWidget {
-  final DateTime date;
-  final VoidCallback? onTap;
-
-  const _DatePickerField({required this.date, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final fmt = DateFormat('EEEE، dd MMMM yyyy', 'ar');
-    // نستخدم InputDecorator بدل TextFormField+TextEditingController لأن الحقل
-    // للعرض فقط — يمنع تسريب Controller يُنشأ في كل إعادة بناء. تدقيق 2026-08-06.
-    return GestureDetector(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'التاريخ',
-          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-          suffixIcon: Icon(
-            Icons.arrow_drop_down,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        child: Text(fmt.format(date)),
-      ),
-    );
-  }
-}
-
-// ── أزرار الإجراءات ──────────────────────────────────────────────────────────
-
-class _ActionButtons extends StatelessWidget {
-  final bool isEdit;
-  final bool isOperating;
-  final VoidCallback onSave;
-  final VoidCallback onCancel;
-
-  const _ActionButtons({
-    required this.isEdit,
-    required this.isOperating,
-    required this.onSave,
-    required this.onCancel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        // زر الإلغاء
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: isOperating ? null : onCancel,
-            icon: const Icon(Icons.close, size: 18),
-            label: const Text('إلغاء'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        // زر الحفظ
-        Expanded(
-          flex: 2,
-          child: FilledButton.icon(
-            onPressed: isOperating ? null : onSave,
-            icon: isOperating
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Icon(
-                    isEdit ? Icons.save_outlined : Icons.add_circle_outline,
-                    size: 18,
-                  ),
-            label: Text(isEdit ? 'حفظ التعديلات' : 'إنشاء السند'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              backgroundColor: isEdit
-                  ? theme.colorScheme.secondary
-                  : theme.colorScheme.error,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

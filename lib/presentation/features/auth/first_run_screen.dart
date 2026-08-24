@@ -10,6 +10,8 @@
 // مصممة بأسلوب مالي فاخر (Fintech Luxury Theme) متناسق مع شاشات اللوحة والخزائن والسندات.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/utils/input_validators.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -130,7 +132,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
+      backgroundColor: context.colors.bg,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 680),
@@ -255,16 +257,16 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 // ── 3. بطاقة الـ Stepper الفاخرة ──────────────────────────────
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                      color: context.colors.border,
                     ),
                   ),
                   child: Theme(
                     data: theme.copyWith(
                       colorScheme: theme.colorScheme.copyWith(
-                        primary: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+                        primary: context.colors.gold,
                       ),
                     ),
                     child: Stepper(
@@ -281,8 +283,8 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                             ElevatedButton(
                               onPressed: _isLoading ? null : details.onStepContinue,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
-                                foregroundColor: isDark ? AppColors.navy : Colors.white,
+                                backgroundColor: context.colors.gold,
+                                foregroundColor: context.colors.onGold,
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
@@ -313,7 +315,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                                   style: TextStyle(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                                    color: context.colors.subtext,
                                   ),
                                 ),
                               ),
@@ -345,14 +347,14 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
         'بيانات الشركة',
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: isDark ? AppColors.textDark : AppColors.textLight,
+          color: context.colors.text,
         ),
       ),
       subtitle: Text(
         'اسم المؤسسة وسعر الصرف',
         style: TextStyle(
           fontSize: 11.5,
-          color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+          color: context.colors.subtext,
         ),
       ),
       isActive: _currentStep >= 0,
@@ -366,7 +368,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               controller: _companyNameCtrl,
               style: TextStyle(
                 fontSize: 13.5,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 labelText: 'اسم الشركة *',
@@ -389,7 +391,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: TextStyle(
                 fontSize: 13.5,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 labelText: 'سعر الصرف (IQD مقابل 1 USD)',
@@ -409,10 +411,10 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.surface2Dark : AppColors.surface2Light,
+                color: context.colors.surface2,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  color: context.colors.border,
                 ),
               ),
               child: Row(
@@ -420,7 +422,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                   Icon(
                     Icons.account_balance_wallet_outlined,
                     size: 20,
-                    color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+                    color: context.colors.gold,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -432,7 +434,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+                            color: context.colors.subtext,
                           ),
                         ),
                         Text(
@@ -440,7 +442,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.textDark : AppColors.textLight,
+                            color: context.colors.text,
                           ),
                         ),
                       ],
@@ -464,14 +466,14 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
         'حساب مدير النظام',
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: isDark ? AppColors.textDark : AppColors.textLight,
+          color: context.colors.text,
         ),
       ),
       subtitle: Text(
         'صلاحيات كاملة — Super Admin',
         style: TextStyle(
           fontSize: 11.5,
-          color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+          color: context.colors.subtext,
         ),
       ),
       isActive: _currentStep >= 1,
@@ -485,7 +487,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               controller: _fullNameCtrl,
               style: TextStyle(
                 fontSize: 13.5,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 labelText: 'الاسم الكامل *',
@@ -505,7 +507,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               textDirection: TextDirection.ltr,
               style: TextStyle(
                 fontSize: 13.5,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 labelText: 'اسم المستخدم *',
@@ -513,14 +515,8 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 hintText: 'مثال: admin',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'اسم المستخدم مطلوب';
-                if (v.trim().length < 3) return 'يجب أن يكون 3 أحرف على الأقل';
-                if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) {
-                  return 'يُسمح فقط بالأحرف الإنجليزية والأرقام و _';
-                }
-                return null;
-              },
+              // مدقّق مشترك — نفس القواعد بالضبط (المرحلة د)
+              validator: InputValidators.username,
             ),
             const SizedBox(height: 14),
 
@@ -530,7 +526,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               obscureText: _obscurePassword,
               style: TextStyle(
                 fontSize: 13.5,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 labelText: 'كلمة المرور *',
@@ -544,11 +540,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'كلمة المرور مطلوبة';
-                if (v.length < 6) return 'يجب أن تكون 6 أحرف على الأقل';
-                return null;
-              },
+              validator: InputValidators.password(minLength: 6),
             ),
             const SizedBox(height: 14),
 
@@ -558,7 +550,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               obscureText: _obscureConfirm,
               style: TextStyle(
                 fontSize: 13.5,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               decoration: InputDecoration(
                 labelText: 'تأكيد كلمة المرور *',
@@ -572,11 +564,8 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'تأكيد كلمة المرور مطلوب';
-                if (v != _passwordCtrl.text) return 'كلمتا المرور غير متطابقتين';
-                return null;
-              },
+              validator:
+                  InputValidators.confirmPassword(_passwordCtrl.text),
             ),
           ],
         ),
@@ -592,14 +581,14 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
         'مراجعة وتأكيد',
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: isDark ? AppColors.textDark : AppColors.textLight,
+          color: context.colors.text,
         ),
       ),
       subtitle: Text(
         'تحقق من البيانات قبل الإنهاء',
         style: TextStyle(
           fontSize: 11.5,
-          color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+          color: context.colors.subtext,
         ),
       ),
       isActive: _currentStep >= 2,
@@ -653,7 +642,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               children: [
                 Icon(
                   Icons.info_outline_rounded,
-                  color: isDark ? const Color(0xFFE0BC66) : AppColors.navy,
+                  color: context.colors.gold,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -663,7 +652,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.5,
-                      color: isDark ? AppColors.textDark : AppColors.textLight,
+                      color: context.colors.text,
                     ),
                   ),
                 ),
@@ -700,14 +689,14 @@ class _SummaryTile extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+            color: context.colors.subtext,
           ),
           const SizedBox(width: 10),
           Text(
             '$label: ',
             style: TextStyle(
               fontSize: 13,
-              color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
+              color: context.colors.subtext,
             ),
           ),
           Expanded(
@@ -716,7 +705,7 @@ class _SummaryTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
-                color: isDark ? AppColors.textDark : AppColors.textLight,
+                color: context.colors.text,
               ),
               overflow: TextOverflow.ellipsis,
             ),
