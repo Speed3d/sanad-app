@@ -198,7 +198,7 @@ class AdvanceNotifier extends _$AdvanceNotifier {
     final user = _user;
     if (user == null || !user.can(AppPermission.prepareAdvance)) {
       state = const AsyncError(
-        'ليست لديك صلاحية تجهيز مسودات السلف.',
+        'ليست لديك صلاحية تجهيز مسودات سلف المشاريع.',
         StackTrace.empty,
       );
       return false;
@@ -317,7 +317,7 @@ class AdvanceNotifier extends _$AdvanceNotifier {
   }) async {
     final user = _user;
     if (user == null || !user.can(AppPermission.postAdvance)) {
-      const msg = 'اعتماد السلف يتطلب صلاحية مدير — راجع مدير النظام.';
+      const msg = 'اعتماد سلف المشاريع يتطلب صلاحية مدير — راجع مدير النظام.';
       state = const AsyncError(msg, StackTrace.empty);
       return const PostAdvanceOutcome(success: false, message: msg);
     }
@@ -374,7 +374,7 @@ class AdvanceNotifier extends _$AdvanceNotifier {
     final user = _user;
     if (user == null || !user.can(AppPermission.cancelAdvance)) {
       state = const AsyncError(
-        'إلغاء السلف يتطلب صلاحية مدير.',
+        'إلغاء سلف المشاريع يتطلب صلاحية مدير.',
         StackTrace.empty,
       );
       return false;

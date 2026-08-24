@@ -24,6 +24,59 @@ final companyNameProvider = AutoDisposeStreamProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CompanyNameRef = AutoDisposeStreamProviderRef<String?>;
+String _$companyLogoHash() => r'4c7481a6e89909c9505842d3fc95b7ce7906b0d0';
+
+/// بايتات شعار الشركة — null إن لم يُرفَع شعار
+///
+/// **لماذا وُجد هذا المزوّد؟** (ب-٣ — 2026-08-23)
+///   كان الشعار يُرفَع ويُخزَّن في `app_blobs` عبر `setBlob`، و**`getBlob`
+///   لا تُستدعى في أي مكان في المشروع كلّه**. أي أن المالك يرفع شعاره ولا
+///   يراه أبداً — لا في الإعدادات ولا في أي مستند. ميزة كاملة مكتوبة
+///   نصفها ومعطَّلة بصمت.
+///
+/// يُبطَل يدوياً بعد الرفع أو الحذف عبر `ref.invalidate(companyLogoProvider)`
+/// — الصورة blob لا تدفّق تفاعلياً كبقية الإعدادات.
+///
+/// Copied from [companyLogo].
+@ProviderFor(companyLogo)
+final companyLogoProvider = AutoDisposeFutureProvider<Uint8List?>.internal(
+  companyLogo,
+  name: r'companyLogoProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$companyLogoHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CompanyLogoRef = AutoDisposeFutureProviderRef<Uint8List?>;
+String _$pdfCompanyHeaderHash() => r'72cc58fbaa6a977346b6e59ca7fbf3b3e0939859';
+
+/// هوية الشركة الجاهزة لترويسة الـ PDF — الاسم والشعار معاً
+///
+/// يجمع مصدرين مختلفين (`app_settings` للاسم و`app_blobs` للشعار) في كائن
+/// واحد يفهمه `PdfService` بلا أن يعرف شيئاً عن قاعدة البيانات.
+///
+/// **لا يفشل أبداً:** أي خطأ في القراءة يُعيد ترويسة فارغة فيُطبَع المستند
+/// بلا ترويسة. تعطيل الطباعة بسبب شعار غير مقروء ثمن باهظ بلا مقابل.
+///
+/// Copied from [pdfCompanyHeader].
+@ProviderFor(pdfCompanyHeader)
+final pdfCompanyHeaderProvider =
+    AutoDisposeFutureProvider<PdfCompanyHeader>.internal(
+  pdfCompanyHeader,
+  name: r'pdfCompanyHeaderProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$pdfCompanyHeaderHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PdfCompanyHeaderRef = AutoDisposeFutureProviderRef<PdfCompanyHeader>;
 String _$appLanguageHash() => r'c20fe0dab5283c2cc7235adb21de70f977a6860a';
 
 /// Provider تفاعلي للغة الحالية: 'ar' | 'en'

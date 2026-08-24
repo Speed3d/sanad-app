@@ -111,12 +111,13 @@ class SmartAlertService {
         alerts.add(
           SmartAlert(
             id: 'overdue_advances',
-            title: 'تنبيه: سُلف معلقة قديمة',
+            title: 'تنبيه: سلف موظفين معلّقة',
             description:
-                'يوجد ${overdueAdvances.length} سُلفة لم تُسدَّد بالكامل ومضى على منحها أكثر من $kOverdueAdvanceDays يوماً.',
+                'يوجد ${overdueAdvances.length} سلفة موظف لم تُسدَّد بالكامل ومضى '
+                'على منحها أكثر من $kOverdueAdvanceDays يوماً.',
             severity: AlertSeverity.warning,
             createdAt: DateTime.now(),
-            actionLabel: 'عرض السلف',
+            actionLabel: 'عرض سلف الموظفين',
           ),
         );
       }

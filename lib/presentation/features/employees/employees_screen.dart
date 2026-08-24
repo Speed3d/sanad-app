@@ -939,7 +939,7 @@ class _EmployeeDetailSheetState
           TabBar(
             controller: _tabCtrl,
             tabs: const [
-              Tab(text: 'السلف', icon: Icon(Icons.money_off, size: 16)),
+              Tab(text: 'سلف الموظف', icon: Icon(Icons.money_off, size: 16)),
               Tab(
                 text: 'الرواتب',
                 icon: Icon(Icons.payments_outlined, size: 16),

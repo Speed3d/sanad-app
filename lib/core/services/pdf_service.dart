@@ -19,6 +19,31 @@ import '../../domain/models/voucher_model.dart';
 import '../extensions/number_extensions.dart';
 import '../extensions/string_extensions.dart';
 
+/// هوية الشركة على مستندات PDF — الاسم والشعار
+///
+/// **لماذا كائن يُمرَّر بدل قراءة من قاعدة البيانات هنا؟** (ب-٣ — 2026-08-23)
+///   `PdfService` في طبقة `core` ولا يجوز أن تعرف شيئاً عن `data` — وإلا
+///   انعكس اتجاه الاعتماد المعماري وصار توليد الـ PDF غير قابل للاختبار بلا
+///   قاعدة بيانات. المستدعي هو من يقرأ الإعدادات ويمرّرها.
+class PdfCompanyHeader {
+  /// اسم الشركة كما أدخله المالك في الإعدادات
+  final String companyName;
+
+  /// بايتات الشعار — null إن لم يُرفَع شعار
+  final Uint8List? logoBytes;
+
+  const PdfCompanyHeader({this.companyName = '', this.logoBytes});
+
+  /// ترويسة فارغة — تُستعمَل حين يتعذّر قراءة الإعدادات
+  ///
+  /// المستند يُطبَع بلا ترويسة بدل أن يفشل توليده كلّياً: غياب الشعار
+  /// إزعاج، وفشل الطباعة تعطيل.
+  static const PdfCompanyHeader empty = PdfCompanyHeader();
+
+  /// هل تستحق العرض؟ (لا اسم ولا شعار = لا ترويسة)
+  bool get hasContent => companyName.trim().isNotEmpty || logoBytes != null;
+}
+
 /// خدمة إنشاء ملفات PDF
 class PdfService {
   /// خط عربي محمّل
@@ -36,8 +61,57 @@ class PdfService {
     return _arabicFont!;
   }
 
+  /// بناء ترويسة الشركة أعلى أي مستند — الشعار يميناً والاسم بجواره
+  ///
+  /// تُعيد `SizedBox.shrink` حين لا يوجد اسم ولا شعار، فلا تترك فراغاً
+  /// أبيض في أعلى الصفحة بلا سبب.
+  ///
+  /// [header] — هوية الشركة · [accent] — لون الخط الفاصل ليطابق نوع المستند
+  pw.Widget _buildCompanyHeader(PdfCompanyHeader header, PdfColor accent) {
+    if (!header.hasContent) return pw.SizedBox();
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            if (header.logoBytes != null) ...[
+              pw.SizedBox(
+                width: 42,
+                height: 42,
+                child: pw.Image(
+                  pw.MemoryImage(header.logoBytes!),
+                  fit: pw.BoxFit.contain,
+                ),
+              ),
+              pw.SizedBox(width: 10),
+            ],
+            if (header.companyName.trim().isNotEmpty)
+              pw.Expanded(
+                child: pw.Text(
+                  header.companyName.trim(),
+                  style: pw.TextStyle(
+                    fontSize: 15,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        pw.SizedBox(height: 6),
+        pw.Divider(color: accent, thickness: 0.8),
+        pw.SizedBox(height: 6),
+      ],
+    );
+  }
+
   /// إنشاء سند قبض أو صرف فردي بصيغة PDF
-  Future<Uint8List> generateVoucherReceipt(VoucherModel voucher) async {
+  Future<Uint8List> generateVoucherReceipt(
+    VoucherModel voucher, {
+    PdfCompanyHeader header = PdfCompanyHeader.empty,
+  }) async {
     final font = await _loadFont();
     final pdf = pw.Document();
     final isKabd = voucher.voucherType == 'kabd';
@@ -61,6 +135,9 @@ class PdfService {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
+                  // ── ترويسة الشركة (الشعار والاسم) ────────────────────────
+                  _buildCompanyHeader(header, color),
+
                   // ── ترويسة السند ─────────────────────────────────────────
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,

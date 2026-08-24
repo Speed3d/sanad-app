@@ -577,7 +577,7 @@ class AdvanceNotifier extends _$AdvanceNotifier {
             currency: Value(advance.currency),
             voucherDate: repaymentDate,
             personName: Value(empName),
-            reason: const Value('سداد سلفة'),
+            reason: const Value('سداد سلفة موظف'),
             itemType: const Value('مرتجع صرف'),
             linkedEntityId: Value(advance.employeeId),
             createdByUserId: Value(_userId),

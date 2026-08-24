@@ -23,12 +23,17 @@ abstract final class PdfPrintHelper {
   ///
   /// [context] — السياق
   /// [voucher] — نموذج السند المراد طباعته
+  /// [header] — هوية الشركة (الاسم والشعار). تُمرَّر من طبقة العرض لأن
+  /// `core` لا يجوز أن تقرأ من قاعدة البيانات. حذفها يطبع السند بلا ترويسة
+  /// بدل أن يفشل — غياب الشعار إزعاج وفشل الطباعة تعطيل.
   static Future<void> printVoucherReceipt(
     BuildContext context,
-    VoucherModel voucher,
-  ) async {
+    VoucherModel voucher, {
+    PdfCompanyHeader header = PdfCompanyHeader.empty,
+  }) async {
     final pdfService = PdfService();
-    final pdfData = await pdfService.generateVoucherReceipt(voucher);
+    final pdfData =
+        await pdfService.generateVoucherReceipt(voucher, header: header);
 
     if (context.mounted) {
       await Printing.layoutPdf(

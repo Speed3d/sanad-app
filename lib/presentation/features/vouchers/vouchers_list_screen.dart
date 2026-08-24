@@ -20,6 +20,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../domain/models/treasury_model.dart';
 import '../../../domain/models/voucher_model.dart';
 import '../../providers/treasury_providers.dart';
+import '../../../core/services/pdf_service.dart' show PdfCompanyHeader;
+import '../../providers/settings_provider.dart';
 import '../../providers/voucher_providers.dart';
 import '../../widgets/common/item_type_selector.dart';
 
@@ -675,7 +677,9 @@ class _VoucherTab extends ConsumerWidget {
 
 // ── كارت السند الفردي (Voucher Item Card) ───────────────────────────────────
 
-class _VoucherRowCard extends StatelessWidget {
+// ConsumerWidget لا StatelessWidget: زر الطباعة يحتاج ترويسة الشركة
+// من المزوّدات (ب-٣)
+class _VoucherRowCard extends ConsumerWidget {
   final VoucherModel voucher;
   final TreasuryModel? treasury;
   final VoidCallback onTap;
@@ -687,7 +691,7 @@ class _VoucherRowCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -814,7 +818,14 @@ class _VoucherRowCard extends StatelessWidget {
                 color: isDark ? AppColors.subtextDark : AppColors.subtextLight,
               ),
               tooltip: 'طباعة PDF',
-              onPressed: () => PdfPrintHelper.printVoucherReceipt(context, voucher),
+              // نمرّر ترويسة الشركة إن كانت جاهزة؛ وإن لم تُحمَّل بعد
+              // يُطبَع السند بلا ترويسة بدل تعطيل الزر
+              onPressed: () => PdfPrintHelper.printVoucherReceipt(
+                context,
+                voucher,
+                header: ref.read(pdfCompanyHeaderProvider).valueOrNull ??
+                    PdfCompanyHeader.empty,
+              ),
             ),
           ],
         ),

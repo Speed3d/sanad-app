@@ -355,7 +355,7 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('استيراد مصاريف سلفة'),
+        title: const Text('استيراد مصاريف سلفة مشروع'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),

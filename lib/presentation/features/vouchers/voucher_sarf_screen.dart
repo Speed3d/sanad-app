@@ -540,7 +540,7 @@ class _VoucherSarfScreenState extends ConsumerState<VoucherSarfScreen> {
                               enabled: !isOperating,
                               textInputAction: TextInputAction.next,
                               decoration: const InputDecoration(
-                                labelText: 'رقم السلفة',
+                                labelText: 'رقم سلفة المشروع',
                                 // توضيح ضروري: هذا للعرض والتتبّع اليدوي.
                                 // الربط الموثوق بسلفة المشروع يتم عبر
                                 // advance_id عند الاعتماد لا من هنا.

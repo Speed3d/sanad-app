@@ -65,7 +65,7 @@ final List<_NavItem> _navItems = [
   // سلف المشاريع — بعد الخزائن مباشرة لأنها أقرب شيء لها في العمل اليومي
   const _NavItem(
     id: 'advances',
-    label: 'السلف',
+    label: 'سلف المشاريع',
     icon: Icons.folder_shared_outlined,
     selectedIcon: Icons.folder_shared_rounded,
     route: AppRoutes.advances,

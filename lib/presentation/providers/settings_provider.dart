@@ -14,8 +14,12 @@
 //   final theme = ref.watch(appThemeModeProvider);
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../core/constants/app_settings_keys.dart';
+import '../../core/services/pdf_service.dart';
 import 'repository_providers.dart';
 
 part 'settings_provider.g.dart';
@@ -27,6 +31,44 @@ part 'settings_provider.g.dart';
 Stream<String?> companyName(Ref ref) {
   final repo = ref.watch(settingsRepositoryProvider);
   return repo.watchSetting('company_name');
+}
+
+// ── شعار الشركة (ب-٣) ───────────────────────────────────────────────────────
+
+/// بايتات شعار الشركة — null إن لم يُرفَع شعار
+///
+/// **لماذا وُجد هذا المزوّد؟** (ب-٣ — 2026-08-23)
+///   كان الشعار يُرفَع ويُخزَّن في `app_blobs` عبر `setBlob`، و**`getBlob`
+///   لا تُستدعى في أي مكان في المشروع كلّه**. أي أن المالك يرفع شعاره ولا
+///   يراه أبداً — لا في الإعدادات ولا في أي مستند. ميزة كاملة مكتوبة
+///   نصفها ومعطَّلة بصمت.
+///
+/// يُبطَل يدوياً بعد الرفع أو الحذف عبر `ref.invalidate(companyLogoProvider)`
+/// — الصورة blob لا تدفّق تفاعلياً كبقية الإعدادات.
+@riverpod
+Future<Uint8List?> companyLogo(Ref ref) {
+  return ref.watch(settingsRepositoryProvider).getBlob(
+        AppSettingsKeys.companyLogo,
+      );
+}
+
+/// هوية الشركة الجاهزة لترويسة الـ PDF — الاسم والشعار معاً
+///
+/// يجمع مصدرين مختلفين (`app_settings` للاسم و`app_blobs` للشعار) في كائن
+/// واحد يفهمه `PdfService` بلا أن يعرف شيئاً عن قاعدة البيانات.
+///
+/// **لا يفشل أبداً:** أي خطأ في القراءة يُعيد ترويسة فارغة فيُطبَع المستند
+/// بلا ترويسة. تعطيل الطباعة بسبب شعار غير مقروء ثمن باهظ بلا مقابل.
+@riverpod
+Future<PdfCompanyHeader> pdfCompanyHeader(Ref ref) async {
+  try {
+    final repo = ref.watch(settingsRepositoryProvider);
+    final name = await repo.getString(AppSettingsKeys.companyName) ?? '';
+    final logo = await repo.getBlob(AppSettingsKeys.companyLogo);
+    return PdfCompanyHeader(companyName: name, logoBytes: logo);
+  } catch (_) {
+    return PdfCompanyHeader.empty;
+  }
 }
 
 // ── اللغة ─────────────────────────────────────────────────────────────────────

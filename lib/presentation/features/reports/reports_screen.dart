@@ -63,7 +63,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             Tab(icon: Icon(Icons.account_balance_wallet_outlined), text: 'كشف الحساب'),
             Tab(icon: Icon(Icons.today_outlined), text: 'ملخص يومي'),
             Tab(icon: Icon(Icons.date_range_outlined), text: 'تقرير فترة'),
-            Tab(icon: Icon(Icons.manage_search), text: 'تقارير السلف'),
+            Tab(icon: Icon(Icons.manage_search), text: 'سلف المشاريع'),
             Tab(icon: Icon(Icons.pie_chart_outline), text: 'حسب البند'),
             Tab(icon: Icon(Icons.trending_down), text: 'المستحقات'),
           ],
