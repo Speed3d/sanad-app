@@ -21,6 +21,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
+import '../../data/database/daos/advances_dao.dart';
+import '../../data/database/daos/treasuries_dao.dart';
+import '../../data/database/daos/vouchers_dao.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/voucher_model.dart';
 import '../../domain/repositories/i_voucher_repository.dart';
@@ -155,6 +158,40 @@ Future<List<VoucherModel>> searchVouchers(Ref ref, String query) {
   return repo.searchVouchers(query.trim());
 }
 
+
+// ── تقارير ب-٢ ──────────────────────────────────────────────────────────────
+
+/// المصروفات مجمَّعة حسب البند خلال فترة
+///
+/// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+/// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+@riverpod
+Future<List<ItemTypeExpenseRow>> expensesByItemType(
+  Ref ref, {
+  required DateTime startDate,
+  required DateTime endDate,
+  int? treasuryId,
+  String? projectName,
+}) {
+  return ref.watch(appDatabaseProvider).vouchersDao.getExpensesByItemType(
+        from: startDate,
+        to: endDate,
+        treasuryId: treasuryId,
+        projectName: projectName,
+      );
+}
+
+/// أرصدة كل الخزائن — تفاعلي، يُستعمَل في تقرير العجز
+@riverpod
+Stream<List<TreasuryBalanceRow>> allTreasuryBalances(Ref ref) {
+  return ref.watch(appDatabaseProvider).treasuriesDao.watchTreasuryBalances();
+}
+
+/// من تدين لهم الشركة مقابل تغطيتهم عجز سلف معتمدة
+@riverpod
+Future<List<DeficitCreditorRow>> deficitCreditors(Ref ref) {
+  return ref.watch(appDatabaseProvider).advancesDao.getDeficitCreditors();
+}
 
 // ── قيم الفلترة المتاحة ─────────────────────────────────────────────────────
 

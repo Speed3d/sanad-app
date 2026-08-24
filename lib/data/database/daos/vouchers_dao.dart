@@ -51,6 +51,41 @@ class AccountStatementRow {
   });
 }
 
+/// سطر واحد في تقرير «المصروفات حسب البند»
+class ItemTypeExpenseRow {
+  /// اسم البند — سلسلة فارغة تعني «غير محدد»
+  final String itemType;
+
+  /// مجموع ما صُرف بالدينار أصلاً
+  final double totalIqd;
+
+  /// مجموع ما صُرف بالدولار أصلاً (بالدولار لا بمعادله)
+  final double totalUsd;
+
+  /// المجموع الكلي بمعادل الدينار — الدولار محوَّل **بسعر صرف كل سند**
+  ///
+  /// هذا هو الرقم الذي يُرتَّب به التقرير ويُقارَن. نحتفظ بالعملتين منفصلتين
+  /// أيضاً كي لا يختفي أن جزءاً من الرقم كان بالدولار.
+  final double totalEquivalentIqd;
+
+  /// عدد سندات الصرف الداخلة في هذا البند
+  final int voucherCount;
+
+  const ItemTypeExpenseRow({
+    required this.itemType,
+    required this.totalIqd,
+    required this.totalUsd,
+    required this.totalEquivalentIqd,
+    required this.voucherCount,
+  });
+
+  /// هل يحوي هذا البند صرفاً بالدولار؟ (لعرض تنبيه التحويل في الواجهة)
+  bool get hasUsd => totalUsd.abs() > 0.001;
+
+  /// الاسم المعروض — البند الفارغ يظهر «غير محدد» لا فراغاً
+  String get displayName => itemType.isEmpty ? 'غير محدد' : itemType;
+}
+
 /// DAO السندات الموحد
 @DriftAccessor(tables: [Vouchers, FiscalPeriods, Treasuries, AdvanceLines])
 class VouchersDao extends DatabaseAccessor<AppDatabase>
@@ -198,6 +233,92 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
   // سندات السلف بمطابقة نصية على `advance_number` ويشترط أن يكون غير فارغ،
   // فيستبعد سندات التحويل ولا يستطيع حساب «المُرسَل». حلّ محلّه استعلامات
   // AdvancesDao التي تعمل على كيان السلفة بمفتاح خارجي.
+
+  // ── تجميع المصروفات حسب البند (ب-٢) ──────────────────────────────────────
+
+  /// إجمالي الصرف على بند واحد خلال فترة
+  ///
+  /// نحمل العملتين **منفصلتين** والمعادل بالدينار معاً — لا رقماً واحداً
+  /// مبهماً. راجع شرح المعادل في [getExpensesByItemType].
+
+  /// إجمالي المصروفات مجمَّعة حسب نوع البند
+  ///
+  /// **قرار محاسبي ١ — سندات الصرف وحدها، لا التحويلات.**
+  ///   `transfer_out` ليس مصروفاً: المال انتقل من خزينة الشركة إلى خزينة
+  ///   أخرى **لها**، ولم يخرج منها. احتسابه مصروفاً يُضخّم الإنفاق مرّتين
+  ///   (مرة عند التحويل ومرة عند الصرف الفعلي في المشروع) ويجعل التقرير
+  ///   يكذب على المالك بأرقام أكبر من الواقع.
+  ///
+  /// **قرار محاسبي ٢ — البند الفارغ يظهر كـ «غير محدد» ولا يُستبعَد.**
+  ///   لو استُبعد لما طابق مجموع التقرير إجمالي صرف الفترة، فيفقد المالك
+  ///   الثقة في الرقم — وهو محقّ. ظهوره يدفع أيضاً إلى تصنيف ما لم يُصنَّف.
+  ///
+  /// **قرار محاسبي ٣ — الدولار يُحوَّل بسعر صرف السند نفسه لا بالسعر اليوم.**
+  ///   `exchange_rate` مخزَّن في كل سند لحظة إنشائه. استعماله يعني أن
+  ///   التقرير التاريخي **لا يتغيّر** كلما تحرّك سعر الصرف — وهو السلوك
+  ///   المحاسبي الصحيح. ومع ذلك نُعيد المبلغ الأصلي بكل عملة على حدة أيضاً،
+  ///   فلا يختفي أن جزءاً من الرقم كان بالدولار.
+  ///
+  /// [from] / [to]        — نطاق التاريخ (شامل الطرفين)
+  /// [treasuryId]         — null = كل الخزائن
+  /// [projectName]        — null = كل المشاريع
+  ///
+  /// مرتَّب تنازلياً بالمعادل — أكبر بند إنفاقاً أولاً، وهو ما يبحث عنه المالك.
+  Future<List<ItemTypeExpenseRow>> getExpensesByItemType({
+    required DateTime from,
+    required DateTime to,
+    int? treasuryId,
+    String? projectName,
+  }) async {
+    final where = StringBuffer(
+      "voucher_type = 'sarf' AND is_deleted = 0 "
+      'AND voucher_date BETWEEN ? AND ?',
+    );
+    final vars = <Variable<Object>>[
+      Variable.withDateTime(from),
+      Variable.withDateTime(to),
+    ];
+
+    if (treasuryId != null) {
+      where.write(' AND treasury_id = ?');
+      vars.add(Variable.withInt(treasuryId));
+    }
+    if (projectName != null) {
+      where.write(' AND project_name = ?');
+      vars.add(Variable.withString(projectName));
+    }
+
+    final rows = await customSelect(
+      'SELECT '
+      '  item_type AS item_type, '
+      "  COALESCE(SUM(CASE WHEN currency = 'IQD' THEN amount ELSE 0 END), 0) "
+      '    AS total_iqd, '
+      "  COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) "
+      '    AS total_usd, '
+      // المعادل: الدينار كما هو، والدولار مضروباً بسعر صرف سنده
+      "  COALESCE(SUM(CASE WHEN currency = 'USD' "
+      '    THEN amount * exchange_rate ELSE amount END), 0) AS total_equiv, '
+      '  COUNT(*) AS cnt '
+      'FROM vouchers '
+      'WHERE ${where.toString()} '
+      'GROUP BY item_type '
+      'ORDER BY total_equiv DESC',
+      variables: vars,
+      readsFrom: {vouchers},
+    ).get();
+
+    return rows
+        .map(
+          (r) => ItemTypeExpenseRow(
+            itemType: r.data['item_type'] as String? ?? '',
+            totalIqd: (r.data['total_iqd'] as num).toDouble(),
+            totalUsd: (r.data['total_usd'] as num).toDouble(),
+            totalEquivalentIqd: (r.data['total_equiv'] as num).toDouble(),
+            voucherCount: r.data['cnt'] as int? ?? 0,
+          ),
+        )
+        .toList();
+  }
 
   // ── قيم الفلترة المستعملة فعلاً ───────────────────────────────────────────
 

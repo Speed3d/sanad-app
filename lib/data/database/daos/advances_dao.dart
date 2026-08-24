@@ -39,6 +39,28 @@ class PostAdvanceResult {
 }
 
 /// DAO سلف المشاريع
+/// دائن واحد في تقرير «المستحقات» — من غطّى عجزاً ولم يُسدَّد له
+///
+/// يُشتقّ من سلف المشاريع المعتمدة بعجز. حين تتجاوز مصاريف المشروع رصيد
+/// خزينته، يُطلَب اسم من غطّى الفرق من ماله قبل الاعتماد — وهذا الاسم
+/// **دَين حقيقي على الشركة** كان مدفوناً داخل سجلات السلف بلا تقرير يجمعه.
+class DeficitCreditorRow {
+  /// اسم من غطّى العجز
+  final String coveredBy;
+
+  /// مجموع ما غطّاه عبر كل السلف
+  final double totalCovered;
+
+  /// عدد السلف التي غطّى فيها
+  final int advanceCount;
+
+  const DeficitCreditorRow({
+    required this.coveredBy,
+    required this.totalCovered,
+    required this.advanceCount,
+  });
+}
+
 @DriftAccessor(tables: [Advances, AdvanceLines, ItemTypes, Vouchers])
 class AdvancesDao extends DatabaseAccessor<AppDatabase>
     with _$AdvancesDaoMixin {
@@ -243,6 +265,42 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
       readsFrom: {vouchers},
     ).getSingle();
     return (row.data['total'] as num).toDouble();
+  }
+
+  // ── تقرير المستحقات (ب-٢) ────────────────────────────────────────────────
+
+  /// من تدين لهم الشركة، مجمَّعين بالاسم ومرتَّبين بالأكبر
+  ///
+  /// **لماذا `status = 'posted'` فقط؟**
+  ///   العجز رقم يُثبَّت **لحظة الاعتماد** لا قبله. السلفة المسودة قد يتغيّر
+  ///   إجماليها بالتحرير، والملغاة عُكست سنداتها فلم يعد فيها دَين.
+  ///
+  /// **ولماذا نستبعد الاسم الفارغ؟**
+  ///   الاعتماد بعجز يرفض المرور بلا اسم أصلاً (حارس في `AdvanceRepository`)،
+  ///   فوجود صف بلا اسم يعني بيانات تسبق ذلك الحارس. استبعاده أصدق من عرض
+  ///   دَين بلا دائن.
+  Future<List<DeficitCreditorRow>> getDeficitCreditors() async {
+    final rows = await customSelect(
+      'SELECT deficit_covered_by AS who, '
+      '       SUM(deficit_amount) AS total, '
+      '       COUNT(*) AS cnt '
+      'FROM advances '
+      "WHERE status = 'posted' AND deficit_amount > 0 "
+      "  AND deficit_covered_by IS NOT NULL AND deficit_covered_by != '' "
+      'GROUP BY deficit_covered_by '
+      'ORDER BY total DESC',
+      readsFrom: {advances},
+    ).get();
+
+    return rows
+        .map(
+          (r) => DeficitCreditorRow(
+            coveredBy: r.data['who'] as String,
+            totalCovered: (r.data['total'] as num).toDouble(),
+            advanceCount: r.data['cnt'] as int? ?? 0,
+          ),
+        )
+        .toList();
   }
 
   // ── أنواع البنود ──────────────────────────────────────────────────────────

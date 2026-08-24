@@ -131,7 +131,7 @@ flutter analyze
 ```bash
 flutter test
 ```
-**يجب: `All tests passed!` وعدد الاختبارات ≥ 230**
+**يجب: `All tests passed!` وعدد الاختبارات ≥ 248**
 
 📌 الشرطان إلزاميان — القانون ١ في [03-RULES.md](03-RULES.md).
 
@@ -216,7 +216,7 @@ sanad-app/
 │   ├── data/              الجداول · DAOs · Repositories
 │   ├── domain/            النماذج والواجهات
 │   └── presentation/      الشاشات · Providers · الودجتات
-├── test/                  ٢٩ ملف اختبار · ٢٣٠ اختباراً
+├── test/                  ٣٠ ملف اختبار · ٢٤٨ اختباراً
 ├── web/                   ملفات الويب (sqlite3.wasm · drift_worker.js)
 └── windows/               مشروع ويندوز الأصلي
 ```

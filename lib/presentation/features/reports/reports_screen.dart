@@ -5,6 +5,11 @@
 //   1. كشف الحساب    — خزينة + نطاق تاريخ → جدول بالرصيد التراكمي
 //   2. ملخص يومي     — تاريخ → إجمالي قبض / صرف
 //   3. تقرير الفترة  — نطاق تاريخ + خزينة (اختياري) → قائمة سندات + ملخص
+//   4. تقارير السلف  — advance_report_tab.dart
+//   5. حسب البند     — expenses_by_item_tab.dart  (ب-٢)
+//   6. المستحقات     — deficit_report_tab.dart    (ب-٢)
+//
+// الودجتات المشتركة في report_widgets.dart — استعملها ولا تكتب بديلاً.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -15,6 +20,9 @@ import '../../../domain/models/voucher_model.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
 import 'advance_report_tab.dart';
+import 'deficit_report_tab.dart';
+import 'expenses_by_item_tab.dart';
+import 'report_widgets.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ReportsScreen — الشاشة الرئيسية
@@ -34,7 +42,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -56,6 +64,8 @@ class _ReportsScreenState extends State<ReportsScreen>
             Tab(icon: Icon(Icons.today_outlined), text: 'ملخص يومي'),
             Tab(icon: Icon(Icons.date_range_outlined), text: 'تقرير فترة'),
             Tab(icon: Icon(Icons.manage_search), text: 'تقارير السلف'),
+            Tab(icon: Icon(Icons.pie_chart_outline), text: 'حسب البند'),
+            Tab(icon: Icon(Icons.trending_down), text: 'المستحقات'),
           ],
         ),
       ),
@@ -66,6 +76,8 @@ class _ReportsScreenState extends State<ReportsScreen>
           _DailySummaryTab(),
           _PeriodReportTab(),
           AdvanceReportTab(),
+          ExpensesByItemTab(),
+          DeficitReportTab(),
         ],
       ),
     );
@@ -140,7 +152,7 @@ class _AccountStatementTabState extends ConsumerState<_AccountStatementTab> {
                 Row(
                   children: [
                     Expanded(
-                      child: _DateField(
+                      child: ReportDateField(
                         label: 'من',
                         value: _startDate,
                         onChanged: (d) => setState(() => _startDate = d),
@@ -148,7 +160,7 @@ class _AccountStatementTabState extends ConsumerState<_AccountStatementTab> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _DateField(
+                      child: ReportDateField(
                         label: 'إلى',
                         value: _endDate,
                         onChanged: (d) => setState(() => _endDate = d),
@@ -180,7 +192,7 @@ class _AccountStatementTabState extends ConsumerState<_AccountStatementTab> {
         // ── النتائج ────────────────────────────────────────────────────
         Expanded(
           child: _applied == null
-              ? const _ReportPlaceholder(
+              ? const ReportPlaceholder(
                   icon: Icons.account_balance_wallet_outlined,
                   message: 'اختر الخزينة ونطاق التاريخ ثم اضغط "عرض"',
                 )
@@ -223,7 +235,7 @@ class _AccountStatementResults extends ConsumerWidget {
       error: (e, _) => Center(child: Text('خطأ: $e')),
       data: (rows) {
         if (rows.isEmpty) {
-          return const _ReportPlaceholder(
+          return const ReportPlaceholder(
             icon: Icons.inbox_outlined,
             message: 'لا توجد سندات في هذه الفترة',
           );
@@ -240,7 +252,7 @@ class _AccountStatementResults extends ConsumerWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: _SummaryCard(
+                    child: ReportSummaryCard(
                       label: 'الرصيد النهائي (د.ع)',
                       value: '${fmt.format(lastBalance)} د.ع',
                       color: lastBalance >= 0
@@ -252,7 +264,7 @@ class _AccountStatementResults extends ConsumerWidget {
                   if (lastBalanceUsd != 0) ...[
                     const SizedBox(width: 8),
                     Expanded(
-                      child: _SummaryCard(
+                      child: ReportSummaryCard(
                         label: 'الرصيد النهائي (\$)',
                         value: '\$ ${fmt.format(lastBalanceUsd)}',
                         color: lastBalanceUsd >= 0
@@ -372,7 +384,7 @@ class _DailySummaryTabState extends ConsumerState<_DailySummaryTab> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _DateField(
+                ReportDateField(
                   label: 'التاريخ',
                   value: _date,
                   onChanged: (d) => setState(() => _date = d),
@@ -393,7 +405,7 @@ class _DailySummaryTabState extends ConsumerState<_DailySummaryTab> {
         // ── النتائج ─────────────────────────────────────────────────
         Expanded(
           child: _appliedDate == null
-              ? const _ReportPlaceholder(
+              ? const ReportPlaceholder(
                   icon: Icons.today_outlined,
                   message: 'اختر تاريخاً ثم اضغط "عرض"',
                 )
@@ -538,7 +550,7 @@ class _PeriodReportTabState extends ConsumerState<_PeriodReportTab> {
                 Row(
                   children: [
                     Expanded(
-                      child: _DateField(
+                      child: ReportDateField(
                         label: 'من',
                         value: _startDate,
                         onChanged: (d) => setState(() => _startDate = d),
@@ -546,7 +558,7 @@ class _PeriodReportTabState extends ConsumerState<_PeriodReportTab> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _DateField(
+                      child: ReportDateField(
                         label: 'إلى',
                         value: _endDate,
                         onChanged: (d) => setState(() => _endDate = d),
@@ -643,7 +655,7 @@ class _PeriodReportTabState extends ConsumerState<_PeriodReportTab> {
         // ── النتائج ─────────────────────────────────────────────────
         Expanded(
           child: _applied == null
-              ? const _ReportPlaceholder(
+              ? const ReportPlaceholder(
                   icon: Icons.date_range_outlined,
                   message: 'حدد نطاق التاريخ ثم اضغط "عرض"',
                 )
@@ -690,7 +702,7 @@ class _PeriodReportResults extends ConsumerWidget {
       error: (e, _) => Center(child: Text('خطأ: $e')),
       data: (vouchers) {
         if (vouchers.isEmpty) {
-          return const _ReportPlaceholder(
+          return const ReportPlaceholder(
             icon: Icons.inbox_outlined,
             message: 'لا توجد سندات في هذه الفترة',
           );
@@ -718,7 +730,7 @@ class _PeriodReportResults extends ConsumerWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: _SummaryCard(
+                    child: ReportSummaryCard(
                       label: 'إجمالي القبض',
                       value: '${fmt.format(totalKabd)} د.ع',
                       color: Colors.green.shade700,
@@ -727,7 +739,7 @@ class _PeriodReportResults extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _SummaryCard(
+                    child: ReportSummaryCard(
                       label: 'إجمالي الصرف',
                       value: '${fmt.format(totalSarf)} د.ع',
                       color: Colors.red.shade700,
@@ -736,7 +748,7 @@ class _PeriodReportResults extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _SummaryCard(
+                    child: ReportSummaryCard(
                       label: 'عدد السندات',
                       value: '${vouchers.length}',
                       color: theme.colorScheme.primary,
@@ -841,94 +853,6 @@ class _PeriodReportResults extends ConsumerWidget {
 // Widgets مساعدة
 // ════════════════════════════════════════════════════════════════════════════
 
-/// حقل اختيار تاريخ
-class _DateField extends StatelessWidget {
-  const _DateField({required this.label, required this.value, required this.onChanged});
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2000),
-          lastDate: DateTime.now(),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
-          border: const OutlineInputBorder(),
-          isDense: true,
-        ),
-        child: Text(
-          '${value.year}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}',
-          style: const TextStyle(fontSize: 14),
-        ),
-      ),
-    );
-  }
-}
-
-/// بطاقة ملخص صغيرة
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-  });
-  final String label;
-  final String value;
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      color: color.withValues(alpha: 0.08),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// بطاقة ملخص كبيرة
 class _BigSummaryCard extends StatelessWidget {
   const _BigSummaryCard({
@@ -984,34 +908,3 @@ class _BigSummaryCard extends StatelessWidget {
   }
 }
 
-/// placeholder يُعرَض قبل تطبيق الفلاتر
-class _ReportPlaceholder extends StatelessWidget {
-  const _ReportPlaceholder({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}

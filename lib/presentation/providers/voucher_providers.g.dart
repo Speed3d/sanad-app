@@ -1105,6 +1105,264 @@ class _SearchVouchersProviderElement
   String get query => (origin as SearchVouchersProvider).query;
 }
 
+String _$expensesByItemTypeHash() =>
+    r'ad5bd4d36eded652a92cede470969974443f4623';
+
+/// المصروفات مجمَّعة حسب البند خلال فترة
+///
+/// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+/// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+///
+/// Copied from [expensesByItemType].
+@ProviderFor(expensesByItemType)
+const expensesByItemTypeProvider = ExpensesByItemTypeFamily();
+
+/// المصروفات مجمَّعة حسب البند خلال فترة
+///
+/// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+/// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+///
+/// Copied from [expensesByItemType].
+class ExpensesByItemTypeFamily
+    extends Family<AsyncValue<List<ItemTypeExpenseRow>>> {
+  /// المصروفات مجمَّعة حسب البند خلال فترة
+  ///
+  /// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+  /// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+  ///
+  /// Copied from [expensesByItemType].
+  const ExpensesByItemTypeFamily();
+
+  /// المصروفات مجمَّعة حسب البند خلال فترة
+  ///
+  /// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+  /// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+  ///
+  /// Copied from [expensesByItemType].
+  ExpensesByItemTypeProvider call({
+    required DateTime startDate,
+    required DateTime endDate,
+    int? treasuryId,
+    String? projectName,
+  }) {
+    return ExpensesByItemTypeProvider(
+      startDate: startDate,
+      endDate: endDate,
+      treasuryId: treasuryId,
+      projectName: projectName,
+    );
+  }
+
+  @override
+  ExpensesByItemTypeProvider getProviderOverride(
+    covariant ExpensesByItemTypeProvider provider,
+  ) {
+    return call(
+      startDate: provider.startDate,
+      endDate: provider.endDate,
+      treasuryId: provider.treasuryId,
+      projectName: provider.projectName,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'expensesByItemTypeProvider';
+}
+
+/// المصروفات مجمَّعة حسب البند خلال فترة
+///
+/// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+/// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+///
+/// Copied from [expensesByItemType].
+class ExpensesByItemTypeProvider
+    extends AutoDisposeFutureProvider<List<ItemTypeExpenseRow>> {
+  /// المصروفات مجمَّعة حسب البند خلال فترة
+  ///
+  /// سندات الصرف وحدها — التحويلات ليست مصروفاً. راجع
+  /// `VouchersDao.getExpensesByItemType` لشرح القرارات المحاسبية الثلاثة.
+  ///
+  /// Copied from [expensesByItemType].
+  ExpensesByItemTypeProvider({
+    required DateTime startDate,
+    required DateTime endDate,
+    int? treasuryId,
+    String? projectName,
+  }) : this._internal(
+          (ref) => expensesByItemType(
+            ref as ExpensesByItemTypeRef,
+            startDate: startDate,
+            endDate: endDate,
+            treasuryId: treasuryId,
+            projectName: projectName,
+          ),
+          from: expensesByItemTypeProvider,
+          name: r'expensesByItemTypeProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$expensesByItemTypeHash,
+          dependencies: ExpensesByItemTypeFamily._dependencies,
+          allTransitiveDependencies:
+              ExpensesByItemTypeFamily._allTransitiveDependencies,
+          startDate: startDate,
+          endDate: endDate,
+          treasuryId: treasuryId,
+          projectName: projectName,
+        );
+
+  ExpensesByItemTypeProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.startDate,
+    required this.endDate,
+    required this.treasuryId,
+    required this.projectName,
+  }) : super.internal();
+
+  final DateTime startDate;
+  final DateTime endDate;
+  final int? treasuryId;
+  final String? projectName;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<ItemTypeExpenseRow>> Function(ExpensesByItemTypeRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ExpensesByItemTypeProvider._internal(
+        (ref) => create(ref as ExpensesByItemTypeRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        startDate: startDate,
+        endDate: endDate,
+        treasuryId: treasuryId,
+        projectName: projectName,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<ItemTypeExpenseRow>> createElement() {
+    return _ExpensesByItemTypeProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ExpensesByItemTypeProvider &&
+        other.startDate == startDate &&
+        other.endDate == endDate &&
+        other.treasuryId == treasuryId &&
+        other.projectName == projectName;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, startDate.hashCode);
+    hash = _SystemHash.combine(hash, endDate.hashCode);
+    hash = _SystemHash.combine(hash, treasuryId.hashCode);
+    hash = _SystemHash.combine(hash, projectName.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ExpensesByItemTypeRef
+    on AutoDisposeFutureProviderRef<List<ItemTypeExpenseRow>> {
+  /// The parameter `startDate` of this provider.
+  DateTime get startDate;
+
+  /// The parameter `endDate` of this provider.
+  DateTime get endDate;
+
+  /// The parameter `treasuryId` of this provider.
+  int? get treasuryId;
+
+  /// The parameter `projectName` of this provider.
+  String? get projectName;
+}
+
+class _ExpensesByItemTypeProviderElement
+    extends AutoDisposeFutureProviderElement<List<ItemTypeExpenseRow>>
+    with ExpensesByItemTypeRef {
+  _ExpensesByItemTypeProviderElement(super.provider);
+
+  @override
+  DateTime get startDate => (origin as ExpensesByItemTypeProvider).startDate;
+  @override
+  DateTime get endDate => (origin as ExpensesByItemTypeProvider).endDate;
+  @override
+  int? get treasuryId => (origin as ExpensesByItemTypeProvider).treasuryId;
+  @override
+  String? get projectName => (origin as ExpensesByItemTypeProvider).projectName;
+}
+
+String _$allTreasuryBalancesHash() =>
+    r'50da8d4250dcda9af1b63d35e3de050aceab675c';
+
+/// أرصدة كل الخزائن — تفاعلي، يُستعمَل في تقرير العجز
+///
+/// Copied from [allTreasuryBalances].
+@ProviderFor(allTreasuryBalances)
+final allTreasuryBalancesProvider =
+    AutoDisposeStreamProvider<List<TreasuryBalanceRow>>.internal(
+  allTreasuryBalances,
+  name: r'allTreasuryBalancesProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$allTreasuryBalancesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AllTreasuryBalancesRef
+    = AutoDisposeStreamProviderRef<List<TreasuryBalanceRow>>;
+String _$deficitCreditorsHash() => r'9cc2e36faed9d6e74b8e6c9ae1d59b6f654851bd';
+
+/// من تدين لهم الشركة مقابل تغطيتهم عجز سلف معتمدة
+///
+/// Copied from [deficitCreditors].
+@ProviderFor(deficitCreditors)
+final deficitCreditorsProvider =
+    AutoDisposeFutureProvider<List<DeficitCreditorRow>>.internal(
+  deficitCreditors,
+  name: r'deficitCreditorsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deficitCreditorsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeficitCreditorsRef
+    = AutoDisposeFutureProviderRef<List<DeficitCreditorRow>>;
 String _$usedItemTypesHash() => r'500aad9a377e126e83d8226684f30c429736ab94';
 
 /// أنواع البنود المستعملة فعلاً — لقائمة الفلترة في شاشة السندات

@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-08-23 (بعد ب-١)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-08-23 (بعد ب-٢)** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -93,9 +93,9 @@ lib/
 
 | الـ DAO | دوال يجب أن تعرفها |
 |---|---|
-| `vouchers_dao` | `generateTransferGroupId()` · `insertTransfer()` (معاملة) · `softDeleteVoucher()` (يحذف التوأم ويفكّ ربط السلفة) |
+| `vouchers_dao` | `getExpensesByItemType()` تجميع المصروفات · `watchUsedItemTypes/Projects()` · `generateTransferGroupId()` · `insertTransfer()` (معاملة) · `softDeleteVoucher()` (يحذف التوأم ويفكّ ربط السلفة) |
 | `fiscal_periods_dao` | `getNextVoucherNumber()` **ذرّية** · `findOverlappingPeriod()` · `insertPeriod()` **يحرس التقاطع** · `deleteEmptyPeriod()` · `purgeFiscalPeriodCompletely()` 🔥 |
-| `advances_dao` | `postAdvance()` **ذرّية** · `cancelAdvance()` · `getSentAmount()` · `getPostedSpent()` |
+| `advances_dao` | `getDeficitCreditors()` من تدين لهم الشركة · `postAdvance()` **ذرّية** · `cancelAdvance()` · `getSentAmount()` · `getPostedSpent()` |
 | `users_dao` | `registerFailedLogin()` **زيادة ذرّية** · `updatePasswordHash()` |
 | `treasuries_dao` | `getTreasuryBalance()` — يقرأ من الـ VIEW |
 | `audit_log_dao` | `logSimpleAction()` · `getLogsByTable()` · `getRecentLogs()` |
@@ -126,7 +126,7 @@ lib/
 | `advances_list_screen` · `advance_review_screen` | `/advances` | شاشة المراجعة أهمّها |
 | `employees_screen` | `/employees` | **٩٦ KB — أكبر ملف**، مرشّح للتقسيم |
 | `contractors_screen` · `partners_screen` | | |
-| `reports_screen` + `advance_report_tab` | `/reports` | ٤ تبويبات — ناقص تقريران |
+| `reports_screen` + ٣ ملفات تبويبات | `/reports` | **٦ تبويبات** · الودجتات المشتركة في `report_widgets.dart` |
 | `excel_import_screen` | `/reports/excel-import` | يُنتج مسودة لا سندات |
 | `fiscal_screen` + `purge_period_dialog` | `/fiscal` | إقفال · إعادة فتح · حذف · محو قسري |
 | `backup_screen` | `/backup` | معطَّل على الويب |
@@ -145,6 +145,7 @@ lib/
 | الملف | استعمله بدل إعادة الكتابة |
 |---|---|
 | `app_components.dart` | مكوّنات مشتركة (حالات فارغة، بطاقات…) — **افحصه قبل بناء ودجت جديد** |
+| `reports/report_widgets.dart` | `ReportDateField` · `ReportSummaryCard` · `ReportPlaceholder` — **لأي تبويب تقرير جديد** |
 | `item_type_selector.dart` | `ItemTypeSelector` شرائح البنود من جدول `item_types` · `ItemTypeFilterDropdown` قائمة فلترة. **استعملهما — لا تكتب قائمة بنود ثابتة في الكود** |
 | `app_shell.dart` | القشرة: NavigationRail / NavigationBar |
 | `error_screen.dart` | ٤٠٤ و٤٠٣ |
@@ -173,6 +174,16 @@ ctrl.dispose();   // الحوار ما زال يُعاد بناؤه!
 إن احتجت متحكّماً فعلاً (تركيز، تحديد نصّ)، اجعل الحوار `StatefulWidget`
 يملكه ويتخلّص منه في `dispose()`. **يحرسه اختبار آلي:**
 `test/unit/dialog_controller_lifecycle_test.dart`
+
+### ✅ التقارير: ما يُحتسَب وما لا يُحتسَب
+| القاعدة | السبب |
+|---|---|
+| المصروف = `sarf` فقط | `transfer_out` نقل بين خزائن الشركة — احتسابه يُضخّم الإنفاق مرّتين |
+| البند الفارغ يظهر «غير محدد» | استبعاده يجعل مجموع التقرير لا يطابق الدفاتر فتضيع الثقة |
+| الدولار بسعر صرف **سنده** | `exchange_rate` مخزَّن لحظة الإنشاء — التقرير التاريخي لا يتغيّر بتحرّك السعر |
+| العملتان لا تُجمعان في رقم واحد | تُعرَضان متجاورتين دائماً |
+
+محروسة في `test/unit/expense_reports_test.dart`.
 
 ### ✅ قوائم البنود تُقرأ من قاعدة البيانات
 ```dart
@@ -213,7 +224,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
-## ٦. الاختبارات (`test/`) — ٢٩ ملفاً · ٢٣٠ اختباراً
+## ٦. الاختبارات (`test/`) — ٣٠ ملفاً · ٢٤٨ اختباراً
 
 | المجموعة | الملفات |
 |---|---|
@@ -224,6 +235,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **السلف** | `advance_posting` · `advance_repayment` · `excel_row_parser` |
 | **الـ Schema** | `database` · `schema_v4` · `schema_v5` |
 | **حقول التتبّع** | `voucher_tracking_fields` · `voucher_filter_values` |
+| **التقارير** | `expense_reports` ← يحرس **قرارات محاسبية** لا كوداً |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` ← يفحص **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |
 
