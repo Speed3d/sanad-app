@@ -96,6 +96,15 @@ abstract final class AppRoutes {
   static const String partnerDetail = '/partners/:id';
 
   /// التقارير وكشوف الحساب
+  /// كشوف الرواتب الشهرية (Schema v7)
+  static const String payroll = '/payroll';
+
+  /// كشف شهر بعينه — `/payroll/12`
+  static const String payrollSheet = '/payroll/:id';
+
+  /// معالج استيراد ملف الرواتب
+  static const String payrollImport = '/payroll/import';
+
   static const String reports = '/reports';
 
   /// استيراد Excel (مصاريف سلفة)

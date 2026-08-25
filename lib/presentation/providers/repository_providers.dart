@@ -28,6 +28,7 @@ import '../../data/repositories/treasury_repository.dart';
 import '../../data/repositories/voucher_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/advance_repository.dart';
+import '../../data/repositories/payroll_repository.dart';
 import '../../domain/repositories/i_user_repository.dart';
 import '../../domain/repositories/i_treasury_repository.dart';
 import '../../domain/repositories/i_voucher_repository.dart';
@@ -85,4 +86,19 @@ ISettingsRepository settingsRepository(Ref ref) {
 IAdvanceRepository advanceRepository(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
   return AdvanceRepository(db);
+}
+
+// ── مستودع الرواتب ───────────────────────────────────────────────────────────
+
+/// Provider مستودع كشوف الرواتب (Schema v7)
+///
+/// ⚠️ **بلا واجهة `domain` عمداً** — بخلاف بقية المستودعات هنا. الكشف
+/// وسطوره يُعادان كجداول Drift مباشرةً، على نمط `AttachmentsDao` المعتمد
+/// في Schema v6: لا مصدر بيانات ثانياً يُستبدَل، والاختبارات تستعمل قاعدة
+/// حقيقية أصلاً. وكل طبقة تحويل إضافية موضعٌ يُنسى فيه حقل — وهي **علّة
+/// ب-١ بعينها** (المستودع كان يُسقط أربعة حقول في ثلاثة مواضع).
+@Riverpod(keepAlive: true)
+PayrollRepository payrollRepository(Ref ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return PayrollRepository(db);
 }

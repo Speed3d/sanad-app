@@ -18,6 +18,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/auth/permissions.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
+import '../../data/database/daos/advances_dao.dart'
+    show PayrollLinkPreview;
 import '../../domain/models/advance_model.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/user_model.dart';
@@ -112,6 +114,19 @@ Stream<List<String>> itemTypeNames(Ref ref, String? kind) {
 /// مدير عمليات السلف
 ///
 /// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+/// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
+///
+/// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+/// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+@riverpod
+Future<List<PayrollLinkPreview>> payrollLinkPreviews(
+  Ref ref,
+  int advanceId,
+) {
+  ref.watch(advanceLinesProvider(advanceId));
+  return ref.watch(advanceRepositoryProvider).getPayrollLinkPreviews(advanceId);
+}
+
 @riverpod
 class AdvanceNotifier extends _$AdvanceNotifier {
   @override
@@ -264,6 +279,68 @@ class AdvanceNotifier extends _$AdvanceNotifier {
       return true;
     } catch (e, st) {
       state = AsyncError(_msg(e), st);
+      return false;
+    }
+  }
+
+  // ── ربط الرواتب (Schema v7) ───────────────────────────────────────────
+
+  /// ربط سطر مسودة بكشف رواتب شهر
+  ///
+  /// **لا يمسّ مالاً** — السلفة مسودة والكشف مسودة. الرباط يُقرأ عند
+  /// الاعتماد حيث يحرس تطابق المبلغين.
+  Future<bool> linkLineToPayroll({
+    required int advanceId,
+    required int lineId,
+    required int payrollPeriodId,
+  }) async {
+    final user = _user;
+    if (user == null || !user.can(AppPermission.prepareAdvance)) {
+      state = const AsyncError(
+        'ليست لديك صلاحية تعديل مسودات السلف.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+    try {
+      final count = await _repo.linkLineToPayroll(
+        lineId: lineId,
+        payrollPeriodId: payrollPeriodId,
+      );
+      _invalidateAll(advanceId);
+      ref.invalidate(payrollLinkPreviewsProvider(advanceId));
+      state = AsyncData('رُبط السطر بـ$count موظفاً من كشف الرواتب ✓');
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// فكّ ربط سطر عن كشف الرواتب
+  Future<bool> unlinkLineFromPayroll({
+    required int advanceId,
+    required int lineId,
+  }) async {
+    final user = _user;
+    if (user == null || !user.can(AppPermission.prepareAdvance)) {
+      state = const AsyncError(
+        'ليست لديك صلاحية تعديل مسودات السلف.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+    try {
+      await _repo.unlinkLineFromPayroll(lineId);
+      _invalidateAll(advanceId);
+      ref.invalidate(payrollLinkPreviewsProvider(advanceId));
+      state = const AsyncData('فُكّ الربط بكشف الرواتب ✓');
+      return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
       return false;
     }
   }

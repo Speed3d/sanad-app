@@ -13,6 +13,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import '../models/advance_model.dart';
+// ⚠️ استثناء مقصود: `PayrollLinkPreview` نوعٌ في طبقة البيانات، لكنه
+//   **وصف نتيجة** لا وصول إليها — نظير `PostAdvanceResult`. تكرارُه
+//   نموذجاً في domain كان يعني مسار تحويل ثالثاً بلا مقابل.
+import '../../data/database/daos/advances_dao.dart' show PayrollLinkPreview;
 
 /// بيانات سطر واحد قادم من ملف الإكسل (قبل الحفظ في قاعدة البيانات)
 class ParsedAdvanceLine {
@@ -56,6 +60,12 @@ class PostAdvanceOutcome {
   /// هل سبب الرفض هو أن العجز يحتاج تأكيداً صريحاً من المستخدم؟
   final bool needsDeficitConfirmation;
 
+  /// عدد الموظفين الذين صارت رواتبهم مسدَّدة بهذا الاعتماد (Schema v7)
+  final int payrollEmployeesPaid;
+
+  /// كشوف الرواتب التي اكتملت بهذا الاعتماد
+  final List<String> payrollPeriodsCompleted;
+
   /// عدد السندات التي أُنشئت عند النجاح
   final int vouchersCreated;
 
@@ -65,6 +75,8 @@ class PostAdvanceOutcome {
     this.deficit = 0,
     this.needsDeficitConfirmation = false,
     this.vouchersCreated = 0,
+    this.payrollEmployeesPaid = 0,
+    this.payrollPeriodsCompleted = const [],
   });
 }
 
@@ -173,6 +185,23 @@ abstract class IAdvanceRepository {
     String? deficitCoveredBy,
     int? postedByUserId,
   });
+
+  // ── ربط الرواتب (Schema v7) ─────────────────────────────────────────────
+
+  /// ربط سطر مسودة بكشف رواتب — يُعيد عدد الموظفين المشمولين
+  ///
+  /// **لا يمسّ مالاً**: السلفة مسودة والكشف مسودة. كل ما يقع رباطٌ يُقرأ
+  /// عند الاعتماد، حيث يحرس تطابق المبلغين.
+  Future<int> linkLineToPayroll({
+    required int lineId,
+    required int payrollPeriodId,
+  });
+
+  /// فكّ ربط سطر عن كشف الرواتب
+  Future<void> unlinkLineFromPayroll(int lineId);
+
+  /// معاينة مطابقة كل سطر مربوط — **تُقرأ قبل الاعتماد**
+  Future<List<PayrollLinkPreview>> getPayrollLinkPreviews(int advanceId);
 
   /// إلغاء سلفة — يحذف **سندات صرفها** حذفاً ناعماً فيرتدّ المبلغ للخزينة
   ///

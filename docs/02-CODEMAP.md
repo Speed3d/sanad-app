@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-08-24** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-08-25** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -33,6 +33,11 @@ lib/
 | `services/auth_service.dart` | bcrypt في isolate: `hashPassword` · `verifyPassword` | أي تحقّق من كلمة مرور أو رمز سرّي |
 | `services/balance_guard.dart` | `checkSufficientBalance` (إنشاء) · `checkEditImpact` (تعديل) | **إلزامي** في أي مسار يُخرج مالاً |
 | `services/fiscal_period_guard.dart` | `ensureActive` — يرمي إن كانت الفترة مُقفَلة | **إلزامي** قبل أي كتابة محاسبية |
+| `services/payroll_name_matcher.dart` | **مطابقة أسماء الموظفين** — تطبيع عربي + مفتاح (الاسم، تاريخ التعيين) | أي مطابقة اسم موظف. **لا تقارن أسماء عربية حرفياً** |
+| `services/payroll_row_parser.dart` | تحليل صف ملف الرواتب + مقارنة الصافي بالمذكور | استيراد الرواتب |
+| `utils/sheet_value_parser.dart` | **تحليل قيم خلايا الإكسل** — تاريخ · مبلغ · عدد · كشف العملة الأجنبية · أرقام عربية | أي استيراد. **مشترك بين مستوردَي السلف والرواتب** |
+| `utils/excel_sheet_reader.dart` | قراءة ملف `.xlsx` إلى شبكة نصوص مسوّاة + بصمته | أي استيراد — **لا تقرأ خلايا إكسل يدوياً** |
+| `services/payroll_calculator.dart` | **حساب الرواتب** — نقيّ بلا قاعدة بيانات: الأيام المستحقّة · خصم الغياب · الصافي · المقابل بالدينار · حرّاس التسديد | أي حساب راتب. **لا تحسب صافياً يدوياً في شاشة أو DAO** |
 | `services/backup_crypto_service.dart` | AES-256-GCM + PBKDF2 · صيغة SMBAK2 | النسخ الاحتياطي المشفَّر |
 | `services/cloud_backup_service.dart` | نسخة محلية إضافية (**ليست سحابة** — التسمية صادقة) | نسخة ثانية على الجهاز |
 | `services/attachment_service.dart` | نسخ المرفقات · بصمة SHA-256 · تنقية المسارات · الفتح عبر `explorer` | أي تعامل مع ملفات المرفقات — **لا تلمس نظام الملفات مباشرةً** |
@@ -80,7 +85,9 @@ lib/
 | `voucher_sequences` | تسلسل أرقام السندات | مفتاح مركّب (فترة + نوع) · **ذرّي** |
 | `treasuries` | الخزائن | موحّد بحقل `kind` · **الرصيد ليس هنا** |
 | `vouchers` | **قلب النظام** | `transfer_group_id` يربط التوأمين · `advance_id` يربط بالسلفة · حذف ناعم |
-| `employees` · `cash_advances` · `cash_advance_repayments` · `salary_payments` | الموارد البشرية | ⚠️ `cash_advances` = سلفة **موظف** |
+| `employees` · `cash_advances` · `cash_advance_repayments` | الموارد البشرية | ⚠️ `cash_advances` = سلفة **موظف** · `employees.treasury_id` = **رابط المشروع** |
+| `payroll_periods` | **كشف رواتب شهر** (Schema v7) | فهرس فريد `(year, month)` ⇒ لا كشفان لشهر واحد |
+| `salary_payments` | **سطر كشف الرواتب** (تغيّر معناه في v7) | يحمل **لقطة** الموظف لحظة الشهر · فريد `(كشف، موظف)` · سطور الدفعة الواحدة تشترك في `voucher_id` |
 | `contractors` · `partners` | الأطراف الخارجية | |
 | `advances` · `advance_lines` · `item_types` | **سلف المشاريع** (Schema v5) | ⚠️ ≠ `cash_advances` |
 | `attachments` | فهرس مرفقات السلف والسندات (Schema v6) | **المسار نسبي لا مطلق** · `entity_id` بلا مفتاح خارجي (يشير لجدولين) |
@@ -99,6 +106,8 @@ lib/
 | `users_dao` | `registerFailedLogin()` **زيادة ذرّية** · `updatePasswordHash()` |
 | `treasuries_dao` | `getTreasuryBalance()` — يقرأ من الـ VIEW |
 | `attachments_dao` | `watchForEntity()` · `findDuplicate()` · `deleteForEntity()` **يُعيد الصفوف** ليحذف المستدعي ملفاتها |
+| `advances_dao` | **+Schema v7**: `linkLineToPayroll()` · `getPayrollLinkPreviews()` · و**حارس المطابقة داخل `postAdvance`** يمنع احتساب المال مرّتين |
+| `payroll_dao` | `payEntries()` **ذرّية** (سند واحد + السطور + أقساط السلف) · `getTotals()` **مصدر الحقيقة الوحيد للمجموع** · `getYears()` تشتقّ السنوات · `findByFileHash()` |
 | `audit_log_dao` | `logSimpleAction()` · `getLogsByTable()` · `getRecentLogs()` |
 | `app_settings_dao` | `getString/setString` · `getBool/setBool` · `getBlob/setBlob` |
 
@@ -108,6 +117,7 @@ lib/
 |---|---|
 | `voucher_repository.dart` | منع تعديل التحويل · منع نقل السند بين السنوات · حارس الفترة · كتابة `updated_at`/`updated_by` |
 | `advance_repository.dart` | `postAdvance` — الفترة مفتوحة · حساب العجز · طلب اسم من غطّاه |
+| `payroll_repository.dart` | الفترة مفتوحة · لا دولار بلا سعر صرف · لا صافي سالب · كفاية الرصيد · منع التعديل والتسديد المزدوج |
 | `user_repository` · `treasury_repository` · `settings_repository` | CRUD مع تحويل النماذج |
 
 ---
@@ -130,6 +140,9 @@ lib/
 | `reports_screen` + ٣ ملفات تبويبات | `/reports` | **٦ تبويبات** · الودجتات المشتركة في `report_widgets.dart` |
 | `excel_import_screen` | `/reports/excel-import` | يُنتج مسودة لا سندات |
 | `fiscal_screen` + جزء + `purge_period_dialog` | `/fiscal` | إقفال · إعادة فتح · حذف · محو قسري · قُسِّم بـ `part`: `fiscal_period_card` |
+| `payroll_periods_screen` | `/payroll` | شبكة الأشهر الاثني عشر — غير المستورَد يظهر «لم يُستورَد بعد» |
+| `payroll_sheet_screen` + جزء | `/payroll/:id` | جدول التحرير والتسديد · قُسِّم بـ`part`: `payroll_sheet_widgets` |
+| `payroll_import_screen` | `/payroll/import` | معالج أربع خطوات · **مسار `import` قبل `:id` في الموجّه** |
 | `backup_screen` | `/backup` | معطَّل على الويب |
 | `settings_screen` + ٩ تبويبات | `/settings` | منها `attachments_tab` (مجلد المرفقات) |
 | `audit_screen` | `/audit` | |
@@ -295,7 +308,9 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **حقول التتبّع** | `voucher_tracking_fields` · `voucher_filter_values` |
 | **التقارير** | `expense_reports` ← يحرس **قرارات محاسبية** لا كوداً |
 | **المرفقات** | `schema_v6` · `attachment_service` |
-| **الترقية** | `schema_v6_upgrade` ← **الوحيد الذي يختبر `onUpgrade`** |
+| **الترقية** | `schema_v6_upgrade` · `schema_v7_upgrade` ← **يختبران `onUpgrade` على بيانات مزروعة** |
+| **الرواتب** | `payroll_calculator` (نقيّ · ٤٢) · `payroll_import` (التطبيع والمطابقة) · `payroll_posting` (الحرّاس والذرّية) · `schema_v7` |
+| **الودجت** | `widget/payroll_screens_test` ← **أول اختبار عرض حقيقي**: يمسك التجاوز الأفقي والشاشة الحمراء |
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** ← يفحصان **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |

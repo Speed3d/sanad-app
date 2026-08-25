@@ -15,6 +15,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
+import '../../../../data/database/daos/advances_dao.dart'
+    show PayrollLinkPreview;
 import '../../../../domain/models/advance_model.dart';
 
 /// نتيجة نافذة الاعتماد
@@ -46,10 +48,18 @@ class PostAdvanceDialog extends StatefulWidget {
     required this.advance,
     required this.summary,
     required this.canPostWithDeficit,
+    this.payrollLinks = const [],
+    this.unlinkedPayrollLines = const [],
   });
 
   final AdvanceModel advance;
   final AdvanceSummary summary;
+
+  /// أسطر مربوطة بكشوف رواتب — أثرها يُعرَض **قبل** وقوعه (Schema v7)
+  final List<PayrollLinkPreview> payrollLinks;
+
+  /// أسطر بندُها «راتب» وغير مربوطة — **تحذير يمكن تجاوزه** (قرار المالك ١٢)
+  final List<String> unlinkedPayrollLines;
 
   /// هل يملك المستخدم صلاحية الاعتماد بعجز؟
   final bool canPostWithDeficit;
@@ -122,6 +132,95 @@ class _PostAdvanceDialogState extends State<PostAdvanceDialog> {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
+
+            // ═══════════════════════════════════════════════════════════
+            // 🔑 أثر الرواتب — **يُعرَض قبل وقوعه** (قرار المالك ٩)
+            // ═══════════════════════════════════════════════════════════
+            //
+            // البديل الذي اقترحه المالك أولاً كان إشعاراً **بعد** الاعتماد
+            // يُذكّره بأن يذهب ويعلّم الكشف مسدَّداً. واعتُرض لأنه يفتح
+            // نافذة: المال خرج والكشف ما زال «مسودة» حتى يتذكّر. ونسيانها
+            // يُبقي الكشف معلَّقاً فيبدو بعد شهرين أن الرواتب لم تُدفع.
+            //
+            // فالحلّ: يرى **نفس المعلومة** هنا قبل الضغط، ويقع الأثر كلّه
+            // في معاملة الاعتماد نفسها. لا يفقد شيئاً من السيطرة ويكسب
+            // استحالة النسيان.
+            if (widget.payrollLinks.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.link_rounded,
+                            size: 16, color: theme.colorScheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'سيترتّب على الاعتماد أيضاً:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    for (final p in widget.payrollLinks)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          p.matches
+                              ? '• ${p.employeeCount} موظفاً في كشف '
+                                  '${p.periodLabel} يصيرون «مسدَّدين من '
+                                  'سلفة ${widget.advance.advanceNumber}» '
+                                  'ويُقفَل تعديلهم'
+                              : '⚠ كشف ${p.periodLabel}: فرق '
+                                  '${fmt.format(p.difference.abs())} د.ع — '
+                                  '**الاعتماد سيُرفض** حتى يتطابق المبلغان',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: p.matches
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.error,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // تحذير قابل للتجاوز — قرار المالك ١٢
+            if (widget.unlinkedPayrollLines.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  'أسطر بندُها «راتب» وغير مربوطة بكشف رواتب:\n'
+                  '${widget.unlinkedPayrollLines.map((e) => '• $e').join('\n')}\n'
+                  'ستدخل الدفاتر كمصروف عادي بلا سجلّ راتب لأي موظف. '
+                  'إن كان ذلك مقصوداً فتابع.',
+                  style: const TextStyle(fontSize: 11.5),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             _Row('إجمالي المصاريف', '${fmt.format(s.spent)} د.ع'),
             _Row('رصيد الخزينة الآن', '${fmt.format(s.treasuryBalance)} د.ع'),
             if (s.excludedLines > 0)

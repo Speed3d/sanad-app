@@ -9,5 +9,7 @@ mixin _$EmployeesDaoMixin on DatabaseAccessor<AppDatabase> {
   $CashAdvancesTable get cashAdvances => attachedDatabase.cashAdvances;
   $CashAdvanceRepaymentsTable get cashAdvanceRepayments =>
       attachedDatabase.cashAdvanceRepayments;
+  $FiscalPeriodsTable get fiscalPeriods => attachedDatabase.fiscalPeriods;
+  $PayrollPeriodsTable get payrollPeriods => attachedDatabase.payrollPeriods;
   $SalaryPaymentsTable get salaryPayments => attachedDatabase.salaryPayments;
 }

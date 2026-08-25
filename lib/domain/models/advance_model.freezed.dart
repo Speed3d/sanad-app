@@ -720,6 +720,13 @@ mixin _$AdvanceLineModel {
   /// معرّف السند الناتج بعد الاعتماد — null ما دامت مسودة
   int? get voucherId => throw _privateConstructorUsedError;
 
+  /// كشف الرواتب الذي يسدّده هذا السطر (Schema v7) — null في السطر العادي
+  ///
+  /// وجوده يعني أن السطر ليس مصروفاً عادياً بل **«تسديد رواتب شهر كذا»**،
+  /// فيُستبدَل مبلغه عند الاعتماد بمطابقةٍ محروسة مع مجموع رواتب موظفي
+  /// خزينة هذا المشروع. راجع `AdvancesDao.postAdvance`.
+  int? get payrollPeriodId => throw _privateConstructorUsedError;
+
   /// Serializes this AdvanceLineModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -754,7 +761,8 @@ abstract class $AdvanceLineModelCopyWith<$Res> {
       bool isEdited,
       bool isExcluded,
       String excludeReason,
-      int? voucherId});
+      int? voucherId,
+      int? payrollPeriodId});
 }
 
 /// @nodoc
@@ -790,6 +798,7 @@ class _$AdvanceLineModelCopyWithImpl<$Res, $Val extends AdvanceLineModel>
     Object? isExcluded = null,
     Object? excludeReason = null,
     Object? voucherId = freezed,
+    Object? payrollPeriodId = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -864,6 +873,10 @@ class _$AdvanceLineModelCopyWithImpl<$Res, $Val extends AdvanceLineModel>
           ? _value.voucherId
           : voucherId // ignore: cast_nullable_to_non_nullable
               as int?,
+      payrollPeriodId: freezed == payrollPeriodId
+          ? _value.payrollPeriodId
+          : payrollPeriodId // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 }
@@ -894,7 +907,8 @@ abstract class _$$AdvanceLineModelImplCopyWith<$Res>
       bool isEdited,
       bool isExcluded,
       String excludeReason,
-      int? voucherId});
+      int? voucherId,
+      int? payrollPeriodId});
 }
 
 /// @nodoc
@@ -928,6 +942,7 @@ class __$$AdvanceLineModelImplCopyWithImpl<$Res>
     Object? isExcluded = null,
     Object? excludeReason = null,
     Object? voucherId = freezed,
+    Object? payrollPeriodId = freezed,
   }) {
     return _then(_$AdvanceLineModelImpl(
       id: null == id
@@ -1002,6 +1017,10 @@ class __$$AdvanceLineModelImplCopyWithImpl<$Res>
           ? _value.voucherId
           : voucherId // ignore: cast_nullable_to_non_nullable
               as int?,
+      payrollPeriodId: freezed == payrollPeriodId
+          ? _value.payrollPeriodId
+          : payrollPeriodId // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -1027,7 +1046,8 @@ class _$AdvanceLineModelImpl implements _AdvanceLineModel {
       this.isEdited = false,
       this.isExcluded = false,
       this.excludeReason = '',
-      this.voucherId});
+      this.voucherId,
+      this.payrollPeriodId});
 
   factory _$AdvanceLineModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$AdvanceLineModelImplFromJson(json);
@@ -1108,9 +1128,17 @@ class _$AdvanceLineModelImpl implements _AdvanceLineModel {
   @override
   final int? voucherId;
 
+  /// كشف الرواتب الذي يسدّده هذا السطر (Schema v7) — null في السطر العادي
+  ///
+  /// وجوده يعني أن السطر ليس مصروفاً عادياً بل **«تسديد رواتب شهر كذا»**،
+  /// فيُستبدَل مبلغه عند الاعتماد بمطابقةٍ محروسة مع مجموع رواتب موظفي
+  /// خزينة هذا المشروع. راجع `AdvancesDao.postAdvance`.
+  @override
+  final int? payrollPeriodId;
+
   @override
   String toString() {
-    return 'AdvanceLineModel(id: $id, advanceId: $advanceId, rowNumber: $rowNumber, voucherDate: $voucherDate, amount: $amount, itemType: $itemType, reason: $reason, personName: $personName, projectName: $projectName, invoiceNumber: $invoiceNumber, spentBy: $spentBy, originalAmount: $originalAmount, originalItemType: $originalItemType, originalDate: $originalDate, isEdited: $isEdited, isExcluded: $isExcluded, excludeReason: $excludeReason, voucherId: $voucherId)';
+    return 'AdvanceLineModel(id: $id, advanceId: $advanceId, rowNumber: $rowNumber, voucherDate: $voucherDate, amount: $amount, itemType: $itemType, reason: $reason, personName: $personName, projectName: $projectName, invoiceNumber: $invoiceNumber, spentBy: $spentBy, originalAmount: $originalAmount, originalItemType: $originalItemType, originalDate: $originalDate, isEdited: $isEdited, isExcluded: $isExcluded, excludeReason: $excludeReason, voucherId: $voucherId, payrollPeriodId: $payrollPeriodId)';
   }
 
   @override
@@ -1149,31 +1177,35 @@ class _$AdvanceLineModelImpl implements _AdvanceLineModel {
             (identical(other.excludeReason, excludeReason) ||
                 other.excludeReason == excludeReason) &&
             (identical(other.voucherId, voucherId) ||
-                other.voucherId == voucherId));
+                other.voucherId == voucherId) &&
+            (identical(other.payrollPeriodId, payrollPeriodId) ||
+                other.payrollPeriodId == payrollPeriodId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      advanceId,
-      rowNumber,
-      voucherDate,
-      amount,
-      itemType,
-      reason,
-      personName,
-      projectName,
-      invoiceNumber,
-      spentBy,
-      originalAmount,
-      originalItemType,
-      originalDate,
-      isEdited,
-      isExcluded,
-      excludeReason,
-      voucherId);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        advanceId,
+        rowNumber,
+        voucherDate,
+        amount,
+        itemType,
+        reason,
+        personName,
+        projectName,
+        invoiceNumber,
+        spentBy,
+        originalAmount,
+        originalItemType,
+        originalDate,
+        isEdited,
+        isExcluded,
+        excludeReason,
+        voucherId,
+        payrollPeriodId
+      ]);
 
   /// Create a copy of AdvanceLineModel
   /// with the given fields replaced by the non-null parameter values.
@@ -1211,7 +1243,8 @@ abstract class _AdvanceLineModel implements AdvanceLineModel {
       final bool isEdited,
       final bool isExcluded,
       final String excludeReason,
-      final int? voucherId}) = _$AdvanceLineModelImpl;
+      final int? voucherId,
+      final int? payrollPeriodId}) = _$AdvanceLineModelImpl;
 
   factory _AdvanceLineModel.fromJson(Map<String, dynamic> json) =
       _$AdvanceLineModelImpl.fromJson;
@@ -1283,6 +1316,14 @@ abstract class _AdvanceLineModel implements AdvanceLineModel {
   /// معرّف السند الناتج بعد الاعتماد — null ما دامت مسودة
   @override
   int? get voucherId;
+
+  /// كشف الرواتب الذي يسدّده هذا السطر (Schema v7) — null في السطر العادي
+  ///
+  /// وجوده يعني أن السطر ليس مصروفاً عادياً بل **«تسديد رواتب شهر كذا»**،
+  /// فيُستبدَل مبلغه عند الاعتماد بمطابقةٍ محروسة مع مجموع رواتب موظفي
+  /// خزينة هذا المشروع. راجع `AdvancesDao.postAdvance`.
+  @override
+  int? get payrollPeriodId;
 
   /// Create a copy of AdvanceLineModel
   /// with the given fields replaced by the non-null parameter values.

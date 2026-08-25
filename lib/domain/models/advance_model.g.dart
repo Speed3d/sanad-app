@@ -77,6 +77,7 @@ _$AdvanceLineModelImpl _$$AdvanceLineModelImplFromJson(
       isExcluded: json['isExcluded'] as bool? ?? false,
       excludeReason: json['excludeReason'] as String? ?? '',
       voucherId: (json['voucherId'] as num?)?.toInt(),
+      payrollPeriodId: (json['payrollPeriodId'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$AdvanceLineModelImplToJson(
@@ -100,6 +101,7 @@ Map<String, dynamic> _$$AdvanceLineModelImplToJson(
       'isExcluded': instance.isExcluded,
       'excludeReason': instance.excludeReason,
       'voucherId': instance.voucherId,
+      'payrollPeriodId': instance.payrollPeriodId,
     };
 
 _$AdvanceSummaryImpl _$$AdvanceSummaryImplFromJson(Map<String, dynamic> json) =>

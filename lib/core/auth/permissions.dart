@@ -48,6 +48,14 @@ enum AppPermission {
   /// بمستوى user لأنها بلا أثر مالي إطلاقاً — أسطر المسودة ليست سندات.
   prepareAdvance,
 
+  /// تجهيز كشف رواتب الشهر وتحريره (استيراد الملف، تصحيح السطور)
+  ///
+  /// بمستوى user لنفس سبب [prepareAdvance]: **الكشف في حالة مسودة لا يمسّ
+  /// رصيد أي خزينة إطلاقاً**. الأثر المالي كلّه في التسديد المحمي بـ
+  /// [managePayroll]. النتيجة المقصودة: المحاسب يجهّز الكشف ويصحّح فروقه،
+  /// والمدير وحده يصرف.
+  preparePayroll,
+
   // ── عمليات إدارية (admin و super_admin) ────────────────────────────────
   /// حذف سند (حذف ناعم)
   deleteVoucher,
@@ -133,6 +141,7 @@ _Level _requiredLevel(AppPermission p) {
     case AppPermission.manageEntities:
     case AppPermission.importExcel:
     case AppPermission.prepareAdvance:
+    case AppPermission.preparePayroll:
       return _Level.user;
 
     // admin فأعلى

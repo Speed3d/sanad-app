@@ -10,20 +10,13 @@
 // دوال نقية بلا حالة ولا واجهة — تُختبَر مباشرة.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../../../core/utils/sheet_value_parser.dart';
 import '../../../domain/repositories/i_advance_repository.dart';
 
-/// علامات تدل على أن المبلغ ليس بالدينار العراقي
-///
-/// الاستيراد بالدينار حصراً (قرار المالك). أي سطر يحمل إحدى هذه العلامات
-/// يُرفض برسالة واضحة بدل تسجيله صامتاً كدينار.
-const List<String> kForeignCurrencyMarkers = [
-  r'$',
-  'usd',
-  'دولار',
-  '€',
-  'eur',
-  'يورو',
-];
+// نُعيد تصدير علامات العملة الأجنبية: كانت مُعرَّفة هنا قبل أن تنتقل
+// إلى `SheetValueParser` ليتشاركها مستوردا السلف والرواتب.
+export '../../../core/utils/sheet_value_parser.dart'
+    show kForeignCurrencyMarkers;
 
 /// نتيجة تحليل ملف كامل
 class ExcelParseResult {
@@ -44,56 +37,19 @@ class ExcelParseResult {
 
 /// محلّل صفوف الإكسل
 abstract final class ExcelRowParser {
-  /// تحليل تاريخ نصي
+  /// تحليل تاريخ نصي — يفوّض إلى [SheetValueParser.parseDate]
   ///
-  /// يدعم `YYYY/MM/DD` و`DD/MM/YYYY` بفواصل `/` أو `-` أو `.`
-  /// التمييز بينهما: إذا كان الجزء الأول > 31 فهو سنة.
-  ///
-  /// يُعيد null إذا تعذّر التحليل.
-  static DateTime? parseDate(String raw) {
-    final s = raw.trim();
-    if (s.isEmpty) return null;
-    final parts = s.split(RegExp(r'[/\-.]'));
-    if (parts.length != 3) return null;
-
-    final a = int.tryParse(parts[0].trim());
-    final b = int.tryParse(parts[1].trim());
-    final c = int.tryParse(parts[2].trim());
-    if (a == null || b == null || c == null) return null;
-    if (a <= 0 || b <= 0 || c <= 0) return null;
-
-    final (year, month, day) = a > 31 ? (a, b, c) : (c, b, a);
-    if (month > 12 || day > 31) return null;
-
-    final result = DateTime(year, month, day);
-    // DateTime يُصحّح التواريخ المستحيلة تلقائياً (31 فبراير → 2 مارس)،
-    // فنتحقق أن ما خرج هو ما دخل بالضبط.
-    if (result.year != year || result.month != month || result.day != day) {
-      return null;
-    }
-    return result;
-  }
+  /// 📌 كان منطق التحليل مكتوباً هنا حتى 2026-08-25، ثم انتقل إلى
+  ///   `core/utils/sheet_value_parser.dart` ليتشاركه مستورد الرواتب.
+  ///   بقاؤه نسختين كان يعني أن إصلاح صيغة تاريخ في أحدهما لا يصل للآخر.
+  static DateTime? parseDate(String raw) => SheetValueParser.parseDate(raw);
 
   /// هل يحمل نص المبلغ علامة عملة أجنبية؟
-  static bool hasForeignCurrency(String rawAmount) {
-    final lower = rawAmount.toLowerCase();
-    return kForeignCurrencyMarkers.any(lower.contains);
-  }
+  static bool hasForeignCurrency(String rawAmount) =>
+      SheetValueParser.hasForeignCurrency(rawAmount);
 
-  /// تحليل مبلغ نصي بالدينار
-  ///
-  /// يتجاهل فواصل الآلاف والمسافات. يُعيد null إذا لم يكن رقماً موجباً.
-  static double? parseAmount(String raw) {
-    final cleaned = raw
-        .trim()
-        .replaceAll(',', '')
-        .replaceAll('،', '')
-        .replaceAll(' ', '');
-    if (cleaned.isEmpty) return null;
-    final v = double.tryParse(cleaned);
-    if (v == null || v <= 0) return null;
-    return v;
-  }
+  /// تحليل مبلغ نصي بالدينار — موجب حصراً
+  static double? parseAmount(String raw) => SheetValueParser.parseAmount(raw);
 
   /// تحليل صف واحد
   ///

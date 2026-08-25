@@ -289,13 +289,19 @@ class AuditLogger {
   ///   النظام ما يدل على أن شيئاً كان موجوداً أصلاً — ولا من محاه.
   ///   نسجّل العدّادات **قبل** المسح لأنها تختفي بعده.
   ///
-  /// [vouchersDeleted] / [periodsDeleted] / [advancesDeleted] — ما مُحي فعلاً
+  /// [vouchersDeleted] / [periodsDeleted] / [advancesDeleted] /
+  /// [payrollsDeleted] — ما مُحي فعلاً
+  ///
+  /// 📌 أُضيف عدّاد كشوف الرواتب مع Schema v7: التصفير صار يمحوها أيضاً،
+  ///   وسطرُ تدقيقٍ لا يذكر ما مُحي يوثّق نصف الحقيقة — وشاهدٌ ناقص أخطر من
+  ///   لا شاهد لأنه يُطمئن.
   Future<void> logFinancialDataReset({
     required int userId,
     required String username,
     required int vouchersDeleted,
     required int periodsDeleted,
     required int advancesDeleted,
+    int payrollsDeleted = 0,
   }) async {
     await _safeLog(() => _dao.logSimpleAction(
           userId: userId,
@@ -307,6 +313,7 @@ class AuditLogger {
             'vouchers_deleted': vouchersDeleted,
             'periods_deleted': periodsDeleted,
             'advances_deleted': advancesDeleted,
+            'payrolls_deleted': payrollsDeleted,
           }),
         ));
   }
@@ -592,6 +599,105 @@ class AuditLogger {
   /// [userId]   — معرّف المستخدم
   /// [username] — اسم المستخدم
   /// [filePath] — مسار ملف النسخة الاحتياطية
+  // ── أحداث الرواتب (Schema v7) ─────────────────────────────────────────────
+
+  /// تسجيل **صرف دفعة رواتب**
+  ///
+  /// ⚠️ **لماذا سطر تدقيق مستقلّ عن سند الصرف؟**
+  ///   لأن التسديد يُنشئ **سنداً واحداً بالمجموع** (قرار المالك 2026-08-24)،
+  ///   فالسند وحده يقول «رواتب شباط ١٬١٠٠٬٠٠٠» ولا يقول **كم موظفاً** يغطّي
+  ///   ولا **أي كشف** ولا كم قسط سلفة خُصم ضمنه. سطرٌ لا يذكر ذلك يوثّق نصف
+  ///   الحقيقة — وشاهدٌ ناقص أخطر من لا شاهد لأنه يُطمئن.
+  ///
+  /// [completed] — هل اكتمل الكشف بهذه الدفعة؟ الكشف الشامل يُسدَّد على
+  /// دفعات حسب مصدر التمويل، فمعرفة أيّ دفعة أقفلته جزء من الأثر.
+  Future<void> logPayrollPaid({
+    required int userId,
+    required String username,
+    required int periodId,
+    required String periodLabel,
+    required int employeeCount,
+    required double totalIqd,
+    required int voucherId,
+    int repaymentCount = 0,
+    bool completed = false,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.salaryPayments,
+          action: AuditActions.insert,
+          recordId: periodId,
+          meta: _toMeta({
+            'event': 'payroll_paid',
+            'period': periodLabel,
+            'employees': employeeCount,
+            'total_iqd': totalIqd,
+            'voucher_id': voucherId,
+            'advance_repayments': repaymentCount,
+            'period_completed': completed,
+          }),
+        ));
+  }
+
+  /// تسجيل **استيراد ملف رواتب** إلى كشف شهر
+  ///
+  /// منفصلة عن [logExcelImport] عمداً: تلك تصف استيراد **مصاريف سلفة** إلى
+  /// خزينة بعينها بإجمالي مبلغ، وحقولها الإلزامية (الخزينة والإجمالي) لا
+  /// معنى لها هنا — كشف الرواتب لا يخصّ خزينةً حتى لحظة التسديد.
+  Future<void> logPayrollImported({
+    required int userId,
+    required String username,
+    required int periodId,
+    required String periodLabel,
+    required int added,
+    required int updated,
+    int employeesCreated = 0,
+    String? fileName,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.salaryPayments,
+          action: AuditActions.excelImport,
+          recordId: periodId,
+          meta: _toMeta({
+            'event': 'payroll_imported',
+            'period': periodLabel,
+            'added': added,
+            'updated': updated,
+            'employees_created': employeesCreated,
+            if (fileName != null) 'file_name': fileName,
+          }),
+        ));
+  }
+
+  /// تسجيل **حذف كشف رواتب**
+  ///
+  /// الكشف المسدَّد لا يُحذف أصلاً، فهذا يوثّق حذف مسودة. ومع ذلك يستحقّ
+  /// شاهداً: مسودةٌ فيها ثلاثون سطراً راجعها المحاسب ساعةً ثم اختفت بلا أثر
+  /// تجعل مَن يبحث عنها لاحقاً يظنّ أنها لم تُنشأ قط.
+  Future<void> logPayrollDeleted({
+    required int userId,
+    required String username,
+    required int periodId,
+    required String periodLabel,
+    int entryCount = 0,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.salaryPayments,
+          action: AuditActions.delete,
+          recordId: periodId,
+          meta: _toMeta({
+            'event': 'payroll_period_deleted',
+            'period': periodLabel,
+            'entries': entryCount,
+          }),
+        ));
+  }
+
   Future<void> logBackupCreated({
     required int userId,
     required String username,
@@ -667,6 +773,7 @@ class AuditLogger {
     required String periodName,
     required int vouchersPurged,
     required int advancesPurged,
+    int payrollsPurged = 0,
   }) async {
     await _safeLog(() => _dao.logSimpleAction(
           userId: userId,
@@ -678,6 +785,9 @@ class AuditLogger {
             'period_name': periodName,
             'vouchers_purged': vouchersPurged,
             'advances_purged': advancesPurged,
+            // أُضيف مع Schema v7: المحو صار يمحو كشوف الرواتب وسطورها،
+            // وشاهدٌ لا يذكرها يوثّق أقلّ مما مُحي فعلاً.
+            'payrolls_purged': payrollsPurged,
             'note': 'hard_delete_irreversible',
           }),
         ));

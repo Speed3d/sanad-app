@@ -97,6 +97,7 @@ void main() {
       AppPermission.manageEntities,
       AppPermission.importExcel,
       AppPermission.prepareAdvance,
+      AppPermission.preparePayroll,
     ];
 
     test('الأدوار الثلاثة تملكها', () {
@@ -105,6 +106,27 @@ void main() {
         expect(admin.can(p), isTrue);
         expect(user.can(p), isTrue);
       }
+    });
+  });
+
+  // ── فصل الأدوار في نظام الرواتب (قرار المالك 2026-08-24) ────────────────
+  //
+  // نفس مبدأ السلف: **الكشف في حالة مسودة لا يمسّ رصيد أي خزينة**، فتجهيزه
+  // بمستوى `user`. الأثر المالي كلّه في التسديد المحمي بـ`managePayroll`.
+  group('فصل الأدوار في نظام الرواتب', () {
+    test('المحاسب (user) يستورد كشف الرواتب ويصحّح سطوره', () {
+      expect(user.can(AppPermission.preparePayroll), isTrue,
+          reason: 'المسودة بلا أثر مالي — والفروق تُصحَّح قبل الصرف');
+    });
+
+    test('⭐ لكن المحاسب لا يصرف — التسديد هو الحاجز الحقيقي', () {
+      expect(user.can(AppPermission.managePayroll), isFalse,
+          reason: 'التسديد هو اللحظة الوحيدة التي يخرج فيها المال');
+    });
+
+    test('المدير يجهّز ويصرف', () {
+      expect(admin.can(AppPermission.preparePayroll), isTrue);
+      expect(admin.can(AppPermission.managePayroll), isTrue);
     });
   });
 

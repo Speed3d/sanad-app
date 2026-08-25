@@ -77,6 +77,14 @@ final List<_NavItem> _navItems = [
     selectedIcon: Icons.people_rounded,
     route: AppRoutes.employees,
   ),
+  // الرواتب بعد الموظفين مباشرةً: الكشف يقرأ من بطاقاتهم ويكتب في تاريخهم
+  const _NavItem(
+    id: 'payroll',
+    label: 'الرواتب',
+    icon: Icons.payments_outlined,
+    selectedIcon: Icons.payments_rounded,
+    route: AppRoutes.payroll,
+  ),
   const _NavItem(
     id: 'contractors',
     label: 'المقاولون',

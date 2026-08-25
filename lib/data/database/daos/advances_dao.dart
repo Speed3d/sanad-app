@@ -21,6 +21,9 @@ import '../tables/advances_table.dart';
 import '../tables/advance_lines_table.dart';
 import '../tables/item_types_table.dart';
 import '../tables/vouchers_table.dart';
+import '../tables/employees_table.dart';
+import '../tables/payroll_periods_table.dart';
+import '../../../core/services/payroll_calculator.dart';
 
 part 'advances_dao.g.dart';
 
@@ -32,10 +35,60 @@ class PostAdvanceResult {
   /// إجمالي المبلغ المُرحَّل
   final double totalPosted;
 
+  /// عدد الموظفين الذين صارت رواتبهم مسدَّدة بهذا الاعتماد (Schema v7)
+  ///
+  /// صفرٌ في السلفة العادية. وأكبرُ من صفر حين تحوي أسطرها **تسديد رواتب**
+  /// مربوطاً بكشف شهر — فيصير الاعتماد الواحد حدثاً في نظامين معاً.
+  final int payrollEmployeesPaid;
+
+  /// كشوف الرواتب التي اكتملت بهذا الاعتماد
+  final List<String> payrollPeriodsCompleted;
+
   const PostAdvanceResult({
     required this.voucherIds,
     required this.totalPosted,
+    this.payrollEmployeesPaid = 0,
+    this.payrollPeriodsCompleted = const [],
   });
+}
+
+/// معاينة أثر ربط سطر سلفة بكشف رواتب — تُقرأ **قبل** الاعتماد
+///
+/// 🔑 قرار المالك 2026-08-24: **التأكيد الذرّي لا الإشعار اليدوي.** يرى
+///   المالك الأثر في حوار الاعتماد قبل وقوعه، ويقع كلّه في معاملة واحدة —
+///   فلا تبقى نافذة يكون فيها المال قد خرج والكشف ما زال «مسودة».
+class PayrollLinkPreview {
+  /// السطر المربوط
+  final int lineId;
+
+  /// مبلغ السطر كما في المسودة
+  final double lineAmount;
+
+  /// مجموع صافي رواتب الموظفين المشمولين — بالدينار
+  final double payrollTotal;
+
+  /// عدد الموظفين المشمولين
+  final int employeeCount;
+
+  /// تسمية الشهر («شباط 2025»)
+  final String periodLabel;
+
+  const PayrollLinkPreview({
+    required this.lineId,
+    required this.lineAmount,
+    required this.payrollTotal,
+    required this.employeeCount,
+    required this.periodLabel,
+  });
+
+  /// الفرق بين مبلغ السطر ومجموع الرواتب
+  double get difference => lineAmount - payrollTotal;
+
+  /// هل يتطابق المبلغان؟ — **هامش دينار واحد** للتقريب
+  ///
+  /// الملفات اليدوية تُقرّب، والفرق الأصغر من دينار ضجيجُ فاصلة عائمة لا
+  /// خطأُ حساب. وما فوقه فرقٌ حقيقي يمنع الاعتماد.
+  bool get matches => difference.abs() <= 1.0;
 }
 
 /// DAO سلف المشاريع
@@ -61,7 +114,14 @@ class DeficitCreditorRow {
   });
 }
 
-@DriftAccessor(tables: [Advances, AdvanceLines, ItemTypes, Vouchers])
+@DriftAccessor(tables: [
+  Advances,
+  AdvanceLines,
+  ItemTypes,
+  Vouchers,
+  PayrollPeriods,
+  SalaryPayments,
+])
 class AdvancesDao extends DatabaseAccessor<AppDatabase>
     with _$AdvancesDaoMixin {
   AdvancesDao(super.db);
@@ -170,6 +230,12 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// جلب أسطر سلفة
+  /// سطر مسودة واحد بالمعرّف
+  Future<AdvanceLine?> getLineById(int id) {
+    return (select(advanceLines)..where((l) => l.id.equals(id)))
+        .getSingleOrNull();
+  }
+
   Future<List<AdvanceLine>> getLines(int advanceId) {
     return (select(advanceLines)
           ..where((l) => l.advanceId.equals(advanceId))
@@ -362,6 +428,117 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
   /// ⚠️ لا يُجري هذا التابع أي فحص للصلاحيات أو الرصيد أو الفترة المالية —
   ///    تلك مسؤولية AdvanceRepository الذي يستدعيه. الفصل مقصود: الـ DAO
   ///    يضمن الذرّية، والمستودع يضمن قواعد العمل.
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🔑 ربط سطر السلفة بكشف الرواتب (Schema v7)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /// سطور كشف الرواتب التي يغطّيها سطر سلفة
+  ///
+  /// **من يُعتبَر مشمولاً؟** موظفو **خزينة هذا المشروع** غير المسدَّدين.
+  /// (قرار المالك 2026-08-24: `employees.treasury_id` هو رابط المشروع —
+  /// موظفو خزنة البصرة هم موظفو مشروع البصرة، لأن `project_treasury_id`
+  /// في السلفة تشير إلى الخزينة نفسها.)
+  Future<List<SalaryPayment>> getPayrollEntriesForProject({
+    required int payrollPeriodId,
+    required int projectTreasuryId,
+  }) async {
+    final rows = await customSelect(
+      'SELECT s.* FROM salary_payments s '
+      'INNER JOIN employees e ON e.id = s.employee_id '
+      'WHERE s.payroll_period_id = ? '
+      '  AND s.is_deleted = 0 '
+      "  AND s.payment_status = 'unpaid' "
+      '  AND e.treasury_id = ? '
+      'ORDER BY s.snapshot_name',
+      variables: [
+        Variable.withInt(payrollPeriodId),
+        Variable.withInt(projectTreasuryId),
+      ],
+      readsFrom: {salaryPayments, db.employees},
+    ).get();
+    // `QueryRow.data` خريطة أعمدة خام — نحوّلها بمخطّط الجدول نفسه فلا
+    // نُعيد كتابة أسماء الأعمدة يدوياً (وهو موضعٌ يُنسى فيه حقل عند التوسعة)
+    return rows.map((r) => salaryPayments.map(r.data)).toList();
+  }
+
+  /// ربط سطر سلفة بكشف رواتب — ويعلّم سطور موظفي المشروع
+  ///
+  /// يُستدعى من شاشة المراجعة حين يضع المالك العلامة. **لا يمسّ مالاً**:
+  /// السلفة ما زالت مسودة، والكشف ما زال مسودة. كل ما يقع هو رباط يُقرأ
+  /// عند الاعتماد.
+  Future<int> linkLineToPayroll({
+    required int lineId,
+    required int payrollPeriodId,
+    required int projectTreasuryId,
+  }) async {
+    return transaction(() async {
+      // فكّ أي ربط سابق لهذا السطر أولاً — وإلا تراكمت سطور من كشف قديم
+      await (update(salaryPayments)
+            ..where((s) => s.advanceLineId.equals(lineId)))
+          .write(const SalaryPaymentsCompanion(advanceLineId: Value(null)));
+
+      await (update(advanceLines)..where((l) => l.id.equals(lineId)))
+          .write(AdvanceLinesCompanion(
+        payrollPeriodId: Value(payrollPeriodId),
+      ));
+
+      final entries = await getPayrollEntriesForProject(
+        payrollPeriodId: payrollPeriodId,
+        projectTreasuryId: projectTreasuryId,
+      );
+      for (final e in entries) {
+        await (update(salaryPayments)..where((s) => s.id.equals(e.id)))
+            .write(SalaryPaymentsCompanion(advanceLineId: Value(lineId)));
+      }
+      return entries.length;
+    });
+  }
+
+  /// فكّ ربط سطر سلفة عن كشف الرواتب
+  Future<void> unlinkLineFromPayroll(int lineId) async {
+    await transaction(() async {
+      await (update(salaryPayments)
+            ..where((s) => s.advanceLineId.equals(lineId)))
+          .write(const SalaryPaymentsCompanion(advanceLineId: Value(null)));
+      await (update(advanceLines)..where((l) => l.id.equals(lineId)))
+          .write(const AdvanceLinesCompanion(payrollPeriodId: Value(null)));
+    });
+  }
+
+  /// معاينة المطابقة لكل سطر مربوط في سلفة — **تُقرأ قبل الاعتماد**
+  Future<List<PayrollLinkPreview>> getPayrollLinkPreviews(
+    int advanceId,
+  ) async {
+    final lines = await (select(advanceLines)
+          ..where((l) =>
+              l.advanceId.equals(advanceId) &
+              l.isExcluded.equals(false) &
+              l.payrollPeriodId.isNotNull()))
+        .get();
+
+    final previews = <PayrollLinkPreview>[];
+    for (final line in lines) {
+      final rows = await (select(salaryPayments)
+            ..where((s) =>
+                s.advanceLineId.equals(line.id) & s.isDeleted.equals(false)))
+          .get();
+      final period = await (select(payrollPeriods)
+            ..where((p) => p.id.equals(line.payrollPeriodId!)))
+          .getSingleOrNull();
+
+      previews.add(PayrollLinkPreview(
+        lineId: line.id,
+        lineAmount: line.amount,
+        payrollTotal: rows.fold<double>(0, (sum, r) => sum + r.netAmountIqd),
+        employeeCount: rows.length,
+        periodLabel: period == null
+            ? '—'
+            : PayrollCalculator.periodLabel(period.year, period.month),
+      ));
+    }
+    return previews;
+  }
+
   Future<PostAdvanceResult> postAdvance({
     required int advanceId,
     required double deficitAmount,
@@ -387,8 +564,63 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
         );
       }
 
+      // ═══════════════════════════════════════════════════════════════
+      // 🔑 حارس المطابقة — **قبل إنشاء أي سند**
+      // ═══════════════════════════════════════════════════════════════
+      //
+      // كل سطر مربوط بكشف رواتب يجب أن يساوي مبلغُه **مجموع صافي رواتب
+      // الموظفين المشمولين بالدينار**. واختلافهما يعني أحد أمرين، وكلاهما
+      // يوجب التوقف:
+      //   • الملف الذي أرسله المشروع يخالف كشف الرواتب  ⇐ خطأ يجب تصحيحه
+      //   • بعض الموظفين لم يُشمَلوا أو شُمِل من لا يخصّه ⇐ ربط خاطئ
+      //
+      // ⚠️ **ولماذا هنا في الـ DAO لا في الشاشة؟** لأن هذه هي النقطة التي
+      //   لا يمكن الالتفاف عليها: أي مستدعٍ للاعتماد يمرّ منها. ولو عاش
+      //   الحارس في حوار التأكيد لأمكن تجاوزه بمسار ثانٍ — وهو بالضبط ما
+      //   كلّفنا عطلاً كاملاً في قاعدة عدم تقاطع الفترات (د-٢).
+      //
+      // 📌 وبدونه يُحتسَب المال **مرّتين**: مرة كسطر مصروف في السلفة ومرة
+      //   كرواتب مسدَّدة — وهو صنف العطل ع-١٣ نفسه.
+      final payrollLines =
+          lines.where((l) => l.payrollPeriodId != null).toList();
+
+      for (final line in payrollLines) {
+        final entries = await (select(salaryPayments)
+              ..where((sp) =>
+                  sp.advanceLineId.equals(line.id) &
+                  sp.isDeleted.equals(false)))
+            .get();
+
+        if (entries.isEmpty) {
+          throw StateError(
+            'سطر «${line.reason}» مربوط بكشف رواتب لا يشمل أي موظف من '
+            'خزينة هذا المشروع.\n'
+            'افكك الربط أو راجع خزائن الموظفين في الكشف.',
+          );
+        }
+
+        final payrollTotal =
+            entries.fold<double>(0, (sum, e) => sum + e.netAmountIqd);
+        final diff = line.amount - payrollTotal;
+
+        if (diff.abs() > 1.0) {
+          throw StateError(
+            'لا تطابق في سطر «${line.reason}»:\n'
+            'مبلغ السلفة ${_fmtIqd(line.amount)} '
+            'ومجموع رواتب ${entries.length} موظفاً '
+            '${_fmtIqd(payrollTotal)} — '
+            'الفرق ${_fmtIqd(diff.abs())} '
+            '(${diff > 0 ? 'السلفة أعلى' : 'الرواتب أعلى'}).\n'
+            'صحّح الملف أو الكشف قبل الاعتماد — الاعتماد بفارق يُدخل '
+            'الدفاتر رقماً لا مصدر له.',
+          );
+        }
+      }
+
       final voucherIds = <int>[];
       double total = 0;
+      var payrollEmployeesPaid = 0;
+      final completedPeriods = <String>[];
 
       for (final line in lines) {
         // رقم السند التالي — ذرّي عبر UPSERT في voucher_sequences
@@ -424,6 +656,64 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
         await (update(advanceLines)..where((l) => l.id.equals(line.id)))
             .write(AdvanceLinesCompanion(voucherId: Value(voucherId)));
 
+        // ── تعليم رواتب هذا السطر مسدَّدة — **في المعاملة نفسها** ──────
+        //
+        // 🔑 قرار المالك 2026-08-24: **التأكيد الذرّي لا الإشعار اليدوي.**
+        //   الإشعار كان يفتح نافذة: المال خرج من خزنة المشروع والكشف ما
+        //   زال «مسودة» حتى يتذكّر المالك أن يعلّمه. ونسيانها يُبقي الكشف
+        //   معلَّقاً إلى الأبد فيبدو بعد شهرين أن الرواتب لم تُدفع.
+        //   وهو نمط د-٨ حرفياً: خطوة يدوية بعد عملية مالية = نصف ميزة.
+        if (line.payrollPeriodId != null) {
+          final now = DateTime.now();
+          final entries = await (select(salaryPayments)
+                ..where((sp) =>
+                    sp.advanceLineId.equals(line.id) &
+                    sp.isDeleted.equals(false) &
+                    sp.paymentStatus
+                        .equals(PayrollPaymentStatusDb.unpaid)))
+              .get();
+
+          for (final e in entries) {
+            await (update(salaryPayments)..where((sp) => sp.id.equals(e.id)))
+                .write(SalaryPaymentsCompanion(
+              paymentStatus: const Value(PayrollPaymentStatusDb.paid),
+              paidAt: Value(now),
+              treasuryId: Value(advance.projectTreasuryId),
+              voucherId: Value(voucherId),
+              advanceId: Value(advanceId),
+              updatedAt: Value(now),
+            ));
+          }
+          payrollEmployeesPaid += entries.length;
+
+          // هل اكتمل الكشف؟ — يُقرأ **بعد** التحديث لا قبله
+          final remaining = await customSelect(
+            'SELECT COUNT(*) AS c FROM salary_payments '
+            'WHERE payroll_period_id = ? AND is_deleted = 0 '
+            "AND payment_status = 'unpaid'",
+            variables: [Variable.withInt(line.payrollPeriodId!)],
+            readsFrom: {salaryPayments},
+          ).getSingle();
+
+          if ((remaining.data['c'] as int? ?? 0) == 0) {
+            final period = await (select(payrollPeriods)
+                  ..where((pp) => pp.id.equals(line.payrollPeriodId!)))
+                .getSingleOrNull();
+            if (period != null) {
+              await (update(payrollPeriods)
+                    ..where((pp) => pp.id.equals(period.id)))
+                  .write(PayrollPeriodsCompanion(
+                status: const Value(PayrollStatusDb.posted),
+                postedAt: Value(now),
+                postedByUserId: Value(postedByUserId),
+              ));
+              completedPeriods.add(
+                PayrollCalculator.periodLabel(period.year, period.month),
+              );
+            }
+          }
+        }
+
         voucherIds.add(voucherId);
         total += line.amount;
       }
@@ -439,7 +729,12 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
         ),
       );
 
-      return PostAdvanceResult(voucherIds: voucherIds, totalPosted: total);
+      return PostAdvanceResult(
+        voucherIds: voucherIds,
+        totalPosted: total,
+        payrollEmployeesPaid: payrollEmployeesPaid,
+        payrollPeriodsCompleted: completedPeriods,
+      );
     });
   }
 
@@ -496,6 +791,20 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
 ///
 /// نسخة من AdvanceStatus في طبقة الـ domain — مكرّرة عمداً هنا لأن طبقة
 /// البيانات يجب ألا تستورد من طبقة الـ domain (اتجاه الاعتماد معاكس).
+/// تنسيق مبلغ بالدينار لرسائل الحرّاس
+///
+/// رسالةٌ تقول «الفرق 1250000.0» أصعب قراءةً من «1,250,000 د.ع» — والمالك
+/// يقرأ هذه الرسالة في لحظة توتّر (اعتمادٌ رُفض)، فوضوحها جزء من الإصلاح.
+String _fmtIqd(double v) {
+  final s = v.round().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+    buf.write(s[i]);
+  }
+  return '$buf د.ع';
+}
+
 abstract final class AdvanceStatusDb {
   static const String open = 'open';
   static const String draft = 'draft';

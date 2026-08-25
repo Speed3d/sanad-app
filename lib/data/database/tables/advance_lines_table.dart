@@ -21,6 +21,7 @@
 
 import 'package:drift/drift.dart';
 import 'advances_table.dart';
+import 'payroll_periods_table.dart';
 
 /// جدول أسطر مسودة السلفة
 class AdvanceLines extends Table {
@@ -90,6 +91,22 @@ class AdvanceLines extends Table {
 
   // معرّف السند الناتج بعد الاعتماد — null ما دامت السلفة مسودة
   IntColumn get voucherId => integer().named('voucher_id').nullable()();
+
+  // كشف الرواتب الذي يسدّده هذا السطر (Schema v7) — null في كل سطر عادي.
+  //
+  // **ما يعنيه وجوده:** هذا السطر ليس مصروفاً عادياً بل «تسديد رواتب شهر
+  // كذا». يضع المالك علامةً عليه في شاشة المراجعة ويختار كشف الشهر، فتُعلَّم
+  // سطور موظفي خزنة هذا المشروع بـ`salary_payments.advance_line_id`.
+  //
+  // 🔑 **وعنده يعمل حارس المطابقة** في `AdvancesDao.postAdvance`:
+  //     Σ(net_amount_iqd للسطور المرتبطة) == amount
+  //   واختلافهما يمنع الاعتماد. بدونه يُحتسب المال مرّتين — مرة كسطر مصروف
+  //   ومرة كرواتب مسدَّدة — وهو صنف العطل ع-١٣ نفسه (الرصيد الافتتاحي كان
+  //   يُضاعف الرصيد).
+  IntColumn get payrollPeriodId => integer()
+      .named('payroll_period_id')
+      .references(PayrollPeriods, #id)
+      .nullable()();
 
   /// قيود على مستوى الجدول (دفاع في العمق)
   @override

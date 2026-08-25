@@ -8,5 +8,6 @@ mixin _$VouchersDaoMixin on DatabaseAccessor<AppDatabase> {
   $FiscalPeriodsTable get fiscalPeriods => attachedDatabase.fiscalPeriods;
   $VouchersTable get vouchers => attachedDatabase.vouchers;
   $AdvancesTable get advances => attachedDatabase.advances;
+  $PayrollPeriodsTable get payrollPeriods => attachedDatabase.payrollPeriods;
   $AdvanceLinesTable get advanceLines => attachedDatabase.advanceLines;
 }

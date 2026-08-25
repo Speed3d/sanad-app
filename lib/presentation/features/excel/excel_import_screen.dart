@@ -17,16 +17,16 @@
 // واضحة بدل تسجيله صامتاً كدينار — وهو خطأ بمقدار سعر الصرف كله.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// حزمة excel تُصدِّر Border و TextSpan التي تتعارض مع نظيرتيهما في Flutter —
-// نخفيهما لأننا نستعمل نسخ Flutter منهما في الواجهة
-import 'package:excel/excel.dart' hide Border, TextSpan;
+// ملاحظة: لم تعد هذه الشاشة تستورد حزمة `excel` ولا `pointycastle` — قراءة
+// الخلايا وحساب البصمة انتقلا إلى `ExcelSheetReader` (2026-08-25)، فزال معهما
+// تعارض `Border`/`TextSpan` مع ودجتات Flutter الذي كان يفرض إخفاءهما.
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
-import 'package:pointycastle/digests/sha256.dart';
 
+import '../../../core/utils/excel_sheet_reader.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/models/advance_model.dart';
 import '../../../domain/repositories/i_advance_repository.dart';
@@ -141,56 +141,29 @@ class _ExcelImportScreenState extends ConsumerState<ExcelImportScreen> {
         return;
       }
 
-      // بصمة المحتوى — لا اسم الملف، فإعادة التسمية لا تُخفي التكرار.
-      // نستخدم SHA256 من pointycastle الموجودة أصلاً للنسخ المشفّرة.
-      final digest = SHA256Digest().process(bytes);
-      final hash =
-          digest.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      // بصمة المحتوى وقراءة الخلايا في `ExcelSheetReader` المشترك
+      // (2026-08-25): كان المنطق مكتوباً هنا، فلمّا احتاجه مستورد الرواتب
+      // كان البديل نسخه — ونسختان تعنيان أن نوع خلية جديداً يُعالَج في
+      // شاشة ويُنسى في الأخرى.
+      final data = ExcelSheetReader.read(bytes);
 
-      final duplicate =
-          await ref.read(advanceRepositoryProvider).findByFileHash(hash);
-
-      final excel = Excel.decodeBytes(bytes);
-      final sheetName = excel.tables.keys.first;
-      final sheet = excel.tables[sheetName];
-      if (sheet == null || sheet.rows.isEmpty) {
-        _showError('الملف فارغ أو لا يحتوي على بيانات.');
-        return;
-      }
-
-      final rows = sheet.rows.map((row) {
-        return row.map<String>((cell) {
-          final v = cell?.value;
-          if (v == null) return '';
-          if (v is TextCellValue) return v.value.toString();
-          if (v is IntCellValue) return v.value.toString();
-          if (v is DoubleCellValue) return v.value.toString();
-          if (v is DateCellValue) {
-            return '${v.year}/${v.month.toString().padLeft(2, '0')}/'
-                '${v.day.toString().padLeft(2, '0')}';
-          }
-          if (v is BoolCellValue) return v.value.toString();
-          return v.toString();
-        }).toList();
-      }).toList();
-
-      final maxLen = rows.fold<int>(0, (m, r) => r.length > m ? r.length : m);
-      final normalized = rows.map((r) {
-        final padded = List<String>.from(r);
-        padded.addAll(List.filled(maxLen - r.length, ''));
-        return padded;
-      }).toList();
+      final duplicate = await ref
+          .read(advanceRepositoryProvider)
+          .findByFileHash(data.sha256);
 
       setState(() {
         _fileName = file.name;
-        _fileHash = hash;
+        _fileHash = data.sha256;
         _duplicateOf = duplicate;
-        _rawRows = normalized;
+        _rawRows = data.rows;
         _hasHeaderRow = true;
-        _columnMap = _autoDetectColumns(normalized);
+        _columnMap = _autoDetectColumns(data.rows);
         _previewPage = 0;
         _step = 1;
       });
+    } on FormatException catch (e) {
+      // الملف الفارغ أو غير القابل للقراءة — رسالة القارئ عربية جاهزة
+      _showError(e.message);
     } catch (e) {
       _showError('خطأ أثناء قراءة الملف: $e');
     } finally {

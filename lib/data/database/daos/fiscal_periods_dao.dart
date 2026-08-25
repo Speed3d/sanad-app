@@ -64,6 +64,24 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
     return result;
   }
 
+  /// جلب الفترة التي يقع فيها تاريخ **أياً كانت حالتها**
+  ///
+  /// ⚠️ **الفرق عن [getFiscalPeriodForDate]**: تلك تفلتر بـ`active`، فتُعيد
+  ///   `null` للفترة المُقفَلة كما تُعيده للفترة غير الموجودة — والحالتان
+  ///   مختلفتان تماماً عند المستخدم:
+  ///     «لا توجد سنة مالية لهذا الشهر»  ⇐ أنشئ السنة
+  ///     «سنة 2025 مُقفَلة»              ⇐ أعد فتحها أو اختر شهراً آخر
+  ///   ورسالةٌ تقول الأولى والواقع الثاني تُرسل المالك في طريق خاطئ.
+  ///   (كشفه بلاغ المالك 2026-08-25 على بناء كشف رواتب.)
+  Future<FiscalPeriod?> getAnyPeriodForDate(DateTime date) {
+    return (select(fiscalPeriods)
+          ..where((p) =>
+              p.startDate.isSmallerOrEqualValue(date) &
+              p.endDate.isBiggerOrEqualValue(date))
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
   /// جلب فترة مالية بالمعرّف
   Future<FiscalPeriod?> getPeriodById(int id) {
     return (select(fiscalPeriods)..where((p) => p.id.equals(id)))
@@ -222,7 +240,18 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
       ).getSingle();
       final advanceCount = aRow.data['c'] as int? ?? 0;
 
-      if (voucherCount > 0 || advanceCount > 0) {
+      // كشوف الرواتب (Schema v7) — مفتاح خارجي إلى الفترة.
+      //
+      // ⚠️ بدون هذا الفحص لا يمرّ الحذف أصلاً: يرمي SqliteException(787)
+      //   برسالة إنجليزية غامضة بدل أن يقول للمالك ما يمنعه. وهو بالضبط
+      //   ما وقع في زرّ التصفير (ع-٩): قيد أجنبي لم يتوقّعه أحد.
+      final pRow = await customSelect(
+        'SELECT COUNT(*) AS c FROM payroll_periods WHERE fiscal_period_id = ?',
+        variables: [Variable.withInt(id)],
+      ).getSingle();
+      final payrollCount = pRow.data['c'] as int? ?? 0;
+
+      if (voucherCount > 0 || advanceCount > 0 || payrollCount > 0) {
         final parts = <String>[
           if (voucherCount > 0)
             voucherCount == softDeleted
@@ -230,6 +259,7 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
                 ? '$voucherCount سنداً محذوفاً (الحذف الناعم يُبقي الأثر)'
                 : '$voucherCount سند',
           if (advanceCount > 0) '$advanceCount سلفة مشروع',
+          if (payrollCount > 0) '$payrollCount كشف رواتب',
         ];
         throw StateError(
           'لا يمكن حذف الفترة "${period.name}" لأنها تحتوي '
@@ -263,7 +293,8 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
   /// بنائها، وبدونها تبقى كل سنة تجريبية حاجزاً دائماً على نطاقها.
   ///
   /// **ما يُمحى** بالترتيب الإلزامي (الابن قبل الأب وإلا فشل القيد الأجنبي):
-  ///   advance_lines → advances → vouchers (**بما فيها المحذوفة ناعماً**)
+  ///   advance_lines → advances → salary_payments → payroll_periods
+  ///   → vouchers (**بما فيها المحذوفة ناعماً**)
   ///   → voucher_sequences → الفترة نفسها
   ///
   /// **ما لا يُمسّ:** الخزائن · الموظفون · المقاولون · الشركاء · المستخدمون
@@ -271,7 +302,8 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
   /// صار في البرنامج محوٌ صامت للدفاتر بلا شاهد.
   ///
   /// يُعيد عدّادات ما مُحي فعلاً — تُقرأ **قبل** المحو لأنها تختفي بعده.
-  Future<({int vouchers, int advances})> purgeFiscalPeriodCompletely(
+  Future<({int vouchers, int advances, int payrolls})>
+      purgeFiscalPeriodCompletely(
     int id,
   ) async {
     return transaction(() async {
@@ -293,6 +325,12 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
       ).getSingle();
       final advanceCount = aRow.data['c'] as int? ?? 0;
 
+      final pRow = await customSelect(
+        'SELECT COUNT(*) AS c FROM payroll_periods WHERE fiscal_period_id = ?',
+        variables: [Variable.withInt(id)],
+      ).getSingle();
+      final payrollCount = pRow.data['c'] as int? ?? 0;
+
       // أسطر السلف تتبع سلف هذه الفترة — تُمحى قبلها
       await customStatement(
         'DELETE FROM advance_lines WHERE advance_id IN '
@@ -301,6 +339,30 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
       );
       await customStatement(
         'DELETE FROM advances WHERE fiscal_period_id = ?',
+        [id],
+      );
+
+      // ── كشوف الرواتب وسطورها (Schema v7) ──────────────────────────────
+      // الترتيب: السطور ← فكّ ارتباط أسطر السلف ← الكشوف نفسها.
+      await customStatement(
+        'DELETE FROM salary_payments WHERE payroll_period_id IN '
+        '(SELECT id FROM payroll_periods WHERE fiscal_period_id = ?)',
+        [id],
+      );
+
+      // ⚠️ **فكّ ارتباط لا حذف**: قد يشير سطرُ سلفةٍ في سنة أخرى إلى كشف من
+      //   هذه السنة (سلفة كانون الأول تسدّد رواتب كانون الثاني). حذف ذلك
+      //   السطر يمحو مصروفاً من سنة لا يجوز مسّها أصلاً — فالمحو محصور
+      //   بفترة واحدة بإجماع. نفكّ الرباط فحسب ويبقى المبلغ وسنده سليمين.
+      await customStatement(
+        'UPDATE advance_lines SET payroll_period_id = NULL '
+        'WHERE payroll_period_id IN '
+        '(SELECT id FROM payroll_periods WHERE fiscal_period_id = ?)',
+        [id],
+      );
+
+      await customStatement(
+        'DELETE FROM payroll_periods WHERE fiscal_period_id = ?',
         [id],
       );
       // كل السندات بلا استثناء — المحذوف ناعماً هو بالضبط ما يمنع الحذف
@@ -314,7 +376,11 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
           .go();
       await (delete(fiscalPeriods)..where((p) => p.id.equals(id))).go();
 
-      return (vouchers: voucherCount, advances: advanceCount);
+      return (
+        vouchers: voucherCount,
+        advances: advanceCount,
+        payrolls: payrollCount,
+      );
     });
   }
 

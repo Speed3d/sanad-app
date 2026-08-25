@@ -3774,6 +3774,14 @@ class $EmployeesTable extends Employees
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant(''));
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<String> position = GeneratedColumn<String>(
+      'position', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _basicSalaryMeta =
       const VerificationMeta('basicSalary');
   @override
@@ -3782,6 +3790,14 @@ class $EmployeesTable extends Employees
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0.0));
+  static const VerificationMeta _salaryCurrencyMeta =
+      const VerificationMeta('salaryCurrency');
+  @override
+  late final GeneratedColumn<String> salaryCurrency = GeneratedColumn<String>(
+      'salary_currency', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('IQD'));
   static const VerificationMeta _hireDateMeta =
       const VerificationMeta('hireDate');
   @override
@@ -3838,7 +3854,9 @@ class $EmployeesTable extends Employees
         fullName,
         phone,
         address,
+        position,
         basicSalary,
+        salaryCurrency,
         hireDate,
         treasuryId,
         notes,
@@ -3873,11 +3891,21 @@ class $EmployeesTable extends Employees
       context.handle(_addressMeta,
           address.isAcceptableOrUnknown(data['address']!, _addressMeta));
     }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    }
     if (data.containsKey('basic_salary')) {
       context.handle(
           _basicSalaryMeta,
           basicSalary.isAcceptableOrUnknown(
               data['basic_salary']!, _basicSalaryMeta));
+    }
+    if (data.containsKey('salary_currency')) {
+      context.handle(
+          _salaryCurrencyMeta,
+          salaryCurrency.isAcceptableOrUnknown(
+              data['salary_currency']!, _salaryCurrencyMeta));
     }
     if (data.containsKey('hire_date')) {
       context.handle(_hireDateMeta,
@@ -3922,8 +3950,12 @@ class $EmployeesTable extends Employees
           .read(DriftSqlType.string, data['${effectivePrefix}phone'])!,
       address: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}address'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}position'])!,
       basicSalary: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}basic_salary'])!,
+      salaryCurrency: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}salary_currency'])!,
       hireDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}hire_date']),
       treasuryId: attachedDatabase.typeMapping
@@ -3950,7 +3982,9 @@ class Employee extends DataClass implements Insertable<Employee> {
   final String fullName;
   final String phone;
   final String address;
+  final String position;
   final double basicSalary;
+  final String salaryCurrency;
   final DateTime? hireDate;
   final int? treasuryId;
   final String notes;
@@ -3962,7 +3996,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       required this.fullName,
       required this.phone,
       required this.address,
+      required this.position,
       required this.basicSalary,
+      required this.salaryCurrency,
       this.hireDate,
       this.treasuryId,
       required this.notes,
@@ -3976,7 +4012,9 @@ class Employee extends DataClass implements Insertable<Employee> {
     map['full_name'] = Variable<String>(fullName);
     map['phone'] = Variable<String>(phone);
     map['address'] = Variable<String>(address);
+    map['position'] = Variable<String>(position);
     map['basic_salary'] = Variable<double>(basicSalary);
+    map['salary_currency'] = Variable<String>(salaryCurrency);
     if (!nullToAbsent || hireDate != null) {
       map['hire_date'] = Variable<DateTime>(hireDate);
     }
@@ -3996,7 +4034,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       fullName: Value(fullName),
       phone: Value(phone),
       address: Value(address),
+      position: Value(position),
       basicSalary: Value(basicSalary),
+      salaryCurrency: Value(salaryCurrency),
       hireDate: hireDate == null && nullToAbsent
           ? const Value.absent()
           : Value(hireDate),
@@ -4018,7 +4058,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       fullName: serializer.fromJson<String>(json['fullName']),
       phone: serializer.fromJson<String>(json['phone']),
       address: serializer.fromJson<String>(json['address']),
+      position: serializer.fromJson<String>(json['position']),
       basicSalary: serializer.fromJson<double>(json['basicSalary']),
+      salaryCurrency: serializer.fromJson<String>(json['salaryCurrency']),
       hireDate: serializer.fromJson<DateTime?>(json['hireDate']),
       treasuryId: serializer.fromJson<int?>(json['treasuryId']),
       notes: serializer.fromJson<String>(json['notes']),
@@ -4035,7 +4077,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       'fullName': serializer.toJson<String>(fullName),
       'phone': serializer.toJson<String>(phone),
       'address': serializer.toJson<String>(address),
+      'position': serializer.toJson<String>(position),
       'basicSalary': serializer.toJson<double>(basicSalary),
+      'salaryCurrency': serializer.toJson<String>(salaryCurrency),
       'hireDate': serializer.toJson<DateTime?>(hireDate),
       'treasuryId': serializer.toJson<int?>(treasuryId),
       'notes': serializer.toJson<String>(notes),
@@ -4050,7 +4094,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           String? fullName,
           String? phone,
           String? address,
+          String? position,
           double? basicSalary,
+          String? salaryCurrency,
           Value<DateTime?> hireDate = const Value.absent(),
           Value<int?> treasuryId = const Value.absent(),
           String? notes,
@@ -4062,7 +4108,9 @@ class Employee extends DataClass implements Insertable<Employee> {
         fullName: fullName ?? this.fullName,
         phone: phone ?? this.phone,
         address: address ?? this.address,
+        position: position ?? this.position,
         basicSalary: basicSalary ?? this.basicSalary,
+        salaryCurrency: salaryCurrency ?? this.salaryCurrency,
         hireDate: hireDate.present ? hireDate.value : this.hireDate,
         treasuryId: treasuryId.present ? treasuryId.value : this.treasuryId,
         notes: notes ?? this.notes,
@@ -4076,8 +4124,12 @@ class Employee extends DataClass implements Insertable<Employee> {
       fullName: data.fullName.present ? data.fullName.value : this.fullName,
       phone: data.phone.present ? data.phone.value : this.phone,
       address: data.address.present ? data.address.value : this.address,
+      position: data.position.present ? data.position.value : this.position,
       basicSalary:
           data.basicSalary.present ? data.basicSalary.value : this.basicSalary,
+      salaryCurrency: data.salaryCurrency.present
+          ? data.salaryCurrency.value
+          : this.salaryCurrency,
       hireDate: data.hireDate.present ? data.hireDate.value : this.hireDate,
       treasuryId:
           data.treasuryId.present ? data.treasuryId.value : this.treasuryId,
@@ -4095,7 +4147,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           ..write('fullName: $fullName, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
+          ..write('position: $position, ')
           ..write('basicSalary: $basicSalary, ')
+          ..write('salaryCurrency: $salaryCurrency, ')
           ..write('hireDate: $hireDate, ')
           ..write('treasuryId: $treasuryId, ')
           ..write('notes: $notes, ')
@@ -4107,8 +4161,20 @@ class Employee extends DataClass implements Insertable<Employee> {
   }
 
   @override
-  int get hashCode => Object.hash(id, fullName, phone, address, basicSalary,
-      hireDate, treasuryId, notes, isActive, createdAt, isDeleted);
+  int get hashCode => Object.hash(
+      id,
+      fullName,
+      phone,
+      address,
+      position,
+      basicSalary,
+      salaryCurrency,
+      hireDate,
+      treasuryId,
+      notes,
+      isActive,
+      createdAt,
+      isDeleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4117,7 +4183,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           other.fullName == this.fullName &&
           other.phone == this.phone &&
           other.address == this.address &&
+          other.position == this.position &&
           other.basicSalary == this.basicSalary &&
+          other.salaryCurrency == this.salaryCurrency &&
           other.hireDate == this.hireDate &&
           other.treasuryId == this.treasuryId &&
           other.notes == this.notes &&
@@ -4131,7 +4199,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
   final Value<String> fullName;
   final Value<String> phone;
   final Value<String> address;
+  final Value<String> position;
   final Value<double> basicSalary;
+  final Value<String> salaryCurrency;
   final Value<DateTime?> hireDate;
   final Value<int?> treasuryId;
   final Value<String> notes;
@@ -4143,7 +4213,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     this.fullName = const Value.absent(),
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
+    this.position = const Value.absent(),
     this.basicSalary = const Value.absent(),
+    this.salaryCurrency = const Value.absent(),
     this.hireDate = const Value.absent(),
     this.treasuryId = const Value.absent(),
     this.notes = const Value.absent(),
@@ -4156,7 +4228,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     required String fullName,
     this.phone = const Value.absent(),
     this.address = const Value.absent(),
+    this.position = const Value.absent(),
     this.basicSalary = const Value.absent(),
+    this.salaryCurrency = const Value.absent(),
     this.hireDate = const Value.absent(),
     this.treasuryId = const Value.absent(),
     this.notes = const Value.absent(),
@@ -4169,7 +4243,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     Expression<String>? fullName,
     Expression<String>? phone,
     Expression<String>? address,
+    Expression<String>? position,
     Expression<double>? basicSalary,
+    Expression<String>? salaryCurrency,
     Expression<DateTime>? hireDate,
     Expression<int>? treasuryId,
     Expression<String>? notes,
@@ -4182,7 +4258,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       if (fullName != null) 'full_name': fullName,
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
+      if (position != null) 'position': position,
       if (basicSalary != null) 'basic_salary': basicSalary,
+      if (salaryCurrency != null) 'salary_currency': salaryCurrency,
       if (hireDate != null) 'hire_date': hireDate,
       if (treasuryId != null) 'treasury_id': treasuryId,
       if (notes != null) 'notes': notes,
@@ -4197,7 +4275,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       Value<String>? fullName,
       Value<String>? phone,
       Value<String>? address,
+      Value<String>? position,
       Value<double>? basicSalary,
+      Value<String>? salaryCurrency,
       Value<DateTime?>? hireDate,
       Value<int?>? treasuryId,
       Value<String>? notes,
@@ -4209,7 +4289,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      position: position ?? this.position,
       basicSalary: basicSalary ?? this.basicSalary,
+      salaryCurrency: salaryCurrency ?? this.salaryCurrency,
       hireDate: hireDate ?? this.hireDate,
       treasuryId: treasuryId ?? this.treasuryId,
       notes: notes ?? this.notes,
@@ -4234,8 +4316,14 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     if (address.present) {
       map['address'] = Variable<String>(address.value);
     }
+    if (position.present) {
+      map['position'] = Variable<String>(position.value);
+    }
     if (basicSalary.present) {
       map['basic_salary'] = Variable<double>(basicSalary.value);
+    }
+    if (salaryCurrency.present) {
+      map['salary_currency'] = Variable<String>(salaryCurrency.value);
     }
     if (hireDate.present) {
       map['hire_date'] = Variable<DateTime>(hireDate.value);
@@ -4265,7 +4353,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
           ..write('fullName: $fullName, ')
           ..write('phone: $phone, ')
           ..write('address: $address, ')
+          ..write('position: $position, ')
           ..write('basicSalary: $basicSalary, ')
+          ..write('salaryCurrency: $salaryCurrency, ')
           ..write('hireDate: $hireDate, ')
           ..write('treasuryId: $treasuryId, ')
           ..write('notes: $notes, ')
@@ -5348,6 +5438,854 @@ class CashAdvanceRepaymentsCompanion
   }
 }
 
+class $PayrollPeriodsTable extends PayrollPeriods
+    with TableInfo<$PayrollPeriodsTable, PayrollPeriod> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PayrollPeriodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+      'year', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+      'month', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _fiscalPeriodIdMeta =
+      const VerificationMeta('fiscalPeriodId');
+  @override
+  late final GeneratedColumn<int> fiscalPeriodId = GeneratedColumn<int>(
+      'fiscal_period_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES fiscal_periods (id)'));
+  static const VerificationMeta _workingDaysMeta =
+      const VerificationMeta('workingDays');
+  @override
+  late final GeneratedColumn<int> workingDays = GeneratedColumn<int>(
+      'working_days', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(30));
+  static const VerificationMeta _workingDaysModeMeta =
+      const VerificationMeta('workingDaysMode');
+  @override
+  late final GeneratedColumn<String> workingDaysMode = GeneratedColumn<String>(
+      'working_days_mode', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('fixed'));
+  static const VerificationMeta _exchangeRateMeta =
+      const VerificationMeta('exchangeRate');
+  @override
+  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
+      'exchange_rate', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('draft'));
+  static const VerificationMeta _fileTotalMeta =
+      const VerificationMeta('fileTotal');
+  @override
+  late final GeneratedColumn<double> fileTotal = GeneratedColumn<double>(
+      'file_total', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _sourceFileNameMeta =
+      const VerificationMeta('sourceFileName');
+  @override
+  late final GeneratedColumn<String> sourceFileName = GeneratedColumn<String>(
+      'source_file_name', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _sourceFileHashMeta =
+      const VerificationMeta('sourceFileHash');
+  @override
+  late final GeneratedColumn<String> sourceFileHash = GeneratedColumn<String>(
+      'source_file_hash', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdByUserIdMeta =
+      const VerificationMeta('createdByUserId');
+  @override
+  late final GeneratedColumn<int> createdByUserId = GeneratedColumn<int>(
+      'created_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _postedByUserIdMeta =
+      const VerificationMeta('postedByUserId');
+  @override
+  late final GeneratedColumn<int> postedByUserId = GeneratedColumn<int>(
+      'posted_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _postedAtMeta =
+      const VerificationMeta('postedAt');
+  @override
+  late final GeneratedColumn<DateTime> postedAt = GeneratedColumn<DateTime>(
+      'posted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        year,
+        month,
+        fiscalPeriodId,
+        workingDays,
+        workingDaysMode,
+        exchangeRate,
+        status,
+        fileTotal,
+        sourceFileName,
+        sourceFileHash,
+        notes,
+        createdByUserId,
+        createdAt,
+        postedByUserId,
+        postedAt,
+        isDeleted,
+        deletedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payroll_periods';
+  @override
+  VerificationContext validateIntegrity(Insertable<PayrollPeriod> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+          _yearMeta, year.isAcceptableOrUnknown(data['year']!, _yearMeta));
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+          _monthMeta, month.isAcceptableOrUnknown(data['month']!, _monthMeta));
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('fiscal_period_id')) {
+      context.handle(
+          _fiscalPeriodIdMeta,
+          fiscalPeriodId.isAcceptableOrUnknown(
+              data['fiscal_period_id']!, _fiscalPeriodIdMeta));
+    } else if (isInserting) {
+      context.missing(_fiscalPeriodIdMeta);
+    }
+    if (data.containsKey('working_days')) {
+      context.handle(
+          _workingDaysMeta,
+          workingDays.isAcceptableOrUnknown(
+              data['working_days']!, _workingDaysMeta));
+    }
+    if (data.containsKey('working_days_mode')) {
+      context.handle(
+          _workingDaysModeMeta,
+          workingDaysMode.isAcceptableOrUnknown(
+              data['working_days_mode']!, _workingDaysModeMeta));
+    }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+          _exchangeRateMeta,
+          exchangeRate.isAcceptableOrUnknown(
+              data['exchange_rate']!, _exchangeRateMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('file_total')) {
+      context.handle(_fileTotalMeta,
+          fileTotal.isAcceptableOrUnknown(data['file_total']!, _fileTotalMeta));
+    }
+    if (data.containsKey('source_file_name')) {
+      context.handle(
+          _sourceFileNameMeta,
+          sourceFileName.isAcceptableOrUnknown(
+              data['source_file_name']!, _sourceFileNameMeta));
+    }
+    if (data.containsKey('source_file_hash')) {
+      context.handle(
+          _sourceFileHashMeta,
+          sourceFileHash.isAcceptableOrUnknown(
+              data['source_file_hash']!, _sourceFileHashMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('created_by_user_id')) {
+      context.handle(
+          _createdByUserIdMeta,
+          createdByUserId.isAcceptableOrUnknown(
+              data['created_by_user_id']!, _createdByUserIdMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('posted_by_user_id')) {
+      context.handle(
+          _postedByUserIdMeta,
+          postedByUserId.isAcceptableOrUnknown(
+              data['posted_by_user_id']!, _postedByUserIdMeta));
+    }
+    if (data.containsKey('posted_at')) {
+      context.handle(_postedAtMeta,
+          postedAt.isAcceptableOrUnknown(data['posted_at']!, _postedAtMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PayrollPeriod map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PayrollPeriod(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      year: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}year'])!,
+      month: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}month'])!,
+      fiscalPeriodId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}fiscal_period_id'])!,
+      workingDays: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}working_days'])!,
+      workingDaysMode: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}working_days_mode'])!,
+      exchangeRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      fileTotal: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}file_total'])!,
+      sourceFileName: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}source_file_name'])!,
+      sourceFileHash: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}source_file_hash'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      createdByUserId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_by_user_id']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      postedByUserId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}posted_by_user_id']),
+      postedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}posted_at']),
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $PayrollPeriodsTable createAlias(String alias) {
+    return $PayrollPeriodsTable(attachedDatabase, alias);
+  }
+}
+
+class PayrollPeriod extends DataClass implements Insertable<PayrollPeriod> {
+  final int id;
+  final int year;
+  final int month;
+  final int fiscalPeriodId;
+  final int workingDays;
+  final String workingDaysMode;
+  final double? exchangeRate;
+  final String status;
+  final double fileTotal;
+  final String sourceFileName;
+  final String sourceFileHash;
+  final String notes;
+  final int? createdByUserId;
+  final DateTime createdAt;
+  final int? postedByUserId;
+  final DateTime? postedAt;
+  final bool isDeleted;
+  final DateTime? deletedAt;
+  const PayrollPeriod(
+      {required this.id,
+      required this.year,
+      required this.month,
+      required this.fiscalPeriodId,
+      required this.workingDays,
+      required this.workingDaysMode,
+      this.exchangeRate,
+      required this.status,
+      required this.fileTotal,
+      required this.sourceFileName,
+      required this.sourceFileHash,
+      required this.notes,
+      this.createdByUserId,
+      required this.createdAt,
+      this.postedByUserId,
+      this.postedAt,
+      required this.isDeleted,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    map['fiscal_period_id'] = Variable<int>(fiscalPeriodId);
+    map['working_days'] = Variable<int>(workingDays);
+    map['working_days_mode'] = Variable<String>(workingDaysMode);
+    if (!nullToAbsent || exchangeRate != null) {
+      map['exchange_rate'] = Variable<double>(exchangeRate);
+    }
+    map['status'] = Variable<String>(status);
+    map['file_total'] = Variable<double>(fileTotal);
+    map['source_file_name'] = Variable<String>(sourceFileName);
+    map['source_file_hash'] = Variable<String>(sourceFileHash);
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || createdByUserId != null) {
+      map['created_by_user_id'] = Variable<int>(createdByUserId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || postedByUserId != null) {
+      map['posted_by_user_id'] = Variable<int>(postedByUserId);
+    }
+    if (!nullToAbsent || postedAt != null) {
+      map['posted_at'] = Variable<DateTime>(postedAt);
+    }
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  PayrollPeriodsCompanion toCompanion(bool nullToAbsent) {
+    return PayrollPeriodsCompanion(
+      id: Value(id),
+      year: Value(year),
+      month: Value(month),
+      fiscalPeriodId: Value(fiscalPeriodId),
+      workingDays: Value(workingDays),
+      workingDaysMode: Value(workingDaysMode),
+      exchangeRate: exchangeRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRate),
+      status: Value(status),
+      fileTotal: Value(fileTotal),
+      sourceFileName: Value(sourceFileName),
+      sourceFileHash: Value(sourceFileHash),
+      notes: Value(notes),
+      createdByUserId: createdByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdByUserId),
+      createdAt: Value(createdAt),
+      postedByUserId: postedByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postedByUserId),
+      postedAt: postedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postedAt),
+      isDeleted: Value(isDeleted),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory PayrollPeriod.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PayrollPeriod(
+      id: serializer.fromJson<int>(json['id']),
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      fiscalPeriodId: serializer.fromJson<int>(json['fiscalPeriodId']),
+      workingDays: serializer.fromJson<int>(json['workingDays']),
+      workingDaysMode: serializer.fromJson<String>(json['workingDaysMode']),
+      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
+      status: serializer.fromJson<String>(json['status']),
+      fileTotal: serializer.fromJson<double>(json['fileTotal']),
+      sourceFileName: serializer.fromJson<String>(json['sourceFileName']),
+      sourceFileHash: serializer.fromJson<String>(json['sourceFileHash']),
+      notes: serializer.fromJson<String>(json['notes']),
+      createdByUserId: serializer.fromJson<int?>(json['createdByUserId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      postedByUserId: serializer.fromJson<int?>(json['postedByUserId']),
+      postedAt: serializer.fromJson<DateTime?>(json['postedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'fiscalPeriodId': serializer.toJson<int>(fiscalPeriodId),
+      'workingDays': serializer.toJson<int>(workingDays),
+      'workingDaysMode': serializer.toJson<String>(workingDaysMode),
+      'exchangeRate': serializer.toJson<double?>(exchangeRate),
+      'status': serializer.toJson<String>(status),
+      'fileTotal': serializer.toJson<double>(fileTotal),
+      'sourceFileName': serializer.toJson<String>(sourceFileName),
+      'sourceFileHash': serializer.toJson<String>(sourceFileHash),
+      'notes': serializer.toJson<String>(notes),
+      'createdByUserId': serializer.toJson<int?>(createdByUserId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'postedByUserId': serializer.toJson<int?>(postedByUserId),
+      'postedAt': serializer.toJson<DateTime?>(postedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  PayrollPeriod copyWith(
+          {int? id,
+          int? year,
+          int? month,
+          int? fiscalPeriodId,
+          int? workingDays,
+          String? workingDaysMode,
+          Value<double?> exchangeRate = const Value.absent(),
+          String? status,
+          double? fileTotal,
+          String? sourceFileName,
+          String? sourceFileHash,
+          String? notes,
+          Value<int?> createdByUserId = const Value.absent(),
+          DateTime? createdAt,
+          Value<int?> postedByUserId = const Value.absent(),
+          Value<DateTime?> postedAt = const Value.absent(),
+          bool? isDeleted,
+          Value<DateTime?> deletedAt = const Value.absent()}) =>
+      PayrollPeriod(
+        id: id ?? this.id,
+        year: year ?? this.year,
+        month: month ?? this.month,
+        fiscalPeriodId: fiscalPeriodId ?? this.fiscalPeriodId,
+        workingDays: workingDays ?? this.workingDays,
+        workingDaysMode: workingDaysMode ?? this.workingDaysMode,
+        exchangeRate:
+            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
+        status: status ?? this.status,
+        fileTotal: fileTotal ?? this.fileTotal,
+        sourceFileName: sourceFileName ?? this.sourceFileName,
+        sourceFileHash: sourceFileHash ?? this.sourceFileHash,
+        notes: notes ?? this.notes,
+        createdByUserId: createdByUserId.present
+            ? createdByUserId.value
+            : this.createdByUserId,
+        createdAt: createdAt ?? this.createdAt,
+        postedByUserId:
+            postedByUserId.present ? postedByUserId.value : this.postedByUserId,
+        postedAt: postedAt.present ? postedAt.value : this.postedAt,
+        isDeleted: isDeleted ?? this.isDeleted,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  PayrollPeriod copyWithCompanion(PayrollPeriodsCompanion data) {
+    return PayrollPeriod(
+      id: data.id.present ? data.id.value : this.id,
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      fiscalPeriodId: data.fiscalPeriodId.present
+          ? data.fiscalPeriodId.value
+          : this.fiscalPeriodId,
+      workingDays:
+          data.workingDays.present ? data.workingDays.value : this.workingDays,
+      workingDaysMode: data.workingDaysMode.present
+          ? data.workingDaysMode.value
+          : this.workingDaysMode,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
+      status: data.status.present ? data.status.value : this.status,
+      fileTotal: data.fileTotal.present ? data.fileTotal.value : this.fileTotal,
+      sourceFileName: data.sourceFileName.present
+          ? data.sourceFileName.value
+          : this.sourceFileName,
+      sourceFileHash: data.sourceFileHash.present
+          ? data.sourceFileHash.value
+          : this.sourceFileHash,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdByUserId: data.createdByUserId.present
+          ? data.createdByUserId.value
+          : this.createdByUserId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      postedByUserId: data.postedByUserId.present
+          ? data.postedByUserId.value
+          : this.postedByUserId,
+      postedAt: data.postedAt.present ? data.postedAt.value : this.postedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PayrollPeriod(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('fiscalPeriodId: $fiscalPeriodId, ')
+          ..write('workingDays: $workingDays, ')
+          ..write('workingDaysMode: $workingDaysMode, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('status: $status, ')
+          ..write('fileTotal: $fileTotal, ')
+          ..write('sourceFileName: $sourceFileName, ')
+          ..write('sourceFileHash: $sourceFileHash, ')
+          ..write('notes: $notes, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('postedByUserId: $postedByUserId, ')
+          ..write('postedAt: $postedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      year,
+      month,
+      fiscalPeriodId,
+      workingDays,
+      workingDaysMode,
+      exchangeRate,
+      status,
+      fileTotal,
+      sourceFileName,
+      sourceFileHash,
+      notes,
+      createdByUserId,
+      createdAt,
+      postedByUserId,
+      postedAt,
+      isDeleted,
+      deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PayrollPeriod &&
+          other.id == this.id &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.fiscalPeriodId == this.fiscalPeriodId &&
+          other.workingDays == this.workingDays &&
+          other.workingDaysMode == this.workingDaysMode &&
+          other.exchangeRate == this.exchangeRate &&
+          other.status == this.status &&
+          other.fileTotal == this.fileTotal &&
+          other.sourceFileName == this.sourceFileName &&
+          other.sourceFileHash == this.sourceFileHash &&
+          other.notes == this.notes &&
+          other.createdByUserId == this.createdByUserId &&
+          other.createdAt == this.createdAt &&
+          other.postedByUserId == this.postedByUserId &&
+          other.postedAt == this.postedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.deletedAt == this.deletedAt);
+}
+
+class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriod> {
+  final Value<int> id;
+  final Value<int> year;
+  final Value<int> month;
+  final Value<int> fiscalPeriodId;
+  final Value<int> workingDays;
+  final Value<String> workingDaysMode;
+  final Value<double?> exchangeRate;
+  final Value<String> status;
+  final Value<double> fileTotal;
+  final Value<String> sourceFileName;
+  final Value<String> sourceFileHash;
+  final Value<String> notes;
+  final Value<int?> createdByUserId;
+  final Value<DateTime> createdAt;
+  final Value<int?> postedByUserId;
+  final Value<DateTime?> postedAt;
+  final Value<bool> isDeleted;
+  final Value<DateTime?> deletedAt;
+  const PayrollPeriodsCompanion({
+    this.id = const Value.absent(),
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.fiscalPeriodId = const Value.absent(),
+    this.workingDays = const Value.absent(),
+    this.workingDaysMode = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.fileTotal = const Value.absent(),
+    this.sourceFileName = const Value.absent(),
+    this.sourceFileHash = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.postedByUserId = const Value.absent(),
+    this.postedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+  });
+  PayrollPeriodsCompanion.insert({
+    this.id = const Value.absent(),
+    required int year,
+    required int month,
+    required int fiscalPeriodId,
+    this.workingDays = const Value.absent(),
+    this.workingDaysMode = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.fileTotal = const Value.absent(),
+    this.sourceFileName = const Value.absent(),
+    this.sourceFileHash = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.postedByUserId = const Value.absent(),
+    this.postedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+  })  : year = Value(year),
+        month = Value(month),
+        fiscalPeriodId = Value(fiscalPeriodId);
+  static Insertable<PayrollPeriod> custom({
+    Expression<int>? id,
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<int>? fiscalPeriodId,
+    Expression<int>? workingDays,
+    Expression<String>? workingDaysMode,
+    Expression<double>? exchangeRate,
+    Expression<String>? status,
+    Expression<double>? fileTotal,
+    Expression<String>? sourceFileName,
+    Expression<String>? sourceFileHash,
+    Expression<String>? notes,
+    Expression<int>? createdByUserId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? postedByUserId,
+    Expression<DateTime>? postedAt,
+    Expression<bool>? isDeleted,
+    Expression<DateTime>? deletedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (fiscalPeriodId != null) 'fiscal_period_id': fiscalPeriodId,
+      if (workingDays != null) 'working_days': workingDays,
+      if (workingDaysMode != null) 'working_days_mode': workingDaysMode,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
+      if (status != null) 'status': status,
+      if (fileTotal != null) 'file_total': fileTotal,
+      if (sourceFileName != null) 'source_file_name': sourceFileName,
+      if (sourceFileHash != null) 'source_file_hash': sourceFileHash,
+      if (notes != null) 'notes': notes,
+      if (createdByUserId != null) 'created_by_user_id': createdByUserId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (postedByUserId != null) 'posted_by_user_id': postedByUserId,
+      if (postedAt != null) 'posted_at': postedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+    });
+  }
+
+  PayrollPeriodsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? year,
+      Value<int>? month,
+      Value<int>? fiscalPeriodId,
+      Value<int>? workingDays,
+      Value<String>? workingDaysMode,
+      Value<double?>? exchangeRate,
+      Value<String>? status,
+      Value<double>? fileTotal,
+      Value<String>? sourceFileName,
+      Value<String>? sourceFileHash,
+      Value<String>? notes,
+      Value<int?>? createdByUserId,
+      Value<DateTime>? createdAt,
+      Value<int?>? postedByUserId,
+      Value<DateTime?>? postedAt,
+      Value<bool>? isDeleted,
+      Value<DateTime?>? deletedAt}) {
+    return PayrollPeriodsCompanion(
+      id: id ?? this.id,
+      year: year ?? this.year,
+      month: month ?? this.month,
+      fiscalPeriodId: fiscalPeriodId ?? this.fiscalPeriodId,
+      workingDays: workingDays ?? this.workingDays,
+      workingDaysMode: workingDaysMode ?? this.workingDaysMode,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      status: status ?? this.status,
+      fileTotal: fileTotal ?? this.fileTotal,
+      sourceFileName: sourceFileName ?? this.sourceFileName,
+      sourceFileHash: sourceFileHash ?? this.sourceFileHash,
+      notes: notes ?? this.notes,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
+      createdAt: createdAt ?? this.createdAt,
+      postedByUserId: postedByUserId ?? this.postedByUserId,
+      postedAt: postedAt ?? this.postedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (fiscalPeriodId.present) {
+      map['fiscal_period_id'] = Variable<int>(fiscalPeriodId.value);
+    }
+    if (workingDays.present) {
+      map['working_days'] = Variable<int>(workingDays.value);
+    }
+    if (workingDaysMode.present) {
+      map['working_days_mode'] = Variable<String>(workingDaysMode.value);
+    }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<double>(exchangeRate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (fileTotal.present) {
+      map['file_total'] = Variable<double>(fileTotal.value);
+    }
+    if (sourceFileName.present) {
+      map['source_file_name'] = Variable<String>(sourceFileName.value);
+    }
+    if (sourceFileHash.present) {
+      map['source_file_hash'] = Variable<String>(sourceFileHash.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdByUserId.present) {
+      map['created_by_user_id'] = Variable<int>(createdByUserId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (postedByUserId.present) {
+      map['posted_by_user_id'] = Variable<int>(postedByUserId.value);
+    }
+    if (postedAt.present) {
+      map['posted_at'] = Variable<DateTime>(postedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PayrollPeriodsCompanion(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('fiscalPeriodId: $fiscalPeriodId, ')
+          ..write('workingDays: $workingDays, ')
+          ..write('workingDaysMode: $workingDaysMode, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('status: $status, ')
+          ..write('fileTotal: $fileTotal, ')
+          ..write('sourceFileName: $sourceFileName, ')
+          ..write('sourceFileHash: $sourceFileHash, ')
+          ..write('notes: $notes, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('postedByUserId: $postedByUserId, ')
+          ..write('postedAt: $postedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SalaryPaymentsTable extends SalaryPayments
     with TableInfo<$SalaryPaymentsTable, SalaryPayment> {
   @override
@@ -5372,6 +6310,15 @@ class $SalaryPaymentsTable extends SalaryPayments
       requiredDuringInsert: true,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('REFERENCES employees (id)'));
+  static const VerificationMeta _payrollPeriodIdMeta =
+      const VerificationMeta('payrollPeriodId');
+  @override
+  late final GeneratedColumn<int> payrollPeriodId = GeneratedColumn<int>(
+      'payroll_period_id', aliasedName, true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES payroll_periods (id)'));
   static const VerificationMeta _periodLabelMeta =
       const VerificationMeta('periodLabel');
   @override
@@ -5380,6 +6327,36 @@ class $SalaryPaymentsTable extends SalaryPayments
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant(''));
+  static const VerificationMeta _snapshotNameMeta =
+      const VerificationMeta('snapshotName');
+  @override
+  late final GeneratedColumn<String> snapshotName = GeneratedColumn<String>(
+      'snapshot_name', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _snapshotPositionMeta =
+      const VerificationMeta('snapshotPosition');
+  @override
+  late final GeneratedColumn<String> snapshotPosition = GeneratedColumn<String>(
+      'snapshot_position', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _snapshotCurrencyMeta =
+      const VerificationMeta('snapshotCurrency');
+  @override
+  late final GeneratedColumn<String> snapshotCurrency = GeneratedColumn<String>(
+      'snapshot_currency', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('IQD'));
+  static const VerificationMeta _snapshotHireDateMeta =
+      const VerificationMeta('snapshotHireDate');
+  @override
+  late final GeneratedColumn<DateTime> snapshotHireDate =
+      GeneratedColumn<DateTime>('snapshot_hire_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _basicSalaryMeta =
       const VerificationMeta('basicSalary');
   @override
@@ -5388,6 +6365,51 @@ class $SalaryPaymentsTable extends SalaryPayments
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0.0));
+  static const VerificationMeta _eligibleDaysMeta =
+      const VerificationMeta('eligibleDays');
+  @override
+  late final GeneratedColumn<int> eligibleDays = GeneratedColumn<int>(
+      'eligible_days', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(30));
+  static const VerificationMeta _eligibleDaysIsManualMeta =
+      const VerificationMeta('eligibleDaysIsManual');
+  @override
+  late final GeneratedColumn<bool> eligibleDaysIsManual = GeneratedColumn<bool>(
+      'eligible_days_is_manual', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("eligible_days_is_manual" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _absenceDaysMeta =
+      const VerificationMeta('absenceDays');
+  @override
+  late final GeneratedColumn<int> absenceDays = GeneratedColumn<int>(
+      'absence_days', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _absenceDeductionMeta =
+      const VerificationMeta('absenceDeduction');
+  @override
+  late final GeneratedColumn<double> absenceDeduction = GeneratedColumn<double>(
+      'absence_deduction', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _absenceDeductionIsManualMeta =
+      const VerificationMeta('absenceDeductionIsManual');
+  @override
+  late final GeneratedColumn<bool> absenceDeductionIsManual =
+      GeneratedColumn<bool>(
+          'absence_deduction_is_manual', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("absence_deduction_is_manual" IN (0, 1))'),
+          defaultValue: const Constant(false));
   static const VerificationMeta _additionsMeta =
       const VerificationMeta('additions');
   @override
@@ -5404,6 +6426,20 @@ class $SalaryPaymentsTable extends SalaryPayments
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0.0));
+  static const VerificationMeta _advanceRepaymentAmountMeta =
+      const VerificationMeta('advanceRepaymentAmount');
+  @override
+  late final GeneratedColumn<double> advanceRepaymentAmount =
+      GeneratedColumn<double>('advance_repayment_amount', aliasedName, false,
+          type: DriftSqlType.double,
+          requiredDuringInsert: false,
+          defaultValue: const Constant(0.0));
+  static const VerificationMeta _cashAdvanceIdMeta =
+      const VerificationMeta('cashAdvanceId');
+  @override
+  late final GeneratedColumn<int> cashAdvanceId = GeneratedColumn<int>(
+      'cash_advance_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _netAmountMeta =
       const VerificationMeta('netAmount');
   @override
@@ -5412,17 +6448,71 @@ class $SalaryPaymentsTable extends SalaryPayments
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0.0));
+  static const VerificationMeta _exchangeRateMeta =
+      const VerificationMeta('exchangeRate');
+  @override
+  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
+      'exchange_rate', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _netAmountIqdMeta =
+      const VerificationMeta('netAmountIqd');
+  @override
+  late final GeneratedColumn<double> netAmountIqd = GeneratedColumn<double>(
+      'net_amount_iqd', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _fileNetAmountMeta =
+      const VerificationMeta('fileNetAmount');
+  @override
+  late final GeneratedColumn<double> fileNetAmount = GeneratedColumn<double>(
+      'file_net_amount', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _paymentDateMeta =
       const VerificationMeta('paymentDate');
   @override
   late final GeneratedColumn<DateTime> paymentDate = GeneratedColumn<DateTime>(
       'payment_date', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _paymentStatusMeta =
+      const VerificationMeta('paymentStatus');
+  @override
+  late final GeneratedColumn<String> paymentStatus = GeneratedColumn<String>(
+      'payment_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('unpaid'));
+  static const VerificationMeta _paidAtMeta = const VerificationMeta('paidAt');
+  @override
+  late final GeneratedColumn<DateTime> paidAt = GeneratedColumn<DateTime>(
+      'paid_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _treasuryIdMeta =
+      const VerificationMeta('treasuryId');
+  @override
+  late final GeneratedColumn<int> treasuryId = GeneratedColumn<int>(
+      'treasury_id', aliasedName, true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES treasuries (id)'));
   static const VerificationMeta _voucherIdMeta =
       const VerificationMeta('voucherId');
   @override
   late final GeneratedColumn<int> voucherId = GeneratedColumn<int>(
       'voucher_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _advanceLineIdMeta =
+      const VerificationMeta('advanceLineId');
+  @override
+  late final GeneratedColumn<int> advanceLineId = GeneratedColumn<int>(
+      'advance_line_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _advanceIdMeta =
+      const VerificationMeta('advanceId');
+  @override
+  late final GeneratedColumn<int> advanceId = GeneratedColumn<int>(
+      'advance_id', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
@@ -5439,6 +6529,12 @@ class $SalaryPaymentsTable extends SalaryPayments
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _isDeletedMeta =
       const VerificationMeta('isDeleted');
   @override
@@ -5453,15 +6549,36 @@ class $SalaryPaymentsTable extends SalaryPayments
   List<GeneratedColumn> get $columns => [
         id,
         employeeId,
+        payrollPeriodId,
         periodLabel,
+        snapshotName,
+        snapshotPosition,
+        snapshotCurrency,
+        snapshotHireDate,
         basicSalary,
+        eligibleDays,
+        eligibleDaysIsManual,
+        absenceDays,
+        absenceDeduction,
+        absenceDeductionIsManual,
         additions,
         deductions,
+        advanceRepaymentAmount,
+        cashAdvanceId,
         netAmount,
+        exchangeRate,
+        netAmountIqd,
+        fileNetAmount,
         paymentDate,
+        paymentStatus,
+        paidAt,
+        treasuryId,
         voucherId,
+        advanceLineId,
+        advanceId,
         notes,
         createdAt,
+        updatedAt,
         isDeleted
       ];
   @override
@@ -5485,17 +6602,78 @@ class $SalaryPaymentsTable extends SalaryPayments
     } else if (isInserting) {
       context.missing(_employeeIdMeta);
     }
+    if (data.containsKey('payroll_period_id')) {
+      context.handle(
+          _payrollPeriodIdMeta,
+          payrollPeriodId.isAcceptableOrUnknown(
+              data['payroll_period_id']!, _payrollPeriodIdMeta));
+    }
     if (data.containsKey('period_label')) {
       context.handle(
           _periodLabelMeta,
           periodLabel.isAcceptableOrUnknown(
               data['period_label']!, _periodLabelMeta));
     }
+    if (data.containsKey('snapshot_name')) {
+      context.handle(
+          _snapshotNameMeta,
+          snapshotName.isAcceptableOrUnknown(
+              data['snapshot_name']!, _snapshotNameMeta));
+    }
+    if (data.containsKey('snapshot_position')) {
+      context.handle(
+          _snapshotPositionMeta,
+          snapshotPosition.isAcceptableOrUnknown(
+              data['snapshot_position']!, _snapshotPositionMeta));
+    }
+    if (data.containsKey('snapshot_currency')) {
+      context.handle(
+          _snapshotCurrencyMeta,
+          snapshotCurrency.isAcceptableOrUnknown(
+              data['snapshot_currency']!, _snapshotCurrencyMeta));
+    }
+    if (data.containsKey('snapshot_hire_date')) {
+      context.handle(
+          _snapshotHireDateMeta,
+          snapshotHireDate.isAcceptableOrUnknown(
+              data['snapshot_hire_date']!, _snapshotHireDateMeta));
+    }
     if (data.containsKey('basic_salary')) {
       context.handle(
           _basicSalaryMeta,
           basicSalary.isAcceptableOrUnknown(
               data['basic_salary']!, _basicSalaryMeta));
+    }
+    if (data.containsKey('eligible_days')) {
+      context.handle(
+          _eligibleDaysMeta,
+          eligibleDays.isAcceptableOrUnknown(
+              data['eligible_days']!, _eligibleDaysMeta));
+    }
+    if (data.containsKey('eligible_days_is_manual')) {
+      context.handle(
+          _eligibleDaysIsManualMeta,
+          eligibleDaysIsManual.isAcceptableOrUnknown(
+              data['eligible_days_is_manual']!, _eligibleDaysIsManualMeta));
+    }
+    if (data.containsKey('absence_days')) {
+      context.handle(
+          _absenceDaysMeta,
+          absenceDays.isAcceptableOrUnknown(
+              data['absence_days']!, _absenceDaysMeta));
+    }
+    if (data.containsKey('absence_deduction')) {
+      context.handle(
+          _absenceDeductionMeta,
+          absenceDeduction.isAcceptableOrUnknown(
+              data['absence_deduction']!, _absenceDeductionMeta));
+    }
+    if (data.containsKey('absence_deduction_is_manual')) {
+      context.handle(
+          _absenceDeductionIsManualMeta,
+          absenceDeductionIsManual.isAcceptableOrUnknown(
+              data['absence_deduction_is_manual']!,
+              _absenceDeductionIsManualMeta));
     }
     if (data.containsKey('additions')) {
       context.handle(_additionsMeta,
@@ -5507,9 +6685,39 @@ class $SalaryPaymentsTable extends SalaryPayments
           deductions.isAcceptableOrUnknown(
               data['deductions']!, _deductionsMeta));
     }
+    if (data.containsKey('advance_repayment_amount')) {
+      context.handle(
+          _advanceRepaymentAmountMeta,
+          advanceRepaymentAmount.isAcceptableOrUnknown(
+              data['advance_repayment_amount']!, _advanceRepaymentAmountMeta));
+    }
+    if (data.containsKey('cash_advance_id')) {
+      context.handle(
+          _cashAdvanceIdMeta,
+          cashAdvanceId.isAcceptableOrUnknown(
+              data['cash_advance_id']!, _cashAdvanceIdMeta));
+    }
     if (data.containsKey('net_amount')) {
       context.handle(_netAmountMeta,
           netAmount.isAcceptableOrUnknown(data['net_amount']!, _netAmountMeta));
+    }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+          _exchangeRateMeta,
+          exchangeRate.isAcceptableOrUnknown(
+              data['exchange_rate']!, _exchangeRateMeta));
+    }
+    if (data.containsKey('net_amount_iqd')) {
+      context.handle(
+          _netAmountIqdMeta,
+          netAmountIqd.isAcceptableOrUnknown(
+              data['net_amount_iqd']!, _netAmountIqdMeta));
+    }
+    if (data.containsKey('file_net_amount')) {
+      context.handle(
+          _fileNetAmountMeta,
+          fileNetAmount.isAcceptableOrUnknown(
+              data['file_net_amount']!, _fileNetAmountMeta));
     }
     if (data.containsKey('payment_date')) {
       context.handle(
@@ -5519,9 +6727,35 @@ class $SalaryPaymentsTable extends SalaryPayments
     } else if (isInserting) {
       context.missing(_paymentDateMeta);
     }
+    if (data.containsKey('payment_status')) {
+      context.handle(
+          _paymentStatusMeta,
+          paymentStatus.isAcceptableOrUnknown(
+              data['payment_status']!, _paymentStatusMeta));
+    }
+    if (data.containsKey('paid_at')) {
+      context.handle(_paidAtMeta,
+          paidAt.isAcceptableOrUnknown(data['paid_at']!, _paidAtMeta));
+    }
+    if (data.containsKey('treasury_id')) {
+      context.handle(
+          _treasuryIdMeta,
+          treasuryId.isAcceptableOrUnknown(
+              data['treasury_id']!, _treasuryIdMeta));
+    }
     if (data.containsKey('voucher_id')) {
       context.handle(_voucherIdMeta,
           voucherId.isAcceptableOrUnknown(data['voucher_id']!, _voucherIdMeta));
+    }
+    if (data.containsKey('advance_line_id')) {
+      context.handle(
+          _advanceLineIdMeta,
+          advanceLineId.isAcceptableOrUnknown(
+              data['advance_line_id']!, _advanceLineIdMeta));
+    }
+    if (data.containsKey('advance_id')) {
+      context.handle(_advanceIdMeta,
+          advanceId.isAcceptableOrUnknown(data['advance_id']!, _advanceIdMeta));
     }
     if (data.containsKey('notes')) {
       context.handle(
@@ -5530,6 +6764,10 @@ class $SalaryPaymentsTable extends SalaryPayments
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
     if (data.containsKey('is_deleted')) {
       context.handle(_isDeletedMeta,
@@ -5548,24 +6786,68 @@ class $SalaryPaymentsTable extends SalaryPayments
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       employeeId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}employee_id'])!,
+      payrollPeriodId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}payroll_period_id']),
       periodLabel: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}period_label'])!,
+      snapshotName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}snapshot_name'])!,
+      snapshotPosition: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}snapshot_position'])!,
+      snapshotCurrency: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}snapshot_currency'])!,
+      snapshotHireDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}snapshot_hire_date']),
       basicSalary: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}basic_salary'])!,
+      eligibleDays: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}eligible_days'])!,
+      eligibleDaysIsManual: attachedDatabase.typeMapping.read(DriftSqlType.bool,
+          data['${effectivePrefix}eligible_days_is_manual'])!,
+      absenceDays: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}absence_days'])!,
+      absenceDeduction: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}absence_deduction'])!,
+      absenceDeductionIsManual: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}absence_deduction_is_manual'])!,
       additions: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}additions'])!,
       deductions: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}deductions'])!,
+      advanceRepaymentAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double,
+          data['${effectivePrefix}advance_repayment_amount'])!,
+      cashAdvanceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}cash_advance_id']),
       netAmount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}net_amount'])!,
+      exchangeRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
+      netAmountIqd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}net_amount_iqd'])!,
+      fileNetAmount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}file_net_amount']),
       paymentDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}payment_date'])!,
+      paymentStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}payment_status'])!,
+      paidAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}paid_at']),
+      treasuryId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}treasury_id']),
       voucherId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}voucher_id']),
+      advanceLineId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}advance_line_id']),
+      advanceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}advance_id']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at']),
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
     );
@@ -5580,45 +6862,129 @@ class $SalaryPaymentsTable extends SalaryPayments
 class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
   final int id;
   final int employeeId;
+  final int? payrollPeriodId;
   final String periodLabel;
+  final String snapshotName;
+  final String snapshotPosition;
+  final String snapshotCurrency;
+  final DateTime? snapshotHireDate;
   final double basicSalary;
+  final int eligibleDays;
+  final bool eligibleDaysIsManual;
+  final int absenceDays;
+  final double absenceDeduction;
+  final bool absenceDeductionIsManual;
   final double additions;
   final double deductions;
+  final double advanceRepaymentAmount;
+  final int? cashAdvanceId;
   final double netAmount;
+  final double? exchangeRate;
+  final double netAmountIqd;
+  final double? fileNetAmount;
   final DateTime paymentDate;
+  final String paymentStatus;
+  final DateTime? paidAt;
+  final int? treasuryId;
   final int? voucherId;
+  final int? advanceLineId;
+  final int? advanceId;
   final String notes;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   final bool isDeleted;
   const SalaryPayment(
       {required this.id,
       required this.employeeId,
+      this.payrollPeriodId,
       required this.periodLabel,
+      required this.snapshotName,
+      required this.snapshotPosition,
+      required this.snapshotCurrency,
+      this.snapshotHireDate,
       required this.basicSalary,
+      required this.eligibleDays,
+      required this.eligibleDaysIsManual,
+      required this.absenceDays,
+      required this.absenceDeduction,
+      required this.absenceDeductionIsManual,
       required this.additions,
       required this.deductions,
+      required this.advanceRepaymentAmount,
+      this.cashAdvanceId,
       required this.netAmount,
+      this.exchangeRate,
+      required this.netAmountIqd,
+      this.fileNetAmount,
       required this.paymentDate,
+      required this.paymentStatus,
+      this.paidAt,
+      this.treasuryId,
       this.voucherId,
+      this.advanceLineId,
+      this.advanceId,
       required this.notes,
       required this.createdAt,
+      this.updatedAt,
       required this.isDeleted});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['employee_id'] = Variable<int>(employeeId);
+    if (!nullToAbsent || payrollPeriodId != null) {
+      map['payroll_period_id'] = Variable<int>(payrollPeriodId);
+    }
     map['period_label'] = Variable<String>(periodLabel);
+    map['snapshot_name'] = Variable<String>(snapshotName);
+    map['snapshot_position'] = Variable<String>(snapshotPosition);
+    map['snapshot_currency'] = Variable<String>(snapshotCurrency);
+    if (!nullToAbsent || snapshotHireDate != null) {
+      map['snapshot_hire_date'] = Variable<DateTime>(snapshotHireDate);
+    }
     map['basic_salary'] = Variable<double>(basicSalary);
+    map['eligible_days'] = Variable<int>(eligibleDays);
+    map['eligible_days_is_manual'] = Variable<bool>(eligibleDaysIsManual);
+    map['absence_days'] = Variable<int>(absenceDays);
+    map['absence_deduction'] = Variable<double>(absenceDeduction);
+    map['absence_deduction_is_manual'] =
+        Variable<bool>(absenceDeductionIsManual);
     map['additions'] = Variable<double>(additions);
     map['deductions'] = Variable<double>(deductions);
+    map['advance_repayment_amount'] = Variable<double>(advanceRepaymentAmount);
+    if (!nullToAbsent || cashAdvanceId != null) {
+      map['cash_advance_id'] = Variable<int>(cashAdvanceId);
+    }
     map['net_amount'] = Variable<double>(netAmount);
+    if (!nullToAbsent || exchangeRate != null) {
+      map['exchange_rate'] = Variable<double>(exchangeRate);
+    }
+    map['net_amount_iqd'] = Variable<double>(netAmountIqd);
+    if (!nullToAbsent || fileNetAmount != null) {
+      map['file_net_amount'] = Variable<double>(fileNetAmount);
+    }
     map['payment_date'] = Variable<DateTime>(paymentDate);
+    map['payment_status'] = Variable<String>(paymentStatus);
+    if (!nullToAbsent || paidAt != null) {
+      map['paid_at'] = Variable<DateTime>(paidAt);
+    }
+    if (!nullToAbsent || treasuryId != null) {
+      map['treasury_id'] = Variable<int>(treasuryId);
+    }
     if (!nullToAbsent || voucherId != null) {
       map['voucher_id'] = Variable<int>(voucherId);
     }
+    if (!nullToAbsent || advanceLineId != null) {
+      map['advance_line_id'] = Variable<int>(advanceLineId);
+    }
+    if (!nullToAbsent || advanceId != null) {
+      map['advance_id'] = Variable<int>(advanceId);
+    }
     map['notes'] = Variable<String>(notes);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
   }
@@ -5627,17 +6993,57 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
     return SalaryPaymentsCompanion(
       id: Value(id),
       employeeId: Value(employeeId),
+      payrollPeriodId: payrollPeriodId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payrollPeriodId),
       periodLabel: Value(periodLabel),
+      snapshotName: Value(snapshotName),
+      snapshotPosition: Value(snapshotPosition),
+      snapshotCurrency: Value(snapshotCurrency),
+      snapshotHireDate: snapshotHireDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotHireDate),
       basicSalary: Value(basicSalary),
+      eligibleDays: Value(eligibleDays),
+      eligibleDaysIsManual: Value(eligibleDaysIsManual),
+      absenceDays: Value(absenceDays),
+      absenceDeduction: Value(absenceDeduction),
+      absenceDeductionIsManual: Value(absenceDeductionIsManual),
       additions: Value(additions),
       deductions: Value(deductions),
+      advanceRepaymentAmount: Value(advanceRepaymentAmount),
+      cashAdvanceId: cashAdvanceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cashAdvanceId),
       netAmount: Value(netAmount),
+      exchangeRate: exchangeRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRate),
+      netAmountIqd: Value(netAmountIqd),
+      fileNetAmount: fileNetAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileNetAmount),
       paymentDate: Value(paymentDate),
+      paymentStatus: Value(paymentStatus),
+      paidAt:
+          paidAt == null && nullToAbsent ? const Value.absent() : Value(paidAt),
+      treasuryId: treasuryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(treasuryId),
       voucherId: voucherId == null && nullToAbsent
           ? const Value.absent()
           : Value(voucherId),
+      advanceLineId: advanceLineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceLineId),
+      advanceId: advanceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceId),
       notes: Value(notes),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
       isDeleted: Value(isDeleted),
     );
   }
@@ -5648,15 +7054,40 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
     return SalaryPayment(
       id: serializer.fromJson<int>(json['id']),
       employeeId: serializer.fromJson<int>(json['employeeId']),
+      payrollPeriodId: serializer.fromJson<int?>(json['payrollPeriodId']),
       periodLabel: serializer.fromJson<String>(json['periodLabel']),
+      snapshotName: serializer.fromJson<String>(json['snapshotName']),
+      snapshotPosition: serializer.fromJson<String>(json['snapshotPosition']),
+      snapshotCurrency: serializer.fromJson<String>(json['snapshotCurrency']),
+      snapshotHireDate:
+          serializer.fromJson<DateTime?>(json['snapshotHireDate']),
       basicSalary: serializer.fromJson<double>(json['basicSalary']),
+      eligibleDays: serializer.fromJson<int>(json['eligibleDays']),
+      eligibleDaysIsManual:
+          serializer.fromJson<bool>(json['eligibleDaysIsManual']),
+      absenceDays: serializer.fromJson<int>(json['absenceDays']),
+      absenceDeduction: serializer.fromJson<double>(json['absenceDeduction']),
+      absenceDeductionIsManual:
+          serializer.fromJson<bool>(json['absenceDeductionIsManual']),
       additions: serializer.fromJson<double>(json['additions']),
       deductions: serializer.fromJson<double>(json['deductions']),
+      advanceRepaymentAmount:
+          serializer.fromJson<double>(json['advanceRepaymentAmount']),
+      cashAdvanceId: serializer.fromJson<int?>(json['cashAdvanceId']),
       netAmount: serializer.fromJson<double>(json['netAmount']),
+      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
+      netAmountIqd: serializer.fromJson<double>(json['netAmountIqd']),
+      fileNetAmount: serializer.fromJson<double?>(json['fileNetAmount']),
       paymentDate: serializer.fromJson<DateTime>(json['paymentDate']),
+      paymentStatus: serializer.fromJson<String>(json['paymentStatus']),
+      paidAt: serializer.fromJson<DateTime?>(json['paidAt']),
+      treasuryId: serializer.fromJson<int?>(json['treasuryId']),
       voucherId: serializer.fromJson<int?>(json['voucherId']),
+      advanceLineId: serializer.fromJson<int?>(json['advanceLineId']),
+      advanceId: serializer.fromJson<int?>(json['advanceId']),
       notes: serializer.fromJson<String>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
   }
@@ -5666,15 +7097,38 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'employeeId': serializer.toJson<int>(employeeId),
+      'payrollPeriodId': serializer.toJson<int?>(payrollPeriodId),
       'periodLabel': serializer.toJson<String>(periodLabel),
+      'snapshotName': serializer.toJson<String>(snapshotName),
+      'snapshotPosition': serializer.toJson<String>(snapshotPosition),
+      'snapshotCurrency': serializer.toJson<String>(snapshotCurrency),
+      'snapshotHireDate': serializer.toJson<DateTime?>(snapshotHireDate),
       'basicSalary': serializer.toJson<double>(basicSalary),
+      'eligibleDays': serializer.toJson<int>(eligibleDays),
+      'eligibleDaysIsManual': serializer.toJson<bool>(eligibleDaysIsManual),
+      'absenceDays': serializer.toJson<int>(absenceDays),
+      'absenceDeduction': serializer.toJson<double>(absenceDeduction),
+      'absenceDeductionIsManual':
+          serializer.toJson<bool>(absenceDeductionIsManual),
       'additions': serializer.toJson<double>(additions),
       'deductions': serializer.toJson<double>(deductions),
+      'advanceRepaymentAmount':
+          serializer.toJson<double>(advanceRepaymentAmount),
+      'cashAdvanceId': serializer.toJson<int?>(cashAdvanceId),
       'netAmount': serializer.toJson<double>(netAmount),
+      'exchangeRate': serializer.toJson<double?>(exchangeRate),
+      'netAmountIqd': serializer.toJson<double>(netAmountIqd),
+      'fileNetAmount': serializer.toJson<double?>(fileNetAmount),
       'paymentDate': serializer.toJson<DateTime>(paymentDate),
+      'paymentStatus': serializer.toJson<String>(paymentStatus),
+      'paidAt': serializer.toJson<DateTime?>(paidAt),
+      'treasuryId': serializer.toJson<int?>(treasuryId),
       'voucherId': serializer.toJson<int?>(voucherId),
+      'advanceLineId': serializer.toJson<int?>(advanceLineId),
+      'advanceId': serializer.toJson<int?>(advanceId),
       'notes': serializer.toJson<String>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
   }
@@ -5682,28 +7136,80 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
   SalaryPayment copyWith(
           {int? id,
           int? employeeId,
+          Value<int?> payrollPeriodId = const Value.absent(),
           String? periodLabel,
+          String? snapshotName,
+          String? snapshotPosition,
+          String? snapshotCurrency,
+          Value<DateTime?> snapshotHireDate = const Value.absent(),
           double? basicSalary,
+          int? eligibleDays,
+          bool? eligibleDaysIsManual,
+          int? absenceDays,
+          double? absenceDeduction,
+          bool? absenceDeductionIsManual,
           double? additions,
           double? deductions,
+          double? advanceRepaymentAmount,
+          Value<int?> cashAdvanceId = const Value.absent(),
           double? netAmount,
+          Value<double?> exchangeRate = const Value.absent(),
+          double? netAmountIqd,
+          Value<double?> fileNetAmount = const Value.absent(),
           DateTime? paymentDate,
+          String? paymentStatus,
+          Value<DateTime?> paidAt = const Value.absent(),
+          Value<int?> treasuryId = const Value.absent(),
           Value<int?> voucherId = const Value.absent(),
+          Value<int?> advanceLineId = const Value.absent(),
+          Value<int?> advanceId = const Value.absent(),
           String? notes,
           DateTime? createdAt,
+          Value<DateTime?> updatedAt = const Value.absent(),
           bool? isDeleted}) =>
       SalaryPayment(
         id: id ?? this.id,
         employeeId: employeeId ?? this.employeeId,
+        payrollPeriodId: payrollPeriodId.present
+            ? payrollPeriodId.value
+            : this.payrollPeriodId,
         periodLabel: periodLabel ?? this.periodLabel,
+        snapshotName: snapshotName ?? this.snapshotName,
+        snapshotPosition: snapshotPosition ?? this.snapshotPosition,
+        snapshotCurrency: snapshotCurrency ?? this.snapshotCurrency,
+        snapshotHireDate: snapshotHireDate.present
+            ? snapshotHireDate.value
+            : this.snapshotHireDate,
         basicSalary: basicSalary ?? this.basicSalary,
+        eligibleDays: eligibleDays ?? this.eligibleDays,
+        eligibleDaysIsManual: eligibleDaysIsManual ?? this.eligibleDaysIsManual,
+        absenceDays: absenceDays ?? this.absenceDays,
+        absenceDeduction: absenceDeduction ?? this.absenceDeduction,
+        absenceDeductionIsManual:
+            absenceDeductionIsManual ?? this.absenceDeductionIsManual,
         additions: additions ?? this.additions,
         deductions: deductions ?? this.deductions,
+        advanceRepaymentAmount:
+            advanceRepaymentAmount ?? this.advanceRepaymentAmount,
+        cashAdvanceId:
+            cashAdvanceId.present ? cashAdvanceId.value : this.cashAdvanceId,
         netAmount: netAmount ?? this.netAmount,
+        exchangeRate:
+            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
+        netAmountIqd: netAmountIqd ?? this.netAmountIqd,
+        fileNetAmount:
+            fileNetAmount.present ? fileNetAmount.value : this.fileNetAmount,
         paymentDate: paymentDate ?? this.paymentDate,
+        paymentStatus: paymentStatus ?? this.paymentStatus,
+        paidAt: paidAt.present ? paidAt.value : this.paidAt,
+        treasuryId: treasuryId.present ? treasuryId.value : this.treasuryId,
         voucherId: voucherId.present ? voucherId.value : this.voucherId,
+        advanceLineId:
+            advanceLineId.present ? advanceLineId.value : this.advanceLineId,
+        advanceId: advanceId.present ? advanceId.value : this.advanceId,
         notes: notes ?? this.notes,
         createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
         isDeleted: isDeleted ?? this.isDeleted,
       );
   SalaryPayment copyWithCompanion(SalaryPaymentsCompanion data) {
@@ -5711,19 +7217,74 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
       id: data.id.present ? data.id.value : this.id,
       employeeId:
           data.employeeId.present ? data.employeeId.value : this.employeeId,
+      payrollPeriodId: data.payrollPeriodId.present
+          ? data.payrollPeriodId.value
+          : this.payrollPeriodId,
       periodLabel:
           data.periodLabel.present ? data.periodLabel.value : this.periodLabel,
+      snapshotName: data.snapshotName.present
+          ? data.snapshotName.value
+          : this.snapshotName,
+      snapshotPosition: data.snapshotPosition.present
+          ? data.snapshotPosition.value
+          : this.snapshotPosition,
+      snapshotCurrency: data.snapshotCurrency.present
+          ? data.snapshotCurrency.value
+          : this.snapshotCurrency,
+      snapshotHireDate: data.snapshotHireDate.present
+          ? data.snapshotHireDate.value
+          : this.snapshotHireDate,
       basicSalary:
           data.basicSalary.present ? data.basicSalary.value : this.basicSalary,
+      eligibleDays: data.eligibleDays.present
+          ? data.eligibleDays.value
+          : this.eligibleDays,
+      eligibleDaysIsManual: data.eligibleDaysIsManual.present
+          ? data.eligibleDaysIsManual.value
+          : this.eligibleDaysIsManual,
+      absenceDays:
+          data.absenceDays.present ? data.absenceDays.value : this.absenceDays,
+      absenceDeduction: data.absenceDeduction.present
+          ? data.absenceDeduction.value
+          : this.absenceDeduction,
+      absenceDeductionIsManual: data.absenceDeductionIsManual.present
+          ? data.absenceDeductionIsManual.value
+          : this.absenceDeductionIsManual,
       additions: data.additions.present ? data.additions.value : this.additions,
       deductions:
           data.deductions.present ? data.deductions.value : this.deductions,
+      advanceRepaymentAmount: data.advanceRepaymentAmount.present
+          ? data.advanceRepaymentAmount.value
+          : this.advanceRepaymentAmount,
+      cashAdvanceId: data.cashAdvanceId.present
+          ? data.cashAdvanceId.value
+          : this.cashAdvanceId,
       netAmount: data.netAmount.present ? data.netAmount.value : this.netAmount,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
+      netAmountIqd: data.netAmountIqd.present
+          ? data.netAmountIqd.value
+          : this.netAmountIqd,
+      fileNetAmount: data.fileNetAmount.present
+          ? data.fileNetAmount.value
+          : this.fileNetAmount,
       paymentDate:
           data.paymentDate.present ? data.paymentDate.value : this.paymentDate,
+      paymentStatus: data.paymentStatus.present
+          ? data.paymentStatus.value
+          : this.paymentStatus,
+      paidAt: data.paidAt.present ? data.paidAt.value : this.paidAt,
+      treasuryId:
+          data.treasuryId.present ? data.treasuryId.value : this.treasuryId,
       voucherId: data.voucherId.present ? data.voucherId.value : this.voucherId,
+      advanceLineId: data.advanceLineId.present
+          ? data.advanceLineId.value
+          : this.advanceLineId,
+      advanceId: data.advanceId.present ? data.advanceId.value : this.advanceId,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
     );
   }
@@ -5733,120 +7294,292 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
     return (StringBuffer('SalaryPayment(')
           ..write('id: $id, ')
           ..write('employeeId: $employeeId, ')
+          ..write('payrollPeriodId: $payrollPeriodId, ')
           ..write('periodLabel: $periodLabel, ')
+          ..write('snapshotName: $snapshotName, ')
+          ..write('snapshotPosition: $snapshotPosition, ')
+          ..write('snapshotCurrency: $snapshotCurrency, ')
+          ..write('snapshotHireDate: $snapshotHireDate, ')
           ..write('basicSalary: $basicSalary, ')
+          ..write('eligibleDays: $eligibleDays, ')
+          ..write('eligibleDaysIsManual: $eligibleDaysIsManual, ')
+          ..write('absenceDays: $absenceDays, ')
+          ..write('absenceDeduction: $absenceDeduction, ')
+          ..write('absenceDeductionIsManual: $absenceDeductionIsManual, ')
           ..write('additions: $additions, ')
           ..write('deductions: $deductions, ')
+          ..write('advanceRepaymentAmount: $advanceRepaymentAmount, ')
+          ..write('cashAdvanceId: $cashAdvanceId, ')
           ..write('netAmount: $netAmount, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('netAmountIqd: $netAmountIqd, ')
+          ..write('fileNetAmount: $fileNetAmount, ')
           ..write('paymentDate: $paymentDate, ')
+          ..write('paymentStatus: $paymentStatus, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('treasuryId: $treasuryId, ')
           ..write('voucherId: $voucherId, ')
+          ..write('advanceLineId: $advanceLineId, ')
+          ..write('advanceId: $advanceId, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      employeeId,
-      periodLabel,
-      basicSalary,
-      additions,
-      deductions,
-      netAmount,
-      paymentDate,
-      voucherId,
-      notes,
-      createdAt,
-      isDeleted);
+  int get hashCode => Object.hashAll([
+        id,
+        employeeId,
+        payrollPeriodId,
+        periodLabel,
+        snapshotName,
+        snapshotPosition,
+        snapshotCurrency,
+        snapshotHireDate,
+        basicSalary,
+        eligibleDays,
+        eligibleDaysIsManual,
+        absenceDays,
+        absenceDeduction,
+        absenceDeductionIsManual,
+        additions,
+        deductions,
+        advanceRepaymentAmount,
+        cashAdvanceId,
+        netAmount,
+        exchangeRate,
+        netAmountIqd,
+        fileNetAmount,
+        paymentDate,
+        paymentStatus,
+        paidAt,
+        treasuryId,
+        voucherId,
+        advanceLineId,
+        advanceId,
+        notes,
+        createdAt,
+        updatedAt,
+        isDeleted
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SalaryPayment &&
           other.id == this.id &&
           other.employeeId == this.employeeId &&
+          other.payrollPeriodId == this.payrollPeriodId &&
           other.periodLabel == this.periodLabel &&
+          other.snapshotName == this.snapshotName &&
+          other.snapshotPosition == this.snapshotPosition &&
+          other.snapshotCurrency == this.snapshotCurrency &&
+          other.snapshotHireDate == this.snapshotHireDate &&
           other.basicSalary == this.basicSalary &&
+          other.eligibleDays == this.eligibleDays &&
+          other.eligibleDaysIsManual == this.eligibleDaysIsManual &&
+          other.absenceDays == this.absenceDays &&
+          other.absenceDeduction == this.absenceDeduction &&
+          other.absenceDeductionIsManual == this.absenceDeductionIsManual &&
           other.additions == this.additions &&
           other.deductions == this.deductions &&
+          other.advanceRepaymentAmount == this.advanceRepaymentAmount &&
+          other.cashAdvanceId == this.cashAdvanceId &&
           other.netAmount == this.netAmount &&
+          other.exchangeRate == this.exchangeRate &&
+          other.netAmountIqd == this.netAmountIqd &&
+          other.fileNetAmount == this.fileNetAmount &&
           other.paymentDate == this.paymentDate &&
+          other.paymentStatus == this.paymentStatus &&
+          other.paidAt == this.paidAt &&
+          other.treasuryId == this.treasuryId &&
           other.voucherId == this.voucherId &&
+          other.advanceLineId == this.advanceLineId &&
+          other.advanceId == this.advanceId &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted);
 }
 
 class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
   final Value<int> id;
   final Value<int> employeeId;
+  final Value<int?> payrollPeriodId;
   final Value<String> periodLabel;
+  final Value<String> snapshotName;
+  final Value<String> snapshotPosition;
+  final Value<String> snapshotCurrency;
+  final Value<DateTime?> snapshotHireDate;
   final Value<double> basicSalary;
+  final Value<int> eligibleDays;
+  final Value<bool> eligibleDaysIsManual;
+  final Value<int> absenceDays;
+  final Value<double> absenceDeduction;
+  final Value<bool> absenceDeductionIsManual;
   final Value<double> additions;
   final Value<double> deductions;
+  final Value<double> advanceRepaymentAmount;
+  final Value<int?> cashAdvanceId;
   final Value<double> netAmount;
+  final Value<double?> exchangeRate;
+  final Value<double> netAmountIqd;
+  final Value<double?> fileNetAmount;
   final Value<DateTime> paymentDate;
+  final Value<String> paymentStatus;
+  final Value<DateTime?> paidAt;
+  final Value<int?> treasuryId;
   final Value<int?> voucherId;
+  final Value<int?> advanceLineId;
+  final Value<int?> advanceId;
   final Value<String> notes;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
   final Value<bool> isDeleted;
   const SalaryPaymentsCompanion({
     this.id = const Value.absent(),
     this.employeeId = const Value.absent(),
+    this.payrollPeriodId = const Value.absent(),
     this.periodLabel = const Value.absent(),
+    this.snapshotName = const Value.absent(),
+    this.snapshotPosition = const Value.absent(),
+    this.snapshotCurrency = const Value.absent(),
+    this.snapshotHireDate = const Value.absent(),
     this.basicSalary = const Value.absent(),
+    this.eligibleDays = const Value.absent(),
+    this.eligibleDaysIsManual = const Value.absent(),
+    this.absenceDays = const Value.absent(),
+    this.absenceDeduction = const Value.absent(),
+    this.absenceDeductionIsManual = const Value.absent(),
     this.additions = const Value.absent(),
     this.deductions = const Value.absent(),
+    this.advanceRepaymentAmount = const Value.absent(),
+    this.cashAdvanceId = const Value.absent(),
     this.netAmount = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.netAmountIqd = const Value.absent(),
+    this.fileNetAmount = const Value.absent(),
     this.paymentDate = const Value.absent(),
+    this.paymentStatus = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    this.treasuryId = const Value.absent(),
     this.voucherId = const Value.absent(),
+    this.advanceLineId = const Value.absent(),
+    this.advanceId = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
   SalaryPaymentsCompanion.insert({
     this.id = const Value.absent(),
     required int employeeId,
+    this.payrollPeriodId = const Value.absent(),
     this.periodLabel = const Value.absent(),
+    this.snapshotName = const Value.absent(),
+    this.snapshotPosition = const Value.absent(),
+    this.snapshotCurrency = const Value.absent(),
+    this.snapshotHireDate = const Value.absent(),
     this.basicSalary = const Value.absent(),
+    this.eligibleDays = const Value.absent(),
+    this.eligibleDaysIsManual = const Value.absent(),
+    this.absenceDays = const Value.absent(),
+    this.absenceDeduction = const Value.absent(),
+    this.absenceDeductionIsManual = const Value.absent(),
     this.additions = const Value.absent(),
     this.deductions = const Value.absent(),
+    this.advanceRepaymentAmount = const Value.absent(),
+    this.cashAdvanceId = const Value.absent(),
     this.netAmount = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.netAmountIqd = const Value.absent(),
+    this.fileNetAmount = const Value.absent(),
     required DateTime paymentDate,
+    this.paymentStatus = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    this.treasuryId = const Value.absent(),
     this.voucherId = const Value.absent(),
+    this.advanceLineId = const Value.absent(),
+    this.advanceId = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
   })  : employeeId = Value(employeeId),
         paymentDate = Value(paymentDate);
   static Insertable<SalaryPayment> custom({
     Expression<int>? id,
     Expression<int>? employeeId,
+    Expression<int>? payrollPeriodId,
     Expression<String>? periodLabel,
+    Expression<String>? snapshotName,
+    Expression<String>? snapshotPosition,
+    Expression<String>? snapshotCurrency,
+    Expression<DateTime>? snapshotHireDate,
     Expression<double>? basicSalary,
+    Expression<int>? eligibleDays,
+    Expression<bool>? eligibleDaysIsManual,
+    Expression<int>? absenceDays,
+    Expression<double>? absenceDeduction,
+    Expression<bool>? absenceDeductionIsManual,
     Expression<double>? additions,
     Expression<double>? deductions,
+    Expression<double>? advanceRepaymentAmount,
+    Expression<int>? cashAdvanceId,
     Expression<double>? netAmount,
+    Expression<double>? exchangeRate,
+    Expression<double>? netAmountIqd,
+    Expression<double>? fileNetAmount,
     Expression<DateTime>? paymentDate,
+    Expression<String>? paymentStatus,
+    Expression<DateTime>? paidAt,
+    Expression<int>? treasuryId,
     Expression<int>? voucherId,
+    Expression<int>? advanceLineId,
+    Expression<int>? advanceId,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (employeeId != null) 'employee_id': employeeId,
+      if (payrollPeriodId != null) 'payroll_period_id': payrollPeriodId,
       if (periodLabel != null) 'period_label': periodLabel,
+      if (snapshotName != null) 'snapshot_name': snapshotName,
+      if (snapshotPosition != null) 'snapshot_position': snapshotPosition,
+      if (snapshotCurrency != null) 'snapshot_currency': snapshotCurrency,
+      if (snapshotHireDate != null) 'snapshot_hire_date': snapshotHireDate,
       if (basicSalary != null) 'basic_salary': basicSalary,
+      if (eligibleDays != null) 'eligible_days': eligibleDays,
+      if (eligibleDaysIsManual != null)
+        'eligible_days_is_manual': eligibleDaysIsManual,
+      if (absenceDays != null) 'absence_days': absenceDays,
+      if (absenceDeduction != null) 'absence_deduction': absenceDeduction,
+      if (absenceDeductionIsManual != null)
+        'absence_deduction_is_manual': absenceDeductionIsManual,
       if (additions != null) 'additions': additions,
       if (deductions != null) 'deductions': deductions,
+      if (advanceRepaymentAmount != null)
+        'advance_repayment_amount': advanceRepaymentAmount,
+      if (cashAdvanceId != null) 'cash_advance_id': cashAdvanceId,
       if (netAmount != null) 'net_amount': netAmount,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
+      if (netAmountIqd != null) 'net_amount_iqd': netAmountIqd,
+      if (fileNetAmount != null) 'file_net_amount': fileNetAmount,
       if (paymentDate != null) 'payment_date': paymentDate,
+      if (paymentStatus != null) 'payment_status': paymentStatus,
+      if (paidAt != null) 'paid_at': paidAt,
+      if (treasuryId != null) 'treasury_id': treasuryId,
       if (voucherId != null) 'voucher_id': voucherId,
+      if (advanceLineId != null) 'advance_line_id': advanceLineId,
+      if (advanceId != null) 'advance_id': advanceId,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
   }
@@ -5854,28 +7587,72 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
   SalaryPaymentsCompanion copyWith(
       {Value<int>? id,
       Value<int>? employeeId,
+      Value<int?>? payrollPeriodId,
       Value<String>? periodLabel,
+      Value<String>? snapshotName,
+      Value<String>? snapshotPosition,
+      Value<String>? snapshotCurrency,
+      Value<DateTime?>? snapshotHireDate,
       Value<double>? basicSalary,
+      Value<int>? eligibleDays,
+      Value<bool>? eligibleDaysIsManual,
+      Value<int>? absenceDays,
+      Value<double>? absenceDeduction,
+      Value<bool>? absenceDeductionIsManual,
       Value<double>? additions,
       Value<double>? deductions,
+      Value<double>? advanceRepaymentAmount,
+      Value<int?>? cashAdvanceId,
       Value<double>? netAmount,
+      Value<double?>? exchangeRate,
+      Value<double>? netAmountIqd,
+      Value<double?>? fileNetAmount,
       Value<DateTime>? paymentDate,
+      Value<String>? paymentStatus,
+      Value<DateTime?>? paidAt,
+      Value<int?>? treasuryId,
       Value<int?>? voucherId,
+      Value<int?>? advanceLineId,
+      Value<int?>? advanceId,
       Value<String>? notes,
       Value<DateTime>? createdAt,
+      Value<DateTime?>? updatedAt,
       Value<bool>? isDeleted}) {
     return SalaryPaymentsCompanion(
       id: id ?? this.id,
       employeeId: employeeId ?? this.employeeId,
+      payrollPeriodId: payrollPeriodId ?? this.payrollPeriodId,
       periodLabel: periodLabel ?? this.periodLabel,
+      snapshotName: snapshotName ?? this.snapshotName,
+      snapshotPosition: snapshotPosition ?? this.snapshotPosition,
+      snapshotCurrency: snapshotCurrency ?? this.snapshotCurrency,
+      snapshotHireDate: snapshotHireDate ?? this.snapshotHireDate,
       basicSalary: basicSalary ?? this.basicSalary,
+      eligibleDays: eligibleDays ?? this.eligibleDays,
+      eligibleDaysIsManual: eligibleDaysIsManual ?? this.eligibleDaysIsManual,
+      absenceDays: absenceDays ?? this.absenceDays,
+      absenceDeduction: absenceDeduction ?? this.absenceDeduction,
+      absenceDeductionIsManual:
+          absenceDeductionIsManual ?? this.absenceDeductionIsManual,
       additions: additions ?? this.additions,
       deductions: deductions ?? this.deductions,
+      advanceRepaymentAmount:
+          advanceRepaymentAmount ?? this.advanceRepaymentAmount,
+      cashAdvanceId: cashAdvanceId ?? this.cashAdvanceId,
       netAmount: netAmount ?? this.netAmount,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      netAmountIqd: netAmountIqd ?? this.netAmountIqd,
+      fileNetAmount: fileNetAmount ?? this.fileNetAmount,
       paymentDate: paymentDate ?? this.paymentDate,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paidAt: paidAt ?? this.paidAt,
+      treasuryId: treasuryId ?? this.treasuryId,
       voucherId: voucherId ?? this.voucherId,
+      advanceLineId: advanceLineId ?? this.advanceLineId,
+      advanceId: advanceId ?? this.advanceId,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
     );
   }
@@ -5889,11 +7666,43 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     if (employeeId.present) {
       map['employee_id'] = Variable<int>(employeeId.value);
     }
+    if (payrollPeriodId.present) {
+      map['payroll_period_id'] = Variable<int>(payrollPeriodId.value);
+    }
     if (periodLabel.present) {
       map['period_label'] = Variable<String>(periodLabel.value);
     }
+    if (snapshotName.present) {
+      map['snapshot_name'] = Variable<String>(snapshotName.value);
+    }
+    if (snapshotPosition.present) {
+      map['snapshot_position'] = Variable<String>(snapshotPosition.value);
+    }
+    if (snapshotCurrency.present) {
+      map['snapshot_currency'] = Variable<String>(snapshotCurrency.value);
+    }
+    if (snapshotHireDate.present) {
+      map['snapshot_hire_date'] = Variable<DateTime>(snapshotHireDate.value);
+    }
     if (basicSalary.present) {
       map['basic_salary'] = Variable<double>(basicSalary.value);
+    }
+    if (eligibleDays.present) {
+      map['eligible_days'] = Variable<int>(eligibleDays.value);
+    }
+    if (eligibleDaysIsManual.present) {
+      map['eligible_days_is_manual'] =
+          Variable<bool>(eligibleDaysIsManual.value);
+    }
+    if (absenceDays.present) {
+      map['absence_days'] = Variable<int>(absenceDays.value);
+    }
+    if (absenceDeduction.present) {
+      map['absence_deduction'] = Variable<double>(absenceDeduction.value);
+    }
+    if (absenceDeductionIsManual.present) {
+      map['absence_deduction_is_manual'] =
+          Variable<bool>(absenceDeductionIsManual.value);
     }
     if (additions.present) {
       map['additions'] = Variable<double>(additions.value);
@@ -5901,20 +7710,54 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     if (deductions.present) {
       map['deductions'] = Variable<double>(deductions.value);
     }
+    if (advanceRepaymentAmount.present) {
+      map['advance_repayment_amount'] =
+          Variable<double>(advanceRepaymentAmount.value);
+    }
+    if (cashAdvanceId.present) {
+      map['cash_advance_id'] = Variable<int>(cashAdvanceId.value);
+    }
     if (netAmount.present) {
       map['net_amount'] = Variable<double>(netAmount.value);
+    }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<double>(exchangeRate.value);
+    }
+    if (netAmountIqd.present) {
+      map['net_amount_iqd'] = Variable<double>(netAmountIqd.value);
+    }
+    if (fileNetAmount.present) {
+      map['file_net_amount'] = Variable<double>(fileNetAmount.value);
     }
     if (paymentDate.present) {
       map['payment_date'] = Variable<DateTime>(paymentDate.value);
     }
+    if (paymentStatus.present) {
+      map['payment_status'] = Variable<String>(paymentStatus.value);
+    }
+    if (paidAt.present) {
+      map['paid_at'] = Variable<DateTime>(paidAt.value);
+    }
+    if (treasuryId.present) {
+      map['treasury_id'] = Variable<int>(treasuryId.value);
+    }
     if (voucherId.present) {
       map['voucher_id'] = Variable<int>(voucherId.value);
+    }
+    if (advanceLineId.present) {
+      map['advance_line_id'] = Variable<int>(advanceLineId.value);
+    }
+    if (advanceId.present) {
+      map['advance_id'] = Variable<int>(advanceId.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
@@ -5927,15 +7770,36 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     return (StringBuffer('SalaryPaymentsCompanion(')
           ..write('id: $id, ')
           ..write('employeeId: $employeeId, ')
+          ..write('payrollPeriodId: $payrollPeriodId, ')
           ..write('periodLabel: $periodLabel, ')
+          ..write('snapshotName: $snapshotName, ')
+          ..write('snapshotPosition: $snapshotPosition, ')
+          ..write('snapshotCurrency: $snapshotCurrency, ')
+          ..write('snapshotHireDate: $snapshotHireDate, ')
           ..write('basicSalary: $basicSalary, ')
+          ..write('eligibleDays: $eligibleDays, ')
+          ..write('eligibleDaysIsManual: $eligibleDaysIsManual, ')
+          ..write('absenceDays: $absenceDays, ')
+          ..write('absenceDeduction: $absenceDeduction, ')
+          ..write('absenceDeductionIsManual: $absenceDeductionIsManual, ')
           ..write('additions: $additions, ')
           ..write('deductions: $deductions, ')
+          ..write('advanceRepaymentAmount: $advanceRepaymentAmount, ')
+          ..write('cashAdvanceId: $cashAdvanceId, ')
           ..write('netAmount: $netAmount, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('netAmountIqd: $netAmountIqd, ')
+          ..write('fileNetAmount: $fileNetAmount, ')
           ..write('paymentDate: $paymentDate, ')
+          ..write('paymentStatus: $paymentStatus, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('treasuryId: $treasuryId, ')
           ..write('voucherId: $voucherId, ')
+          ..write('advanceLineId: $advanceLineId, ')
+          ..write('advanceId: $advanceId, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
         .toString();
@@ -8041,6 +9905,15 @@ class $AdvanceLinesTable extends AdvanceLines
   late final GeneratedColumn<int> voucherId = GeneratedColumn<int>(
       'voucher_id', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _payrollPeriodIdMeta =
+      const VerificationMeta('payrollPeriodId');
+  @override
+  late final GeneratedColumn<int> payrollPeriodId = GeneratedColumn<int>(
+      'payroll_period_id', aliasedName, true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES payroll_periods (id)'));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -8060,7 +9933,8 @@ class $AdvanceLinesTable extends AdvanceLines
         isEdited,
         isExcluded,
         excludeReason,
-        voucherId
+        voucherId,
+        payrollPeriodId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -8171,6 +10045,12 @@ class $AdvanceLinesTable extends AdvanceLines
       context.handle(_voucherIdMeta,
           voucherId.isAcceptableOrUnknown(data['voucher_id']!, _voucherIdMeta));
     }
+    if (data.containsKey('payroll_period_id')) {
+      context.handle(
+          _payrollPeriodIdMeta,
+          payrollPeriodId.isAcceptableOrUnknown(
+              data['payroll_period_id']!, _payrollPeriodIdMeta));
+    }
     return context;
   }
 
@@ -8216,6 +10096,8 @@ class $AdvanceLinesTable extends AdvanceLines
           .read(DriftSqlType.string, data['${effectivePrefix}exclude_reason'])!,
       voucherId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}voucher_id']),
+      payrollPeriodId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}payroll_period_id']),
     );
   }
 
@@ -8244,6 +10126,7 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
   final bool isExcluded;
   final String excludeReason;
   final int? voucherId;
+  final int? payrollPeriodId;
   const AdvanceLine(
       {required this.id,
       required this.advanceId,
@@ -8262,7 +10145,8 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
       required this.isEdited,
       required this.isExcluded,
       required this.excludeReason,
-      this.voucherId});
+      this.voucherId,
+      this.payrollPeriodId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -8291,6 +10175,9 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
     map['exclude_reason'] = Variable<String>(excludeReason);
     if (!nullToAbsent || voucherId != null) {
       map['voucher_id'] = Variable<int>(voucherId);
+    }
+    if (!nullToAbsent || payrollPeriodId != null) {
+      map['payroll_period_id'] = Variable<int>(payrollPeriodId);
     }
     return map;
   }
@@ -8323,6 +10210,9 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
       voucherId: voucherId == null && nullToAbsent
           ? const Value.absent()
           : Value(voucherId),
+      payrollPeriodId: payrollPeriodId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payrollPeriodId),
     );
   }
 
@@ -8348,6 +10238,7 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
       isExcluded: serializer.fromJson<bool>(json['isExcluded']),
       excludeReason: serializer.fromJson<String>(json['excludeReason']),
       voucherId: serializer.fromJson<int?>(json['voucherId']),
+      payrollPeriodId: serializer.fromJson<int?>(json['payrollPeriodId']),
     );
   }
   @override
@@ -8372,6 +10263,7 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
       'isExcluded': serializer.toJson<bool>(isExcluded),
       'excludeReason': serializer.toJson<String>(excludeReason),
       'voucherId': serializer.toJson<int?>(voucherId),
+      'payrollPeriodId': serializer.toJson<int?>(payrollPeriodId),
     };
   }
 
@@ -8393,7 +10285,8 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
           bool? isEdited,
           bool? isExcluded,
           String? excludeReason,
-          Value<int?> voucherId = const Value.absent()}) =>
+          Value<int?> voucherId = const Value.absent(),
+          Value<int?> payrollPeriodId = const Value.absent()}) =>
       AdvanceLine(
         id: id ?? this.id,
         advanceId: advanceId ?? this.advanceId,
@@ -8414,6 +10307,9 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
         isExcluded: isExcluded ?? this.isExcluded,
         excludeReason: excludeReason ?? this.excludeReason,
         voucherId: voucherId.present ? voucherId.value : this.voucherId,
+        payrollPeriodId: payrollPeriodId.present
+            ? payrollPeriodId.value
+            : this.payrollPeriodId,
       );
   AdvanceLine copyWithCompanion(AdvanceLinesCompanion data) {
     return AdvanceLine(
@@ -8449,6 +10345,9 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
           ? data.excludeReason.value
           : this.excludeReason,
       voucherId: data.voucherId.present ? data.voucherId.value : this.voucherId,
+      payrollPeriodId: data.payrollPeriodId.present
+          ? data.payrollPeriodId.value
+          : this.payrollPeriodId,
     );
   }
 
@@ -8472,7 +10371,8 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
           ..write('isEdited: $isEdited, ')
           ..write('isExcluded: $isExcluded, ')
           ..write('excludeReason: $excludeReason, ')
-          ..write('voucherId: $voucherId')
+          ..write('voucherId: $voucherId, ')
+          ..write('payrollPeriodId: $payrollPeriodId')
           ..write(')'))
         .toString();
   }
@@ -8496,7 +10396,8 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
       isEdited,
       isExcluded,
       excludeReason,
-      voucherId);
+      voucherId,
+      payrollPeriodId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -8518,7 +10419,8 @@ class AdvanceLine extends DataClass implements Insertable<AdvanceLine> {
           other.isEdited == this.isEdited &&
           other.isExcluded == this.isExcluded &&
           other.excludeReason == this.excludeReason &&
-          other.voucherId == this.voucherId);
+          other.voucherId == this.voucherId &&
+          other.payrollPeriodId == this.payrollPeriodId);
 }
 
 class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
@@ -8540,6 +10442,7 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
   final Value<bool> isExcluded;
   final Value<String> excludeReason;
   final Value<int?> voucherId;
+  final Value<int?> payrollPeriodId;
   const AdvanceLinesCompanion({
     this.id = const Value.absent(),
     this.advanceId = const Value.absent(),
@@ -8559,6 +10462,7 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
     this.isExcluded = const Value.absent(),
     this.excludeReason = const Value.absent(),
     this.voucherId = const Value.absent(),
+    this.payrollPeriodId = const Value.absent(),
   });
   AdvanceLinesCompanion.insert({
     this.id = const Value.absent(),
@@ -8579,6 +10483,7 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
     this.isExcluded = const Value.absent(),
     this.excludeReason = const Value.absent(),
     this.voucherId = const Value.absent(),
+    this.payrollPeriodId = const Value.absent(),
   })  : advanceId = Value(advanceId),
         voucherDate = Value(voucherDate),
         amount = Value(amount),
@@ -8603,6 +10508,7 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
     Expression<bool>? isExcluded,
     Expression<String>? excludeReason,
     Expression<int>? voucherId,
+    Expression<int>? payrollPeriodId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -8623,6 +10529,7 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
       if (isExcluded != null) 'is_excluded': isExcluded,
       if (excludeReason != null) 'exclude_reason': excludeReason,
       if (voucherId != null) 'voucher_id': voucherId,
+      if (payrollPeriodId != null) 'payroll_period_id': payrollPeriodId,
     });
   }
 
@@ -8644,7 +10551,8 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
       Value<bool>? isEdited,
       Value<bool>? isExcluded,
       Value<String>? excludeReason,
-      Value<int?>? voucherId}) {
+      Value<int?>? voucherId,
+      Value<int?>? payrollPeriodId}) {
     return AdvanceLinesCompanion(
       id: id ?? this.id,
       advanceId: advanceId ?? this.advanceId,
@@ -8664,6 +10572,7 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
       isExcluded: isExcluded ?? this.isExcluded,
       excludeReason: excludeReason ?? this.excludeReason,
       voucherId: voucherId ?? this.voucherId,
+      payrollPeriodId: payrollPeriodId ?? this.payrollPeriodId,
     );
   }
 
@@ -8724,6 +10633,9 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
     if (voucherId.present) {
       map['voucher_id'] = Variable<int>(voucherId.value);
     }
+    if (payrollPeriodId.present) {
+      map['payroll_period_id'] = Variable<int>(payrollPeriodId.value);
+    }
     return map;
   }
 
@@ -8747,7 +10659,8 @@ class AdvanceLinesCompanion extends UpdateCompanion<AdvanceLine> {
           ..write('isEdited: $isEdited, ')
           ..write('isExcluded: $isExcluded, ')
           ..write('excludeReason: $excludeReason, ')
-          ..write('voucherId: $voucherId')
+          ..write('voucherId: $voucherId, ')
+          ..write('payrollPeriodId: $payrollPeriodId')
           ..write(')'))
         .toString();
   }
@@ -10559,6 +12472,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CashAdvancesTable cashAdvances = $CashAdvancesTable(this);
   late final $CashAdvanceRepaymentsTable cashAdvanceRepayments =
       $CashAdvanceRepaymentsTable(this);
+  late final $PayrollPeriodsTable payrollPeriods = $PayrollPeriodsTable(this);
   late final $SalaryPaymentsTable salaryPayments = $SalaryPaymentsTable(this);
   late final $ContractorsTable contractors = $ContractorsTable(this);
   late final $PartnersTable partners = $PartnersTable(this);
@@ -10585,6 +12499,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AdvancesDao advancesDao = AdvancesDao(this as AppDatabase);
   late final AttachmentsDao attachmentsDao =
       AttachmentsDao(this as AppDatabase);
+  late final PayrollDao payrollDao = PayrollDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10600,6 +12515,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         employees,
         cashAdvances,
         cashAdvanceRepayments,
+        payrollPeriods,
         salaryPayments,
         contractors,
         partners,
@@ -11249,6 +13165,21 @@ final class $$FiscalPeriodsTableReferences
         manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$PayrollPeriodsTable, List<PayrollPeriod>>
+      _payrollPeriodsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.payrollPeriods,
+              aliasName: $_aliasNameGenerator(
+                  db.fiscalPeriods.id, db.payrollPeriods.fiscalPeriodId));
+
+  $$PayrollPeriodsTableProcessedTableManager get payrollPeriodsRefs {
+    final manager = $$PayrollPeriodsTableTableManager($_db, $_db.payrollPeriods)
+        .filter((f) => f.fiscalPeriodId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_payrollPeriodsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$AdvancesTable, List<Advance>> _advancesRefsTable(
           _$AppDatabase db) =>
       MultiTypedResultKey.fromTable(db.advances,
@@ -11339,6 +13270,27 @@ class $$FiscalPeriodsTableFilterComposer
             $$VouchersTableFilterComposer(
               $db: $db,
               $table: $db.vouchers,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> payrollPeriodsRefs(
+      Expression<bool> Function($$PayrollPeriodsTableFilterComposer f) f) {
+    final $$PayrollPeriodsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.fiscalPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableFilterComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -11491,6 +13443,27 @@ class $$FiscalPeriodsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> payrollPeriodsRefs<T extends Object>(
+      Expression<T> Function($$PayrollPeriodsTableAnnotationComposer a) f) {
+    final $$PayrollPeriodsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.fiscalPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<T> advancesRefs<T extends Object>(
       Expression<T> Function($$AdvancesTableAnnotationComposer a) f) {
     final $$AdvancesTableAnnotationComposer composer = $composerBuilder(
@@ -11525,7 +13498,10 @@ class $$FiscalPeriodsTableTableManager extends RootTableManager<
     (FiscalPeriod, $$FiscalPeriodsTableReferences),
     FiscalPeriod,
     PrefetchHooks Function(
-        {bool voucherSequencesRefs, bool vouchersRefs, bool advancesRefs})> {
+        {bool voucherSequencesRefs,
+        bool vouchersRefs,
+        bool payrollPeriodsRefs,
+        bool advancesRefs})> {
   $$FiscalPeriodsTableTableManager(_$AppDatabase db, $FiscalPeriodsTable table)
       : super(TableManagerState(
           db: db,
@@ -11593,12 +13569,14 @@ class $$FiscalPeriodsTableTableManager extends RootTableManager<
           prefetchHooksCallback: (
               {voucherSequencesRefs = false,
               vouchersRefs = false,
+              payrollPeriodsRefs = false,
               advancesRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (voucherSequencesRefs) db.voucherSequences,
                 if (vouchersRefs) db.vouchers,
+                if (payrollPeriodsRefs) db.payrollPeriods,
                 if (advancesRefs) db.advances
               ],
               addJoins: null,
@@ -11626,6 +13604,19 @@ class $$FiscalPeriodsTableTableManager extends RootTableManager<
                         managerFromTypedResult: (p0) =>
                             $$FiscalPeriodsTableReferences(db, table, p0)
                                 .vouchersRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.fiscalPeriodId == item.id),
+                        typedResults: items),
+                  if (payrollPeriodsRefs)
+                    await $_getPrefetchedData<FiscalPeriod, $FiscalPeriodsTable,
+                            PayrollPeriod>(
+                        currentTable: table,
+                        referencedTable: $$FiscalPeriodsTableReferences
+                            ._payrollPeriodsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$FiscalPeriodsTableReferences(db, table, p0)
+                                .payrollPeriodsRefs,
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.fiscalPeriodId == item.id),
@@ -11662,7 +13653,10 @@ typedef $$FiscalPeriodsTableProcessedTableManager = ProcessedTableManager<
     (FiscalPeriod, $$FiscalPeriodsTableReferences),
     FiscalPeriod,
     PrefetchHooks Function(
-        {bool voucherSequencesRefs, bool vouchersRefs, bool advancesRefs})>;
+        {bool voucherSequencesRefs,
+        bool vouchersRefs,
+        bool payrollPeriodsRefs,
+        bool advancesRefs})>;
 typedef $$VoucherSequencesTableCreateCompanionBuilder
     = VoucherSequencesCompanion Function({
   required int fiscalPeriodId,
@@ -11968,6 +13962,21 @@ final class $$TreasuriesTableReferences
         manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$SalaryPaymentsTable, List<SalaryPayment>>
+      _salaryPaymentsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.salaryPayments,
+              aliasName: $_aliasNameGenerator(
+                  db.treasuries.id, db.salaryPayments.treasuryId));
+
+  $$SalaryPaymentsTableProcessedTableManager get salaryPaymentsRefs {
+    final manager = $$SalaryPaymentsTableTableManager($_db, $_db.salaryPayments)
+        .filter((f) => f.treasuryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_salaryPaymentsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$ContractorsTable, List<Contractor>>
       _contractorsRefsTable(_$AppDatabase db) =>
           MultiTypedResultKey.fromTable(db.contractors,
@@ -12084,6 +14093,27 @@ class $$TreasuriesTableFilterComposer
             $$EmployeesTableFilterComposer(
               $db: $db,
               $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> salaryPaymentsRefs(
+      Expression<bool> Function($$SalaryPaymentsTableFilterComposer f) f) {
+    final $$SalaryPaymentsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.salaryPayments,
+        getReferencedColumn: (t) => t.treasuryId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SalaryPaymentsTableFilterComposer(
+              $db: $db,
+              $table: $db.salaryPayments,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -12271,6 +14301,27 @@ class $$TreasuriesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> salaryPaymentsRefs<T extends Object>(
+      Expression<T> Function($$SalaryPaymentsTableAnnotationComposer a) f) {
+    final $$SalaryPaymentsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.salaryPayments,
+        getReferencedColumn: (t) => t.treasuryId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SalaryPaymentsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.salaryPayments,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<T> contractorsRefs<T extends Object>(
       Expression<T> Function($$ContractorsTableAnnotationComposer a) f) {
     final $$ContractorsTableAnnotationComposer composer = $composerBuilder(
@@ -12349,6 +14400,7 @@ class $$TreasuriesTableTableManager extends RootTableManager<
     PrefetchHooks Function(
         {bool vouchersRefs,
         bool employeesRefs,
+        bool salaryPaymentsRefs,
         bool contractorsRefs,
         bool partnersRefs,
         bool advancesRefs})> {
@@ -12415,6 +14467,7 @@ class $$TreasuriesTableTableManager extends RootTableManager<
           prefetchHooksCallback: (
               {vouchersRefs = false,
               employeesRefs = false,
+              salaryPaymentsRefs = false,
               contractorsRefs = false,
               partnersRefs = false,
               advancesRefs = false}) {
@@ -12423,6 +14476,7 @@ class $$TreasuriesTableTableManager extends RootTableManager<
               explicitlyWatchedTables: [
                 if (vouchersRefs) db.vouchers,
                 if (employeesRefs) db.employees,
+                if (salaryPaymentsRefs) db.salaryPayments,
                 if (contractorsRefs) db.contractors,
                 if (partnersRefs) db.partners,
                 if (advancesRefs) db.advances
@@ -12452,6 +14506,19 @@ class $$TreasuriesTableTableManager extends RootTableManager<
                         managerFromTypedResult: (p0) =>
                             $$TreasuriesTableReferences(db, table, p0)
                                 .employeesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.treasuryId == item.id),
+                        typedResults: items),
+                  if (salaryPaymentsRefs)
+                    await $_getPrefetchedData<Treasury, $TreasuriesTable,
+                            SalaryPayment>(
+                        currentTable: table,
+                        referencedTable: $$TreasuriesTableReferences
+                            ._salaryPaymentsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$TreasuriesTableReferences(db, table, p0)
+                                .salaryPaymentsRefs,
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.treasuryId == item.id),
@@ -12516,6 +14583,7 @@ typedef $$TreasuriesTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function(
         {bool vouchersRefs,
         bool employeesRefs,
+        bool salaryPaymentsRefs,
         bool contractorsRefs,
         bool partnersRefs,
         bool advancesRefs})>;
@@ -13259,7 +15327,9 @@ typedef $$EmployeesTableCreateCompanionBuilder = EmployeesCompanion Function({
   required String fullName,
   Value<String> phone,
   Value<String> address,
+  Value<String> position,
   Value<double> basicSalary,
+  Value<String> salaryCurrency,
   Value<DateTime?> hireDate,
   Value<int?> treasuryId,
   Value<String> notes,
@@ -13272,7 +15342,9 @@ typedef $$EmployeesTableUpdateCompanionBuilder = EmployeesCompanion Function({
   Value<String> fullName,
   Value<String> phone,
   Value<String> address,
+  Value<String> position,
   Value<double> basicSalary,
+  Value<String> salaryCurrency,
   Value<DateTime?> hireDate,
   Value<int?> treasuryId,
   Value<String> notes,
@@ -13352,8 +15424,15 @@ class $$EmployeesTableFilterComposer
   ColumnFilters<String> get address => $composableBuilder(
       column: $table.address, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get basicSalary => $composableBuilder(
       column: $table.basicSalary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get salaryCurrency => $composableBuilder(
+      column: $table.salaryCurrency,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get hireDate => $composableBuilder(
       column: $table.hireDate, builder: (column) => ColumnFilters(column));
@@ -13454,8 +15533,15 @@ class $$EmployeesTableOrderingComposer
   ColumnOrderings<String> get address => $composableBuilder(
       column: $table.address, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get basicSalary => $composableBuilder(
       column: $table.basicSalary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get salaryCurrency => $composableBuilder(
+      column: $table.salaryCurrency,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get hireDate => $composableBuilder(
       column: $table.hireDate, builder: (column) => ColumnOrderings(column));
@@ -13514,8 +15600,14 @@ class $$EmployeesTableAnnotationComposer
   GeneratedColumn<String> get address =>
       $composableBuilder(column: $table.address, builder: (column) => column);
 
+  GeneratedColumn<String> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
   GeneratedColumn<double> get basicSalary => $composableBuilder(
       column: $table.basicSalary, builder: (column) => column);
+
+  GeneratedColumn<String> get salaryCurrency => $composableBuilder(
+      column: $table.salaryCurrency, builder: (column) => column);
 
   GeneratedColumn<DateTime> get hireDate =>
       $composableBuilder(column: $table.hireDate, builder: (column) => column);
@@ -13623,7 +15715,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             Value<String> fullName = const Value.absent(),
             Value<String> phone = const Value.absent(),
             Value<String> address = const Value.absent(),
+            Value<String> position = const Value.absent(),
             Value<double> basicSalary = const Value.absent(),
+            Value<String> salaryCurrency = const Value.absent(),
             Value<DateTime?> hireDate = const Value.absent(),
             Value<int?> treasuryId = const Value.absent(),
             Value<String> notes = const Value.absent(),
@@ -13636,7 +15730,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             fullName: fullName,
             phone: phone,
             address: address,
+            position: position,
             basicSalary: basicSalary,
+            salaryCurrency: salaryCurrency,
             hireDate: hireDate,
             treasuryId: treasuryId,
             notes: notes,
@@ -13649,7 +15745,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             required String fullName,
             Value<String> phone = const Value.absent(),
             Value<String> address = const Value.absent(),
+            Value<String> position = const Value.absent(),
             Value<double> basicSalary = const Value.absent(),
+            Value<String> salaryCurrency = const Value.absent(),
             Value<DateTime?> hireDate = const Value.absent(),
             Value<int?> treasuryId = const Value.absent(),
             Value<String> notes = const Value.absent(),
@@ -13662,7 +15760,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             fullName: fullName,
             phone: phone,
             address: address,
+            position: position,
             basicSalary: basicSalary,
+            salaryCurrency: salaryCurrency,
             hireDate: hireDate,
             treasuryId: treasuryId,
             notes: notes,
@@ -14555,34 +16655,707 @@ typedef $$CashAdvanceRepaymentsTableProcessedTableManager
         (CashAdvanceRepayment, $$CashAdvanceRepaymentsTableReferences),
         CashAdvanceRepayment,
         PrefetchHooks Function({bool cashAdvanceId})>;
+typedef $$PayrollPeriodsTableCreateCompanionBuilder = PayrollPeriodsCompanion
+    Function({
+  Value<int> id,
+  required int year,
+  required int month,
+  required int fiscalPeriodId,
+  Value<int> workingDays,
+  Value<String> workingDaysMode,
+  Value<double?> exchangeRate,
+  Value<String> status,
+  Value<double> fileTotal,
+  Value<String> sourceFileName,
+  Value<String> sourceFileHash,
+  Value<String> notes,
+  Value<int?> createdByUserId,
+  Value<DateTime> createdAt,
+  Value<int?> postedByUserId,
+  Value<DateTime?> postedAt,
+  Value<bool> isDeleted,
+  Value<DateTime?> deletedAt,
+});
+typedef $$PayrollPeriodsTableUpdateCompanionBuilder = PayrollPeriodsCompanion
+    Function({
+  Value<int> id,
+  Value<int> year,
+  Value<int> month,
+  Value<int> fiscalPeriodId,
+  Value<int> workingDays,
+  Value<String> workingDaysMode,
+  Value<double?> exchangeRate,
+  Value<String> status,
+  Value<double> fileTotal,
+  Value<String> sourceFileName,
+  Value<String> sourceFileHash,
+  Value<String> notes,
+  Value<int?> createdByUserId,
+  Value<DateTime> createdAt,
+  Value<int?> postedByUserId,
+  Value<DateTime?> postedAt,
+  Value<bool> isDeleted,
+  Value<DateTime?> deletedAt,
+});
+
+final class $$PayrollPeriodsTableReferences
+    extends BaseReferences<_$AppDatabase, $PayrollPeriodsTable, PayrollPeriod> {
+  $$PayrollPeriodsTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $FiscalPeriodsTable _fiscalPeriodIdTable(_$AppDatabase db) =>
+      db.fiscalPeriods.createAlias($_aliasNameGenerator(
+          db.payrollPeriods.fiscalPeriodId, db.fiscalPeriods.id));
+
+  $$FiscalPeriodsTableProcessedTableManager get fiscalPeriodId {
+    final $_column = $_itemColumn<int>('fiscal_period_id')!;
+
+    final manager = $$FiscalPeriodsTableTableManager($_db, $_db.fiscalPeriods)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_fiscalPeriodIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$SalaryPaymentsTable, List<SalaryPayment>>
+      _salaryPaymentsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.salaryPayments,
+              aliasName: $_aliasNameGenerator(
+                  db.payrollPeriods.id, db.salaryPayments.payrollPeriodId));
+
+  $$SalaryPaymentsTableProcessedTableManager get salaryPaymentsRefs {
+    final manager = $$SalaryPaymentsTableTableManager($_db, $_db.salaryPayments)
+        .filter(
+            (f) => f.payrollPeriodId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_salaryPaymentsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$AdvanceLinesTable, List<AdvanceLine>>
+      _advanceLinesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.advanceLines,
+              aliasName: $_aliasNameGenerator(
+                  db.payrollPeriods.id, db.advanceLines.payrollPeriodId));
+
+  $$AdvanceLinesTableProcessedTableManager get advanceLinesRefs {
+    final manager = $$AdvanceLinesTableTableManager($_db, $_db.advanceLines)
+        .filter(
+            (f) => f.payrollPeriodId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_advanceLinesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$PayrollPeriodsTableFilterComposer
+    extends Composer<_$AppDatabase, $PayrollPeriodsTable> {
+  $$PayrollPeriodsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get month => $composableBuilder(
+      column: $table.month, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get workingDays => $composableBuilder(
+      column: $table.workingDays, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get workingDaysMode => $composableBuilder(
+      column: $table.workingDaysMode,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get fileTotal => $composableBuilder(
+      column: $table.fileTotal, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceFileName => $composableBuilder(
+      column: $table.sourceFileName,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceFileHash => $composableBuilder(
+      column: $table.sourceFileHash,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get postedByUserId => $composableBuilder(
+      column: $table.postedByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get postedAt => $composableBuilder(
+      column: $table.postedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  $$FiscalPeriodsTableFilterComposer get fiscalPeriodId {
+    final $$FiscalPeriodsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.fiscalPeriodId,
+        referencedTable: $db.fiscalPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FiscalPeriodsTableFilterComposer(
+              $db: $db,
+              $table: $db.fiscalPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> salaryPaymentsRefs(
+      Expression<bool> Function($$SalaryPaymentsTableFilterComposer f) f) {
+    final $$SalaryPaymentsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.salaryPayments,
+        getReferencedColumn: (t) => t.payrollPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SalaryPaymentsTableFilterComposer(
+              $db: $db,
+              $table: $db.salaryPayments,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> advanceLinesRefs(
+      Expression<bool> Function($$AdvanceLinesTableFilterComposer f) f) {
+    final $$AdvanceLinesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advanceLines,
+        getReferencedColumn: (t) => t.payrollPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvanceLinesTableFilterComposer(
+              $db: $db,
+              $table: $db.advanceLines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$PayrollPeriodsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PayrollPeriodsTable> {
+  $$PayrollPeriodsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get month => $composableBuilder(
+      column: $table.month, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get workingDays => $composableBuilder(
+      column: $table.workingDays, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get workingDaysMode => $composableBuilder(
+      column: $table.workingDaysMode,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get fileTotal => $composableBuilder(
+      column: $table.fileTotal, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceFileName => $composableBuilder(
+      column: $table.sourceFileName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceFileHash => $composableBuilder(
+      column: $table.sourceFileHash,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get postedByUserId => $composableBuilder(
+      column: $table.postedByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get postedAt => $composableBuilder(
+      column: $table.postedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  $$FiscalPeriodsTableOrderingComposer get fiscalPeriodId {
+    final $$FiscalPeriodsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.fiscalPeriodId,
+        referencedTable: $db.fiscalPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FiscalPeriodsTableOrderingComposer(
+              $db: $db,
+              $table: $db.fiscalPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$PayrollPeriodsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PayrollPeriodsTable> {
+  $$PayrollPeriodsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<int> get workingDays => $composableBuilder(
+      column: $table.workingDays, builder: (column) => column);
+
+  GeneratedColumn<String> get workingDaysMode => $composableBuilder(
+      column: $table.workingDaysMode, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<double> get fileTotal =>
+      $composableBuilder(column: $table.fileTotal, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceFileName => $composableBuilder(
+      column: $table.sourceFileName, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceFileHash => $composableBuilder(
+      column: $table.sourceFileHash, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get postedByUserId => $composableBuilder(
+      column: $table.postedByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get postedAt =>
+      $composableBuilder(column: $table.postedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$FiscalPeriodsTableAnnotationComposer get fiscalPeriodId {
+    final $$FiscalPeriodsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.fiscalPeriodId,
+        referencedTable: $db.fiscalPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$FiscalPeriodsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.fiscalPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<T> salaryPaymentsRefs<T extends Object>(
+      Expression<T> Function($$SalaryPaymentsTableAnnotationComposer a) f) {
+    final $$SalaryPaymentsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.salaryPayments,
+        getReferencedColumn: (t) => t.payrollPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SalaryPaymentsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.salaryPayments,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> advanceLinesRefs<T extends Object>(
+      Expression<T> Function($$AdvanceLinesTableAnnotationComposer a) f) {
+    final $$AdvanceLinesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.advanceLines,
+        getReferencedColumn: (t) => t.payrollPeriodId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$AdvanceLinesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.advanceLines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$PayrollPeriodsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $PayrollPeriodsTable,
+    PayrollPeriod,
+    $$PayrollPeriodsTableFilterComposer,
+    $$PayrollPeriodsTableOrderingComposer,
+    $$PayrollPeriodsTableAnnotationComposer,
+    $$PayrollPeriodsTableCreateCompanionBuilder,
+    $$PayrollPeriodsTableUpdateCompanionBuilder,
+    (PayrollPeriod, $$PayrollPeriodsTableReferences),
+    PayrollPeriod,
+    PrefetchHooks Function(
+        {bool fiscalPeriodId,
+        bool salaryPaymentsRefs,
+        bool advanceLinesRefs})> {
+  $$PayrollPeriodsTableTableManager(
+      _$AppDatabase db, $PayrollPeriodsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PayrollPeriodsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PayrollPeriodsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PayrollPeriodsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> year = const Value.absent(),
+            Value<int> month = const Value.absent(),
+            Value<int> fiscalPeriodId = const Value.absent(),
+            Value<int> workingDays = const Value.absent(),
+            Value<String> workingDaysMode = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<double> fileTotal = const Value.absent(),
+            Value<String> sourceFileName = const Value.absent(),
+            Value<String> sourceFileHash = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<int?> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int?> postedByUserId = const Value.absent(),
+            Value<DateTime?> postedAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+          }) =>
+              PayrollPeriodsCompanion(
+            id: id,
+            year: year,
+            month: month,
+            fiscalPeriodId: fiscalPeriodId,
+            workingDays: workingDays,
+            workingDaysMode: workingDaysMode,
+            exchangeRate: exchangeRate,
+            status: status,
+            fileTotal: fileTotal,
+            sourceFileName: sourceFileName,
+            sourceFileHash: sourceFileHash,
+            notes: notes,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+            postedByUserId: postedByUserId,
+            postedAt: postedAt,
+            isDeleted: isDeleted,
+            deletedAt: deletedAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int year,
+            required int month,
+            required int fiscalPeriodId,
+            Value<int> workingDays = const Value.absent(),
+            Value<String> workingDaysMode = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<double> fileTotal = const Value.absent(),
+            Value<String> sourceFileName = const Value.absent(),
+            Value<String> sourceFileHash = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<int?> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int?> postedByUserId = const Value.absent(),
+            Value<DateTime?> postedAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+          }) =>
+              PayrollPeriodsCompanion.insert(
+            id: id,
+            year: year,
+            month: month,
+            fiscalPeriodId: fiscalPeriodId,
+            workingDays: workingDays,
+            workingDaysMode: workingDaysMode,
+            exchangeRate: exchangeRate,
+            status: status,
+            fileTotal: fileTotal,
+            sourceFileName: sourceFileName,
+            sourceFileHash: sourceFileHash,
+            notes: notes,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+            postedByUserId: postedByUserId,
+            postedAt: postedAt,
+            isDeleted: isDeleted,
+            deletedAt: deletedAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$PayrollPeriodsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {fiscalPeriodId = false,
+              salaryPaymentsRefs = false,
+              advanceLinesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (salaryPaymentsRefs) db.salaryPayments,
+                if (advanceLinesRefs) db.advanceLines
+              ],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (fiscalPeriodId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.fiscalPeriodId,
+                    referencedTable: $$PayrollPeriodsTableReferences
+                        ._fiscalPeriodIdTable(db),
+                    referencedColumn: $$PayrollPeriodsTableReferences
+                        ._fiscalPeriodIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (salaryPaymentsRefs)
+                    await $_getPrefetchedData<PayrollPeriod,
+                            $PayrollPeriodsTable, SalaryPayment>(
+                        currentTable: table,
+                        referencedTable: $$PayrollPeriodsTableReferences
+                            ._salaryPaymentsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$PayrollPeriodsTableReferences(db, table, p0)
+                                .salaryPaymentsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.payrollPeriodId == item.id),
+                        typedResults: items),
+                  if (advanceLinesRefs)
+                    await $_getPrefetchedData<PayrollPeriod,
+                            $PayrollPeriodsTable, AdvanceLine>(
+                        currentTable: table,
+                        referencedTable: $$PayrollPeriodsTableReferences
+                            ._advanceLinesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$PayrollPeriodsTableReferences(db, table, p0)
+                                .advanceLinesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.payrollPeriodId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$PayrollPeriodsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $PayrollPeriodsTable,
+    PayrollPeriod,
+    $$PayrollPeriodsTableFilterComposer,
+    $$PayrollPeriodsTableOrderingComposer,
+    $$PayrollPeriodsTableAnnotationComposer,
+    $$PayrollPeriodsTableCreateCompanionBuilder,
+    $$PayrollPeriodsTableUpdateCompanionBuilder,
+    (PayrollPeriod, $$PayrollPeriodsTableReferences),
+    PayrollPeriod,
+    PrefetchHooks Function(
+        {bool fiscalPeriodId, bool salaryPaymentsRefs, bool advanceLinesRefs})>;
 typedef $$SalaryPaymentsTableCreateCompanionBuilder = SalaryPaymentsCompanion
     Function({
   Value<int> id,
   required int employeeId,
+  Value<int?> payrollPeriodId,
   Value<String> periodLabel,
+  Value<String> snapshotName,
+  Value<String> snapshotPosition,
+  Value<String> snapshotCurrency,
+  Value<DateTime?> snapshotHireDate,
   Value<double> basicSalary,
+  Value<int> eligibleDays,
+  Value<bool> eligibleDaysIsManual,
+  Value<int> absenceDays,
+  Value<double> absenceDeduction,
+  Value<bool> absenceDeductionIsManual,
   Value<double> additions,
   Value<double> deductions,
+  Value<double> advanceRepaymentAmount,
+  Value<int?> cashAdvanceId,
   Value<double> netAmount,
+  Value<double?> exchangeRate,
+  Value<double> netAmountIqd,
+  Value<double?> fileNetAmount,
   required DateTime paymentDate,
+  Value<String> paymentStatus,
+  Value<DateTime?> paidAt,
+  Value<int?> treasuryId,
   Value<int?> voucherId,
+  Value<int?> advanceLineId,
+  Value<int?> advanceId,
   Value<String> notes,
   Value<DateTime> createdAt,
+  Value<DateTime?> updatedAt,
   Value<bool> isDeleted,
 });
 typedef $$SalaryPaymentsTableUpdateCompanionBuilder = SalaryPaymentsCompanion
     Function({
   Value<int> id,
   Value<int> employeeId,
+  Value<int?> payrollPeriodId,
   Value<String> periodLabel,
+  Value<String> snapshotName,
+  Value<String> snapshotPosition,
+  Value<String> snapshotCurrency,
+  Value<DateTime?> snapshotHireDate,
   Value<double> basicSalary,
+  Value<int> eligibleDays,
+  Value<bool> eligibleDaysIsManual,
+  Value<int> absenceDays,
+  Value<double> absenceDeduction,
+  Value<bool> absenceDeductionIsManual,
   Value<double> additions,
   Value<double> deductions,
+  Value<double> advanceRepaymentAmount,
+  Value<int?> cashAdvanceId,
   Value<double> netAmount,
+  Value<double?> exchangeRate,
+  Value<double> netAmountIqd,
+  Value<double?> fileNetAmount,
   Value<DateTime> paymentDate,
+  Value<String> paymentStatus,
+  Value<DateTime?> paidAt,
+  Value<int?> treasuryId,
   Value<int?> voucherId,
+  Value<int?> advanceLineId,
+  Value<int?> advanceId,
   Value<String> notes,
   Value<DateTime> createdAt,
+  Value<DateTime?> updatedAt,
   Value<bool> isDeleted,
 });
 
@@ -14605,6 +17378,36 @@ final class $$SalaryPaymentsTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
   }
+
+  static $PayrollPeriodsTable _payrollPeriodIdTable(_$AppDatabase db) =>
+      db.payrollPeriods.createAlias($_aliasNameGenerator(
+          db.salaryPayments.payrollPeriodId, db.payrollPeriods.id));
+
+  $$PayrollPeriodsTableProcessedTableManager? get payrollPeriodId {
+    final $_column = $_itemColumn<int>('payroll_period_id');
+    if ($_column == null) return null;
+    final manager = $$PayrollPeriodsTableTableManager($_db, $_db.payrollPeriods)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_payrollPeriodIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $TreasuriesTable _treasuryIdTable(_$AppDatabase db) =>
+      db.treasuries.createAlias(
+          $_aliasNameGenerator(db.salaryPayments.treasuryId, db.treasuries.id));
+
+  $$TreasuriesTableProcessedTableManager? get treasuryId {
+    final $_column = $_itemColumn<int>('treasury_id');
+    if ($_column == null) return null;
+    final manager = $$TreasuriesTableTableManager($_db, $_db.treasuries)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_treasuryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
 }
 
 class $$SalaryPaymentsTableFilterComposer
@@ -14622,8 +17425,41 @@ class $$SalaryPaymentsTableFilterComposer
   ColumnFilters<String> get periodLabel => $composableBuilder(
       column: $table.periodLabel, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get snapshotName => $composableBuilder(
+      column: $table.snapshotName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get snapshotPosition => $composableBuilder(
+      column: $table.snapshotPosition,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get snapshotCurrency => $composableBuilder(
+      column: $table.snapshotCurrency,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get snapshotHireDate => $composableBuilder(
+      column: $table.snapshotHireDate,
+      builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get basicSalary => $composableBuilder(
       column: $table.basicSalary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get eligibleDays => $composableBuilder(
+      column: $table.eligibleDays, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get eligibleDaysIsManual => $composableBuilder(
+      column: $table.eligibleDaysIsManual,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get absenceDays => $composableBuilder(
+      column: $table.absenceDays, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get absenceDeduction => $composableBuilder(
+      column: $table.absenceDeduction,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get absenceDeductionIsManual => $composableBuilder(
+      column: $table.absenceDeductionIsManual,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get additions => $composableBuilder(
       column: $table.additions, builder: (column) => ColumnFilters(column));
@@ -14631,20 +17467,51 @@ class $$SalaryPaymentsTableFilterComposer
   ColumnFilters<double> get deductions => $composableBuilder(
       column: $table.deductions, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<double> get advanceRepaymentAmount => $composableBuilder(
+      column: $table.advanceRepaymentAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get cashAdvanceId => $composableBuilder(
+      column: $table.cashAdvanceId, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get netAmount => $composableBuilder(
       column: $table.netAmount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get netAmountIqd => $composableBuilder(
+      column: $table.netAmountIqd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get fileNetAmount => $composableBuilder(
+      column: $table.fileNetAmount, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get paymentDate => $composableBuilder(
       column: $table.paymentDate, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get paymentStatus => $composableBuilder(
+      column: $table.paymentStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get paidAt => $composableBuilder(
+      column: $table.paidAt, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get voucherId => $composableBuilder(
       column: $table.voucherId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get advanceLineId => $composableBuilder(
+      column: $table.advanceLineId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get advanceId => $composableBuilder(
+      column: $table.advanceId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
@@ -14661,6 +17528,46 @@ class $$SalaryPaymentsTableFilterComposer
             $$EmployeesTableFilterComposer(
               $db: $db,
               $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$PayrollPeriodsTableFilterComposer get payrollPeriodId {
+    final $$PayrollPeriodsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.payrollPeriodId,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableFilterComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$TreasuriesTableFilterComposer get treasuryId {
+    final $$TreasuriesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.treasuryId,
+        referencedTable: $db.treasuries,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TreasuriesTableFilterComposer(
+              $db: $db,
+              $table: $db.treasuries,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -14685,8 +17592,43 @@ class $$SalaryPaymentsTableOrderingComposer
   ColumnOrderings<String> get periodLabel => $composableBuilder(
       column: $table.periodLabel, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get snapshotName => $composableBuilder(
+      column: $table.snapshotName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get snapshotPosition => $composableBuilder(
+      column: $table.snapshotPosition,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get snapshotCurrency => $composableBuilder(
+      column: $table.snapshotCurrency,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get snapshotHireDate => $composableBuilder(
+      column: $table.snapshotHireDate,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get basicSalary => $composableBuilder(
       column: $table.basicSalary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get eligibleDays => $composableBuilder(
+      column: $table.eligibleDays,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get eligibleDaysIsManual => $composableBuilder(
+      column: $table.eligibleDaysIsManual,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get absenceDays => $composableBuilder(
+      column: $table.absenceDays, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get absenceDeduction => $composableBuilder(
+      column: $table.absenceDeduction,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get absenceDeductionIsManual => $composableBuilder(
+      column: $table.absenceDeductionIsManual,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get additions => $composableBuilder(
       column: $table.additions, builder: (column) => ColumnOrderings(column));
@@ -14694,20 +17636,57 @@ class $$SalaryPaymentsTableOrderingComposer
   ColumnOrderings<double> get deductions => $composableBuilder(
       column: $table.deductions, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get advanceRepaymentAmount => $composableBuilder(
+      column: $table.advanceRepaymentAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get cashAdvanceId => $composableBuilder(
+      column: $table.cashAdvanceId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get netAmount => $composableBuilder(
       column: $table.netAmount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get netAmountIqd => $composableBuilder(
+      column: $table.netAmountIqd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get fileNetAmount => $composableBuilder(
+      column: $table.fileNetAmount,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get paymentDate => $composableBuilder(
       column: $table.paymentDate, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get paymentStatus => $composableBuilder(
+      column: $table.paymentStatus,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get paidAt => $composableBuilder(
+      column: $table.paidAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get voucherId => $composableBuilder(
       column: $table.voucherId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get advanceLineId => $composableBuilder(
+      column: $table.advanceLineId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get advanceId => $composableBuilder(
+      column: $table.advanceId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
@@ -14724,6 +17703,46 @@ class $$SalaryPaymentsTableOrderingComposer
             $$EmployeesTableOrderingComposer(
               $db: $db,
               $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$PayrollPeriodsTableOrderingComposer get payrollPeriodId {
+    final $$PayrollPeriodsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.payrollPeriodId,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableOrderingComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$TreasuriesTableOrderingComposer get treasuryId {
+    final $$TreasuriesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.treasuryId,
+        referencedTable: $db.treasuries,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TreasuriesTableOrderingComposer(
+              $db: $db,
+              $table: $db.treasuries,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -14748,8 +17767,35 @@ class $$SalaryPaymentsTableAnnotationComposer
   GeneratedColumn<String> get periodLabel => $composableBuilder(
       column: $table.periodLabel, builder: (column) => column);
 
+  GeneratedColumn<String> get snapshotName => $composableBuilder(
+      column: $table.snapshotName, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotPosition => $composableBuilder(
+      column: $table.snapshotPosition, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotCurrency => $composableBuilder(
+      column: $table.snapshotCurrency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get snapshotHireDate => $composableBuilder(
+      column: $table.snapshotHireDate, builder: (column) => column);
+
   GeneratedColumn<double> get basicSalary => $composableBuilder(
       column: $table.basicSalary, builder: (column) => column);
+
+  GeneratedColumn<int> get eligibleDays => $composableBuilder(
+      column: $table.eligibleDays, builder: (column) => column);
+
+  GeneratedColumn<bool> get eligibleDaysIsManual => $composableBuilder(
+      column: $table.eligibleDaysIsManual, builder: (column) => column);
+
+  GeneratedColumn<int> get absenceDays => $composableBuilder(
+      column: $table.absenceDays, builder: (column) => column);
+
+  GeneratedColumn<double> get absenceDeduction => $composableBuilder(
+      column: $table.absenceDeduction, builder: (column) => column);
+
+  GeneratedColumn<bool> get absenceDeductionIsManual => $composableBuilder(
+      column: $table.absenceDeductionIsManual, builder: (column) => column);
 
   GeneratedColumn<double> get additions =>
       $composableBuilder(column: $table.additions, builder: (column) => column);
@@ -14757,20 +17803,50 @@ class $$SalaryPaymentsTableAnnotationComposer
   GeneratedColumn<double> get deductions => $composableBuilder(
       column: $table.deductions, builder: (column) => column);
 
+  GeneratedColumn<double> get advanceRepaymentAmount => $composableBuilder(
+      column: $table.advanceRepaymentAmount, builder: (column) => column);
+
+  GeneratedColumn<int> get cashAdvanceId => $composableBuilder(
+      column: $table.cashAdvanceId, builder: (column) => column);
+
   GeneratedColumn<double> get netAmount =>
       $composableBuilder(column: $table.netAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => column);
+
+  GeneratedColumn<double> get netAmountIqd => $composableBuilder(
+      column: $table.netAmountIqd, builder: (column) => column);
+
+  GeneratedColumn<double> get fileNetAmount => $composableBuilder(
+      column: $table.fileNetAmount, builder: (column) => column);
 
   GeneratedColumn<DateTime> get paymentDate => $composableBuilder(
       column: $table.paymentDate, builder: (column) => column);
 
+  GeneratedColumn<String> get paymentStatus => $composableBuilder(
+      column: $table.paymentStatus, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get paidAt =>
+      $composableBuilder(column: $table.paidAt, builder: (column) => column);
+
   GeneratedColumn<int> get voucherId =>
       $composableBuilder(column: $table.voucherId, builder: (column) => column);
+
+  GeneratedColumn<int> get advanceLineId => $composableBuilder(
+      column: $table.advanceLineId, builder: (column) => column);
+
+  GeneratedColumn<int> get advanceId =>
+      $composableBuilder(column: $table.advanceId, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
@@ -14794,6 +17870,46 @@ class $$SalaryPaymentsTableAnnotationComposer
             ));
     return composer;
   }
+
+  $$PayrollPeriodsTableAnnotationComposer get payrollPeriodId {
+    final $$PayrollPeriodsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.payrollPeriodId,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$TreasuriesTableAnnotationComposer get treasuryId {
+    final $$TreasuriesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.treasuryId,
+        referencedTable: $db.treasuries,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TreasuriesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$SalaryPaymentsTableTableManager extends RootTableManager<
@@ -14807,7 +17923,8 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
     $$SalaryPaymentsTableUpdateCompanionBuilder,
     (SalaryPayment, $$SalaryPaymentsTableReferences),
     SalaryPayment,
-    PrefetchHooks Function({bool employeeId})> {
+    PrefetchHooks Function(
+        {bool employeeId, bool payrollPeriodId, bool treasuryId})> {
   $$SalaryPaymentsTableTableManager(
       _$AppDatabase db, $SalaryPaymentsTable table)
       : super(TableManagerState(
@@ -14822,57 +17939,141 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<int> employeeId = const Value.absent(),
+            Value<int?> payrollPeriodId = const Value.absent(),
             Value<String> periodLabel = const Value.absent(),
+            Value<String> snapshotName = const Value.absent(),
+            Value<String> snapshotPosition = const Value.absent(),
+            Value<String> snapshotCurrency = const Value.absent(),
+            Value<DateTime?> snapshotHireDate = const Value.absent(),
             Value<double> basicSalary = const Value.absent(),
+            Value<int> eligibleDays = const Value.absent(),
+            Value<bool> eligibleDaysIsManual = const Value.absent(),
+            Value<int> absenceDays = const Value.absent(),
+            Value<double> absenceDeduction = const Value.absent(),
+            Value<bool> absenceDeductionIsManual = const Value.absent(),
             Value<double> additions = const Value.absent(),
             Value<double> deductions = const Value.absent(),
+            Value<double> advanceRepaymentAmount = const Value.absent(),
+            Value<int?> cashAdvanceId = const Value.absent(),
             Value<double> netAmount = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
+            Value<double> netAmountIqd = const Value.absent(),
+            Value<double?> fileNetAmount = const Value.absent(),
             Value<DateTime> paymentDate = const Value.absent(),
+            Value<String> paymentStatus = const Value.absent(),
+            Value<DateTime?> paidAt = const Value.absent(),
+            Value<int?> treasuryId = const Value.absent(),
             Value<int?> voucherId = const Value.absent(),
+            Value<int?> advanceLineId = const Value.absent(),
+            Value<int?> advanceId = const Value.absent(),
             Value<String> notes = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime?> updatedAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
           }) =>
               SalaryPaymentsCompanion(
             id: id,
             employeeId: employeeId,
+            payrollPeriodId: payrollPeriodId,
             periodLabel: periodLabel,
+            snapshotName: snapshotName,
+            snapshotPosition: snapshotPosition,
+            snapshotCurrency: snapshotCurrency,
+            snapshotHireDate: snapshotHireDate,
             basicSalary: basicSalary,
+            eligibleDays: eligibleDays,
+            eligibleDaysIsManual: eligibleDaysIsManual,
+            absenceDays: absenceDays,
+            absenceDeduction: absenceDeduction,
+            absenceDeductionIsManual: absenceDeductionIsManual,
             additions: additions,
             deductions: deductions,
+            advanceRepaymentAmount: advanceRepaymentAmount,
+            cashAdvanceId: cashAdvanceId,
             netAmount: netAmount,
+            exchangeRate: exchangeRate,
+            netAmountIqd: netAmountIqd,
+            fileNetAmount: fileNetAmount,
             paymentDate: paymentDate,
+            paymentStatus: paymentStatus,
+            paidAt: paidAt,
+            treasuryId: treasuryId,
             voucherId: voucherId,
+            advanceLineId: advanceLineId,
+            advanceId: advanceId,
             notes: notes,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             isDeleted: isDeleted,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required int employeeId,
+            Value<int?> payrollPeriodId = const Value.absent(),
             Value<String> periodLabel = const Value.absent(),
+            Value<String> snapshotName = const Value.absent(),
+            Value<String> snapshotPosition = const Value.absent(),
+            Value<String> snapshotCurrency = const Value.absent(),
+            Value<DateTime?> snapshotHireDate = const Value.absent(),
             Value<double> basicSalary = const Value.absent(),
+            Value<int> eligibleDays = const Value.absent(),
+            Value<bool> eligibleDaysIsManual = const Value.absent(),
+            Value<int> absenceDays = const Value.absent(),
+            Value<double> absenceDeduction = const Value.absent(),
+            Value<bool> absenceDeductionIsManual = const Value.absent(),
             Value<double> additions = const Value.absent(),
             Value<double> deductions = const Value.absent(),
+            Value<double> advanceRepaymentAmount = const Value.absent(),
+            Value<int?> cashAdvanceId = const Value.absent(),
             Value<double> netAmount = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
+            Value<double> netAmountIqd = const Value.absent(),
+            Value<double?> fileNetAmount = const Value.absent(),
             required DateTime paymentDate,
+            Value<String> paymentStatus = const Value.absent(),
+            Value<DateTime?> paidAt = const Value.absent(),
+            Value<int?> treasuryId = const Value.absent(),
             Value<int?> voucherId = const Value.absent(),
+            Value<int?> advanceLineId = const Value.absent(),
+            Value<int?> advanceId = const Value.absent(),
             Value<String> notes = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime?> updatedAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
           }) =>
               SalaryPaymentsCompanion.insert(
             id: id,
             employeeId: employeeId,
+            payrollPeriodId: payrollPeriodId,
             periodLabel: periodLabel,
+            snapshotName: snapshotName,
+            snapshotPosition: snapshotPosition,
+            snapshotCurrency: snapshotCurrency,
+            snapshotHireDate: snapshotHireDate,
             basicSalary: basicSalary,
+            eligibleDays: eligibleDays,
+            eligibleDaysIsManual: eligibleDaysIsManual,
+            absenceDays: absenceDays,
+            absenceDeduction: absenceDeduction,
+            absenceDeductionIsManual: absenceDeductionIsManual,
             additions: additions,
             deductions: deductions,
+            advanceRepaymentAmount: advanceRepaymentAmount,
+            cashAdvanceId: cashAdvanceId,
             netAmount: netAmount,
+            exchangeRate: exchangeRate,
+            netAmountIqd: netAmountIqd,
+            fileNetAmount: fileNetAmount,
             paymentDate: paymentDate,
+            paymentStatus: paymentStatus,
+            paidAt: paidAt,
+            treasuryId: treasuryId,
             voucherId: voucherId,
+            advanceLineId: advanceLineId,
+            advanceId: advanceId,
             notes: notes,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             isDeleted: isDeleted,
           ),
           withReferenceMapper: (p0) => p0
@@ -14881,7 +18082,10 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
                     $$SalaryPaymentsTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({employeeId = false}) {
+          prefetchHooksCallback: (
+              {employeeId = false,
+              payrollPeriodId = false,
+              treasuryId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -14908,6 +18112,27 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
                         $$SalaryPaymentsTableReferences._employeeIdTable(db).id,
                   ) as T;
                 }
+                if (payrollPeriodId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.payrollPeriodId,
+                    referencedTable: $$SalaryPaymentsTableReferences
+                        ._payrollPeriodIdTable(db),
+                    referencedColumn: $$SalaryPaymentsTableReferences
+                        ._payrollPeriodIdTable(db)
+                        .id,
+                  ) as T;
+                }
+                if (treasuryId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.treasuryId,
+                    referencedTable:
+                        $$SalaryPaymentsTableReferences._treasuryIdTable(db),
+                    referencedColumn:
+                        $$SalaryPaymentsTableReferences._treasuryIdTable(db).id,
+                  ) as T;
+                }
 
                 return state;
               },
@@ -14930,7 +18155,8 @@ typedef $$SalaryPaymentsTableProcessedTableManager = ProcessedTableManager<
     $$SalaryPaymentsTableUpdateCompanionBuilder,
     (SalaryPayment, $$SalaryPaymentsTableReferences),
     SalaryPayment,
-    PrefetchHooks Function({bool employeeId})>;
+    PrefetchHooks Function(
+        {bool employeeId, bool payrollPeriodId, bool treasuryId})>;
 typedef $$ContractorsTableCreateCompanionBuilder = ContractorsCompanion
     Function({
   Value<int> id,
@@ -16296,6 +19522,7 @@ typedef $$AdvanceLinesTableCreateCompanionBuilder = AdvanceLinesCompanion
   Value<bool> isExcluded,
   Value<String> excludeReason,
   Value<int?> voucherId,
+  Value<int?> payrollPeriodId,
 });
 typedef $$AdvanceLinesTableUpdateCompanionBuilder = AdvanceLinesCompanion
     Function({
@@ -16317,6 +19544,7 @@ typedef $$AdvanceLinesTableUpdateCompanionBuilder = AdvanceLinesCompanion
   Value<bool> isExcluded,
   Value<String> excludeReason,
   Value<int?> voucherId,
+  Value<int?> payrollPeriodId,
 });
 
 final class $$AdvanceLinesTableReferences
@@ -16333,6 +19561,21 @@ final class $$AdvanceLinesTableReferences
     final manager = $$AdvancesTableTableManager($_db, $_db.advances)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_advanceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $PayrollPeriodsTable _payrollPeriodIdTable(_$AppDatabase db) =>
+      db.payrollPeriods.createAlias($_aliasNameGenerator(
+          db.advanceLines.payrollPeriodId, db.payrollPeriods.id));
+
+  $$PayrollPeriodsTableProcessedTableManager? get payrollPeriodId {
+    final $_column = $_itemColumn<int>('payroll_period_id');
+    if ($_column == null) return null;
+    final manager = $$PayrollPeriodsTableTableManager($_db, $_db.payrollPeriods)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_payrollPeriodIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -16413,6 +19656,26 @@ class $$AdvanceLinesTableFilterComposer
             $$AdvancesTableFilterComposer(
               $db: $db,
               $table: $db.advances,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$PayrollPeriodsTableFilterComposer get payrollPeriodId {
+    final $$PayrollPeriodsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.payrollPeriodId,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableFilterComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -16506,6 +19769,26 @@ class $$AdvanceLinesTableOrderingComposer
             ));
     return composer;
   }
+
+  $$PayrollPeriodsTableOrderingComposer get payrollPeriodId {
+    final $$PayrollPeriodsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.payrollPeriodId,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableOrderingComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$AdvanceLinesTableAnnotationComposer
@@ -16587,6 +19870,26 @@ class $$AdvanceLinesTableAnnotationComposer
             ));
     return composer;
   }
+
+  $$PayrollPeriodsTableAnnotationComposer get payrollPeriodId {
+    final $$PayrollPeriodsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.payrollPeriodId,
+        referencedTable: $db.payrollPeriods,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PayrollPeriodsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.payrollPeriods,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$AdvanceLinesTableTableManager extends RootTableManager<
@@ -16600,7 +19903,7 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
     $$AdvanceLinesTableUpdateCompanionBuilder,
     (AdvanceLine, $$AdvanceLinesTableReferences),
     AdvanceLine,
-    PrefetchHooks Function({bool advanceId})> {
+    PrefetchHooks Function({bool advanceId, bool payrollPeriodId})> {
   $$AdvanceLinesTableTableManager(_$AppDatabase db, $AdvanceLinesTable table)
       : super(TableManagerState(
           db: db,
@@ -16630,6 +19933,7 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
             Value<bool> isExcluded = const Value.absent(),
             Value<String> excludeReason = const Value.absent(),
             Value<int?> voucherId = const Value.absent(),
+            Value<int?> payrollPeriodId = const Value.absent(),
           }) =>
               AdvanceLinesCompanion(
             id: id,
@@ -16650,6 +19954,7 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
             isExcluded: isExcluded,
             excludeReason: excludeReason,
             voucherId: voucherId,
+            payrollPeriodId: payrollPeriodId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -16670,6 +19975,7 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
             Value<bool> isExcluded = const Value.absent(),
             Value<String> excludeReason = const Value.absent(),
             Value<int?> voucherId = const Value.absent(),
+            Value<int?> payrollPeriodId = const Value.absent(),
           }) =>
               AdvanceLinesCompanion.insert(
             id: id,
@@ -16690,6 +19996,7 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
             isExcluded: isExcluded,
             excludeReason: excludeReason,
             voucherId: voucherId,
+            payrollPeriodId: payrollPeriodId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -16697,7 +20004,8 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
                     $$AdvanceLinesTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({advanceId = false}) {
+          prefetchHooksCallback: (
+              {advanceId = false, payrollPeriodId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -16724,6 +20032,17 @@ class $$AdvanceLinesTableTableManager extends RootTableManager<
                         $$AdvanceLinesTableReferences._advanceIdTable(db).id,
                   ) as T;
                 }
+                if (payrollPeriodId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.payrollPeriodId,
+                    referencedTable:
+                        $$AdvanceLinesTableReferences._payrollPeriodIdTable(db),
+                    referencedColumn: $$AdvanceLinesTableReferences
+                        ._payrollPeriodIdTable(db)
+                        .id,
+                  ) as T;
+                }
 
                 return state;
               },
@@ -16746,7 +20065,7 @@ typedef $$AdvanceLinesTableProcessedTableManager = ProcessedTableManager<
     $$AdvanceLinesTableUpdateCompanionBuilder,
     (AdvanceLine, $$AdvanceLinesTableReferences),
     AdvanceLine,
-    PrefetchHooks Function({bool advanceId})>;
+    PrefetchHooks Function({bool advanceId, bool payrollPeriodId})>;
 typedef $$ItemTypesTableCreateCompanionBuilder = ItemTypesCompanion Function({
   Value<int> id,
   required String name,
@@ -17620,6 +20939,8 @@ class $AppDatabaseManager {
       $$CashAdvancesTableTableManager(_db, _db.cashAdvances);
   $$CashAdvanceRepaymentsTableTableManager get cashAdvanceRepayments =>
       $$CashAdvanceRepaymentsTableTableManager(_db, _db.cashAdvanceRepayments);
+  $$PayrollPeriodsTableTableManager get payrollPeriods =>
+      $$PayrollPeriodsTableTableManager(_db, _db.payrollPeriods);
   $$SalaryPaymentsTableTableManager get salaryPayments =>
       $$SalaryPaymentsTableTableManager(_db, _db.salaryPayments);
   $$ContractorsTableTableManager get contractors =>

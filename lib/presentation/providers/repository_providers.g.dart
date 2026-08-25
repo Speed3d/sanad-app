@@ -108,5 +108,30 @@ final advanceRepositoryProvider = Provider<IAdvanceRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AdvanceRepositoryRef = ProviderRef<IAdvanceRepository>;
+String _$payrollRepositoryHash() => r'e05a611c4c9d25b2c6a28fd32ad9f84539ae9f0d';
+
+/// Provider مستودع كشوف الرواتب (Schema v7)
+///
+/// ⚠️ **بلا واجهة `domain` عمداً** — بخلاف بقية المستودعات هنا. الكشف
+/// وسطوره يُعادان كجداول Drift مباشرةً، على نمط `AttachmentsDao` المعتمد
+/// في Schema v6: لا مصدر بيانات ثانياً يُستبدَل، والاختبارات تستعمل قاعدة
+/// حقيقية أصلاً. وكل طبقة تحويل إضافية موضعٌ يُنسى فيه حقل — وهي **علّة
+/// ب-١ بعينها** (المستودع كان يُسقط أربعة حقول في ثلاثة مواضع).
+///
+/// Copied from [payrollRepository].
+@ProviderFor(payrollRepository)
+final payrollRepositoryProvider = Provider<PayrollRepository>.internal(
+  payrollRepository,
+  name: r'payrollRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$payrollRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PayrollRepositoryRef = ProviderRef<PayrollRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

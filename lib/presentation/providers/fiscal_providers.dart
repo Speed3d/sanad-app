@@ -262,11 +262,13 @@ class FiscalNotifier extends _$FiscalNotifier {
             periodName: period.name,
             vouchersPurged: purged.vouchers,
             advancesPurged: purged.advances,
+            payrollsPurged: purged.payrolls,
           );
 
       state = AsyncData(
         'تم محو الفترة "${period.name}" نهائياً — '
-        '${purged.vouchers} سند و${purged.advances} سلفة مشروع ✓',
+        '${purged.vouchers} سند و${purged.advances} سلفة مشروع'
+        '${purged.payrolls > 0 ? ' و${purged.payrolls} كشف رواتب' : ''} ✓',
       );
       return true;
     } on StateError catch (e, st) {

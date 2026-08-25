@@ -46,6 +46,9 @@ import '../../presentation/features/reports/reports_screen.dart';
 import '../../presentation/features/excel/excel_import_screen.dart';
 import '../../presentation/features/advances/advances_list_screen.dart';
 import '../../presentation/features/advances/advance_review_screen.dart';
+import '../../presentation/features/payroll/payroll_periods_screen.dart';
+import '../../presentation/features/payroll/payroll_sheet_screen.dart';
+import '../../presentation/features/payroll/payroll_import_screen.dart';
 import '../../presentation/features/fiscal/fiscal_screen.dart';
 import '../../presentation/features/backup/backup_screen.dart';
 import '../../presentation/features/settings/settings_screen.dart';
@@ -134,6 +137,13 @@ class _RouterNotifier extends ChangeNotifier {
     // المسار. حجب المسار كان سيمنع المحاسب من تجهيز المسودة أصلاً.
     if (location.startsWith(AppRoutes.advances)) {
       return AppPermission.prepareAdvance;
+    }
+    // شاشات الرواتب: العرض والتجهيز بلا أثر مالي — الحاجز الحقيقي على
+    // **التسديد** داخل PayrollNotifier.payEntries (managePayroll)، لا على
+    // المسار. حجب المسار كان سيمنع المحاسب من تجهيز الكشف أصلاً — وهو نفس
+    // منطق سلف المشاريع أعلاه.
+    if (location.startsWith(AppRoutes.payroll)) {
+      return AppPermission.preparePayroll;
     }
     if (location.startsWith(AppRoutes.backup)) {
       return AppPermission.createBackup;
@@ -315,6 +325,37 @@ GoRouter appRouter(ProviderRef<GoRouter> ref) {
                     );
                   }
                   return AdvanceReviewScreen(advanceId: id);
+                },
+              ),
+            ],
+          ),
+          /// كشوف الرواتب — شبكة الأشهر ثم كشف الشهر
+          ///
+          /// ⚠️ **مسار الاستيراد قبل `:id` عمداً**: go_router يطابق بالترتيب،
+          ///   ولو جاء `:id` أولاً لالتقط كلمة `import` كمعرّف فأظهر خطأ
+          ///   «معرّف غير صحيح» بدل فتح المعالج.
+          GoRoute(
+            path: AppRoutes.payroll,
+            name: 'payroll',
+            builder: (context, state) => const PayrollPeriodsScreen(),
+            routes: [
+              GoRoute(
+                path: 'import',
+                name: 'payroll-import',
+                builder: (context, state) => const PayrollImportScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                name: 'payroll-sheet',
+                builder: (context, state) {
+                  final id = int.tryParse(state.pathParameters['id'] ?? '');
+                  if (id == null) {
+                    return const ErrorScreen(
+                      error: 'معرّف كشف الرواتب غير صحيح',
+                      is404: true,
+                    );
+                  }
+                  return PayrollSheetScreen(periodId: id);
                 },
               ),
             ],

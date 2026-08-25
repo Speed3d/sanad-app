@@ -21,6 +21,8 @@ import '../../../domain/models/advance_model.dart';
 import '../../../core/services/attachment_service.dart';
 import '../../../data/database/daos/attachments_dao.dart';
 import '../../providers/advance_providers.dart';
+import '../../providers/payroll_providers.dart';
+import '../../../core/services/payroll_calculator.dart';
 import '../../widgets/common/attachments_panel.dart';
 import '../../providers/auth_provider.dart';
 import 'widgets/advance_summary_bar.dart';
@@ -212,6 +214,17 @@ class _ReviewBody extends ConsumerWidget {
     bool canPostDeficit,
   ) async {
     final summary = await ref.read(advanceSummaryProvider(advance.id).future);
+
+    // معاينات الربط + تحذير الأسطر غير المربوطة — تُقرأ قبل فتح الحوار
+    // ليعرف المالك الأثر كلّه في مكان واحد (قرارا المالك ٩ و١٢).
+    final links = await ref.read(payrollLinkPreviewsProvider(advance.id).future);
+    final lines = await ref.read(advanceLinesProvider(advance.id).future);
+    final unlinked = lines
+        .where((l) =>
+            !l.isExcluded && !l.isPayrollLinked && l.itemType == 'راتب')
+        .map((l) => l.reason.isEmpty ? 'صف ${l.rowNumber}' : l.reason)
+        .toList();
+
     if (!context.mounted) return;
 
     final decision = await showDialog<PostAdvanceDecision>(
@@ -220,6 +233,8 @@ class _ReviewBody extends ConsumerWidget {
         advance: advance,
         summary: summary,
         canPostWithDeficit: canPostDeficit,
+        payrollLinks: links,
+        unlinkedPayrollLines: unlinked,
       ),
     );
 
@@ -443,6 +458,28 @@ class _LineCard extends ConsumerWidget {
                   ],
                   if (editable) ...[
                     const SizedBox(width: 4),
+                    // 🔑 **علامة ربط الرواتب** — قلب المرحلة ٣
+                    //
+                    // تظهر على كل سطر (لا على بند «راتب» وحده): المحاسب قد
+                    // يكتب «رواتب الشهر» أو «مستحقات العاملين» أو يترك البند
+                    // فارغاً. حصرُها ببندٍ بعينه كان يُخفي الميزة عن نصف
+                    // الملفات الواردة.
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(
+                        line.isPayrollLinked
+                            ? Icons.link_rounded
+                            : Icons.link_off_rounded,
+                        size: 18,
+                        color: line.isPayrollLinked
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      tooltip: line.isPayrollLinked
+                          ? 'مربوط بكشف رواتب — اضغط لفكّ الربط'
+                          : 'ربط بكشف رواتب شهر',
+                      onPressed: () => _togglePayrollLink(context, ref),
+                    ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.tune, size: 18),
@@ -466,6 +503,11 @@ class _LineCard extends ConsumerWidget {
                   ],
                 ],
               ),
+              if (line.isPayrollLinked)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: _PayrollMatchBar(line: line, advanceId: advance.id),
+                ),
               if (line.isExcluded && line.excludeReason.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -479,6 +521,73 @@ class _LineCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// ربط السطر بكشف رواتب أو فكّه
+  ///
+  /// ⚠️ **بلا `TextEditingController`** — الحوار اختيارٌ من قائمة فحسب،
+  ///   فلا شيء يحتاج تخلّصاً ولا شيء يموت مبكراً (ع-٠٤).
+  Future<void> _togglePayrollLink(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(advanceNotifierProvider.notifier);
+
+    if (line.isPayrollLinked) {
+      await notifier.unlinkLineFromPayroll(
+        advanceId: advance.id,
+        lineId: line.id,
+      );
+      return;
+    }
+
+    final periods = await ref.read(allPayrollPeriodsProvider.future);
+    final drafts = periods
+        .where((p) => p.status == PayrollStatusDb.draft)
+        .toList();
+    if (!context.mounted) return;
+
+    if (drafts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'لا توجد كشوف رواتب مسودة لربطها.\n'
+            'استورد ملف رواتب الشهر أولاً من شاشة «الرواتب».',
+          ),
+          duration: Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
+
+    final chosen = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('اربط هذا السطر بكشف رواتب'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+            child: Text(
+              'سيشمل الربط **موظفي خزينة هذا المشروع** غير المسدَّدين في '
+              'الكشف. وعند الاعتماد يجب أن يساوي مبلغ السطر مجموع رواتبهم '
+              'بالضبط — وإلا رُفض الاعتماد.',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
+          ),
+          for (final p in drafts)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, p.id),
+              child: Text(
+                'رواتب ${PayrollCalculator.periodLabel(p.year, p.month)}',
+              ),
+            ),
+        ],
+      ),
+    );
+    if (chosen == null) return;
+
+    await notifier.linkLineToPayroll(
+      advanceId: advance.id,
+      lineId: line.id,
+      payrollPeriodId: chosen,
     );
   }
 
@@ -879,6 +988,74 @@ class _EditLineSheetState extends ConsumerState<_EditLineSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// شريط مطابقة الرواتب (Schema v7)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// يعرض مبلغ السطر مقابل مجموع رواتب موظفي المشروع — **قبل الاعتماد**
+///
+/// 🔑 قرار المالك 2026-08-24: **التأكيد الذرّي لا الإشعار اليدوي.** يرى
+///   المالك الفرق هنا وهو ما زال قادراً على التصحيح، بدل أن يُفاجأ برفضٍ
+///   بعد أن يختار الخزينة ويضغط الاعتماد.
+class _PayrollMatchBar extends ConsumerWidget {
+  const _PayrollMatchBar({required this.line, required this.advanceId});
+
+  final AdvanceLineModel line;
+  final int advanceId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final fmt = NumberFormat('#,##0');
+    final previews = ref.watch(payrollLinkPreviewsProvider(advanceId));
+
+    return previews.when(
+      loading: () => const SizedBox(height: 2, child: LinearProgressIndicator()),
+      error: (e, _) => Text('تعذّر حساب المطابقة: $e',
+          style: TextStyle(fontSize: 11, color: theme.colorScheme.error)),
+      data: (list) {
+        final p = list.where((x) => x.lineId == line.id).firstOrNull;
+        if (p == null) return const SizedBox.shrink();
+
+        final ok = p.matches;
+        final color = ok ? Colors.green.shade700 : theme.colorScheme.error;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            children: [
+              Icon(ok ? Icons.check_circle_outline : Icons.error_outline,
+                  size: 16, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  ok
+                      ? 'مطابق — رواتب ${p.periodLabel}: '
+                          '${p.employeeCount} موظفاً بمجموع '
+                          '${fmt.format(p.payrollTotal)} د.ع'
+                      : 'لا تطابق مع رواتب ${p.periodLabel}: '
+                          'السطر ${fmt.format(p.lineAmount)} '
+                          'ومجموع ${p.employeeCount} موظفاً '
+                          '${fmt.format(p.payrollTotal)} — الفرق '
+                          '${fmt.format(p.difference.abs())} د.ع. '
+                          'الاعتماد سيُرفض حتى يتطابقا.',
+                  style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurface),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

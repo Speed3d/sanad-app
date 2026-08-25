@@ -192,6 +192,13 @@ abstract class AdvanceLineModel with _$AdvanceLineModel {
 
     /// معرّف السند الناتج بعد الاعتماد — null ما دامت مسودة
     int? voucherId,
+
+    /// كشف الرواتب الذي يسدّده هذا السطر (Schema v7) — null في السطر العادي
+    ///
+    /// وجوده يعني أن السطر ليس مصروفاً عادياً بل **«تسديد رواتب شهر كذا»**،
+    /// فيُستبدَل مبلغه عند الاعتماد بمطابقةٍ محروسة مع مجموع رواتب موظفي
+    /// خزينة هذا المشروع. راجع `AdvancesDao.postAdvance`.
+    int? payrollPeriodId,
   }) = _AdvanceLineModel;
 
   factory AdvanceLineModel.fromJson(Map<String, dynamic> json) =>
@@ -211,6 +218,9 @@ extension AdvanceLineModelX on AdvanceLineModel {
 
   /// هل تغيّر التاريخ عن الأصل؟
   bool get dateChanged => !voucherDate.isAtSameMomentAs(originalDate);
+
+  /// هل هذا السطر مربوط بكشف رواتب؟
+  bool get isPayrollLinked => payrollPeriodId != null;
 }
 
 // ── الملخص المحسوب ───────────────────────────────────────────────────────────

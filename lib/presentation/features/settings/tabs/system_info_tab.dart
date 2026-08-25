@@ -281,6 +281,7 @@ class SystemInfoTab extends ConsumerWidget {
               vouchersDeleted: removed.vouchers,
               periodsDeleted: removed.periods,
               advancesDeleted: removed.advances,
+              payrollsDeleted: removed.payrolls,
             );
 
         if (context.mounted) {
@@ -288,7 +289,8 @@ class SystemInfoTab extends ConsumerWidget {
             SnackBar(
               content: Text(
                 '✓ تم التصفير — حُذف ${removed.vouchers} سند و'
-                '${removed.periods} سنة مالية و${removed.advances} سلفة مشروع',
+                '${removed.periods} سنة مالية و${removed.advances} سلفة مشروع و'
+                '${removed.payrolls} كشف رواتب',
               ),
             ),
           );

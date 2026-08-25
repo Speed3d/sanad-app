@@ -38,6 +38,7 @@ import 'tables/advances_table.dart';
 import 'tables/advance_lines_table.dart';
 import 'tables/item_types_table.dart';
 import 'tables/attachments_table.dart';
+import 'tables/payroll_periods_table.dart';
 import 'views/treasury_balance_view.dart';
 
 // ── استيراد الـ DAOs ──────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ import 'daos/audit_log_dao.dart';
 import 'daos/exchange_rates_dao.dart';
 import 'daos/advances_dao.dart';
 import 'daos/attachments_dao.dart';
+import 'daos/payroll_dao.dart';
 
 // الملف المُولَّد تلقائياً بواسطة build_runner — لا تعدّله
 part 'app_database.g.dart';
@@ -79,9 +81,12 @@ part 'app_database.g.dart';
     Vouchers,
 
     // ── الموارد البشرية ────────────────────────────────────────────────────
+    // ⚠️ ترتيب الإعلان لا يفرض ترتيب الإنشاء (Drift يحلّ الاعتماديات)، لكن
+    //    PayrollPeriods قبل SalaryPayments يعكس العلاقة: الكشف أبٌ لسطوره.
     Employees,
     CashAdvances,
     CashAdvanceRepayments,
+    PayrollPeriods,
     SalaryPayments,
 
     // ── الأطراف الخارجية ───────────────────────────────────────────────────
@@ -115,6 +120,7 @@ part 'app_database.g.dart';
     ExchangeRatesDao,
     AdvancesDao,
     AttachmentsDao,
+    PayrollDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -132,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -170,18 +176,35 @@ class AppDatabase extends _$AppDatabase {
       // ولا تمسّ الجداول الموجودة ولا بياناتها إطلاقاً.
       await m.createAll();
 
+      // ⚠️ **كل إضافة عمود أدناه تمرّ بـ [_addColumnIfMissing] لا بـ
+      //   `m.addColumn` مباشرةً** (Schema v7):
+      //
+      //   `ALTER TABLE ADD COLUMN` في SQLite بلا `IF NOT EXISTS`، فتشغيل
+      //   الترقية على قاعدة يوجد فيها العمود يرمي `duplicate column name`
+      //   ويُجهض **بقية** الترقية — فتبقى القاعدة نصف مُرقّاة: جداول جديدة
+      //   بلا أعمدتها، وترحيل بيانات لم يقع. وهو أسوأ من الفشل الكامل لأنه
+      //   يبدو ناجحاً حتى تُفتح الشاشة المعنية.
+      //
+      //   ويحدث هذا فعلاً في حالتين واقعيتين:
+      //     • قاعدة أُنشئت بمخطط حديث ثم فُتحت برقم إصدار أقدم
+      //       (استعادة نسخة احتياطية · اختبارات الترقية نفسها)
+      //     • ترقية تعثّرت في منتصفها ثم أُعيدت
+      //
+      //   كشفه اختبار `schema_v6_upgrade_test` لحظة إضافة الإصدار السابع:
+      //   `duplicate column name: position`. راجع [_addColumnIfMissing].
+
       // ── 2. الترقية إلى الإصدار 2 (دعم نظام السلف) ──────────────────────
       if (from < 2) {
         // إضافة الحقول الجديدة لجدول السندات دون المساس بالبيانات القديمة
-        await m.addColumn(vouchers, vouchers.projectName);
-        await m.addColumn(vouchers, vouchers.invoiceNumber);
-        await m.addColumn(vouchers, vouchers.spentBy);
-        await m.addColumn(vouchers, vouchers.advanceNumber);
+        await _addColumnIfMissing(m, vouchers, vouchers.projectName);
+        await _addColumnIfMissing(m, vouchers, vouchers.invoiceNumber);
+        await _addColumnIfMissing(m, vouchers, vouchers.spentBy);
+        await _addColumnIfMissing(m, vouchers, vouchers.advanceNumber);
       }
 
       // ── الترقية إلى الإصدار 3 (رباط موثوق لسندَي التحويل) ──────────────
       if (from < 3) {
-        await m.addColumn(vouchers, vouchers.transferGroupId);
+        await _addColumnIfMissing(m, vouchers, vouchers.transferGroupId);
       }
 
       // ── الترقية إلى الإصدار 4 (قيد CHECK على تسديد السلف) ─────────────
@@ -198,7 +221,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         // جداول advances و advance_lines و item_types أُنشئت أعلاه عبر
         // createAll() — يبقى العمود الجديد على جدول السندات القائم.
-        await m.addColumn(vouchers, vouchers.advanceId);
+        await _addColumnIfMissing(m, vouchers, vouchers.advanceId);
 
         // بذور أنواع البنود — idempotent (insertOrIgnore) فلا تُكرّر شيئاً
         // لو نُفِّذت الترقية أكثر من مرة أو كان الجدول مبذوراً أصلاً.
@@ -233,6 +256,93 @@ class AppDatabase extends _$AppDatabase {
           "DELETE FROM item_types WHERE name = 'سلفة'",
         );
         await _seedItemTypes();
+      }
+
+      // ── الترقية إلى الإصدار 7 (نظام الموظفين والرواتب) ─────────────────
+      if (from < 7) {
+        // جدول payroll_periods أُنشئ أعلاه عبر createAll().
+
+        // ── أعمدة الموظف الجديدة ─────────────────────────────────────────
+        await _addColumnIfMissing(m, employees, employees.position);
+        await _addColumnIfMissing(m, employees, employees.salaryCurrency);
+
+        // ── أعمدة سطر كشف الرواتب ────────────────────────────────────────
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.payrollPeriodId);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.snapshotName);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.snapshotPosition);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.snapshotCurrency);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.snapshotHireDate);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.eligibleDays);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.eligibleDaysIsManual);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.absenceDays);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.absenceDeduction);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.absenceDeductionIsManual);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.advanceRepaymentAmount);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.cashAdvanceId);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.exchangeRate);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.netAmountIqd);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.fileNetAmount);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.paymentStatus);
+        await _addColumnIfMissing(m, salaryPayments, salaryPayments.paidAt);
+        await _addColumnIfMissing(m, salaryPayments, salaryPayments.treasuryId);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.advanceLineId);
+        await _addColumnIfMissing(m, salaryPayments, salaryPayments.advanceId);
+        await _addColumnIfMissing(m, salaryPayments, salaryPayments.updatedAt);
+        // ── ربط سطر السلفة بكشف الرواتب ──────────────────────────────────
+        await _addColumnIfMissing(m, advanceLines, advanceLines.payrollPeriodId);
+
+        // ═══════════════════════════════════════════════════════════════
+        // ترحيل البيانات القائمة — **ليست ترقية أعمدة فارغة**
+        // ═══════════════════════════════════════════════════════════════
+        //
+        // كل راتب أُدخل قبل v7 يفتقر إلى ثلاثة أشياء تجعله يبدو خاطئاً في
+        // الشاشات الجديدة. تركُها لقيمها الافتراضية ليس حياداً بل تشويه:
+        //
+        //   1. **`net_amount_iqd` صفر** ⇒ كل تقرير رواتب جديد يجمع أصفاراً،
+        //      فتظهر رواتب المالك السابقة كأنها لم تُصرف قط. وهي بالدينار
+        //      قطعاً — لم تكن هناك عملة للراتب قبل v7 أصلاً.
+        //
+        //   2. **اللقطة فارغة** ⇒ كشف قديم يُعرض بلا اسم. نملؤها من جدول
+        //      الموظفين: أدقّ ما يمكن معرفته أثراً رجعياً، وهو صادق لأن
+        //      الاسم نادراً ما يتغيّر بخلاف الراتب.
+        //      ⚠️ ولا ننسخ `basic_salary` من الموظف الحالي: هو مخزَّن في
+        //      الصفّ أصلاً بقيمته وقت الصرف، ونسخُ الحالي فوقه يُزوّر التاريخ.
+        //
+        //   3. **`payment_status = 'unpaid'`** ⇒ رواتب صُرفت فعلاً تظهر
+        //      كمستحقّة، فيُصرف بعضها مرتين. كل صفّ هنا نتج عن صرف فعليّ
+        //      بسنده، فحالته الصحيحة `paid`، وتاريخ دفعه `payment_date`.
+        await customStatement(
+          'UPDATE salary_payments SET '
+          'net_amount_iqd = net_amount, '
+          'exchange_rate = 1.0, '
+          "payment_status = 'paid', "
+          'paid_at = payment_date, '
+          // eligible_days و absence_* لا تُذكر هنا: `addColumn` تملأ الصفوف
+          // القائمة بقيمها الافتراضية (30 يوماً · صفر غياب) وهي الصحيحة.
+          'snapshot_name = COALESCE('
+          '  (SELECT e.full_name FROM employees e '
+          '   WHERE e.id = salary_payments.employee_id), '
+          "  ''"
+          ') '
+          "WHERE snapshot_name = ''",
+        );
       }
 
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────
@@ -314,6 +424,30 @@ class AppDatabase extends _$AppDatabase {
   // ── Indexes ───────────────────────────────────────────────────────────────
 
   /// إنشاء الـ Indexes لتحسين أداء الاستعلامات الشائعة
+  // ── مساعدات الترقية ───────────────────────────────────────────────────────
+
+  /// هل يحوي هذا الجدول عموداً بهذا الاسم؟ — يُقرأ من مخطط SQLite نفسه
+  Future<bool> _hasColumn(String tableName, String columnName) async {
+    final rows = await customSelect("PRAGMA table_info('$tableName')").get();
+    return rows.any((r) => r.data['name'] == columnName);
+  }
+
+  /// إضافة عمود **إن لم يكن موجوداً** — بديل آمن عن `Migrator.addColumn`
+  ///
+  /// SQLite لا يدعم `ALTER TABLE ADD COLUMN IF NOT EXISTS`، فالإضافة على
+  /// عمود قائم ترمي وتُجهض بقية الترقية. نفحص المخطط أولاً فتصير الترقية
+  /// **قابلة لإعادة التشغيل** كما هي `createAll()` أصلاً.
+  ///
+  /// 📌 استعملها في كل ترقية جديدة — لا `m.addColumn` مباشرةً.
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    GeneratedColumn<Object> column,
+  ) async {
+    if (await _hasColumn(table.actualTableName, column.name)) return;
+    await m.addColumn(table, column);
+  }
+
   Future<void> _createIndexes() async {
     // Vouchers: البحث الأكثر شيوعاً — حسب الخزينة والتاريخ
     await customStatement('''
@@ -415,6 +549,50 @@ class AppDatabase extends _$AppDatabase {
       ON vouchers (advance_id)
       WHERE advance_id IS NOT NULL AND is_deleted = 0
     ''');
+
+    // ── فهارس الرواتب (Schema v7) ───────────────────────────────────────
+
+    // 🔑 **كشف واحد لكل شهر — لا كشفان.**
+    //   بدون هذا الفهرس يستطيع استيرادان متتاليان لنفس الشهر إنشاء كشفين،
+    //   فتُصرف رواتب شباط مرّتين ولا يشتكي شيء. وهو جزئي (`is_deleted = 0`)
+    //   عمداً: حذف كشف خاطئ يجب أن يُحرّر الشهر لإعادة بنائه — وإلا بقي
+    //   الشهر محجوزاً للأبد بسبب استيراد أُلغي (نفس علّة رقم السلفة أعلاه).
+    await customStatement('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_payroll_periods_month_unique
+      ON payroll_periods (year, month)
+      WHERE is_deleted = 0
+    ''');
+
+    // كشف استيراد ملف الرواتب المكرّر ببصمته
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_payroll_periods_file_hash
+      ON payroll_periods (source_file_hash)
+      WHERE source_file_hash != ''
+    ''');
+
+    // سطور الكشف: تُقرأ دائماً بالكامل لكشف واحد
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_salary_payments_period
+      ON salary_payments (payroll_period_id)
+      WHERE is_deleted = 0
+    ''');
+
+    // 🔑 **موظف واحد مرّة واحدة في الكشف الواحد.**
+    //   الاستيراد تراكمي (ملف البصرة ثم ملف كربلاء على الكشف نفسه)، فبدون
+    //   هذا الفهرس يُنتج ملفٌّ أُعيد استيراده سطراً ثانياً للموظف نفسه —
+    //   فيتضاعف راتبه في مجموع الشهر بصمت.
+    await customStatement('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_salary_payments_period_employee
+      ON salary_payments (payroll_period_id, employee_id)
+      WHERE payroll_period_id IS NOT NULL AND is_deleted = 0
+    ''');
+
+    // سطور الرواتب المسدَّدة من سلفة — لمطابقة سطر السلفة بمجموع رواتبه
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_salary_payments_advance_line
+      ON salary_payments (advance_line_id)
+      WHERE advance_line_id IS NOT NULL AND is_deleted = 0
+    ''');
   }
 
   // ── نقطة تفتيش WAL ──────────────────────────────────────────────────────
@@ -448,14 +626,22 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// **ترتيب المسح إلزامي** — من الابن إلى الأب، وإلا فشل القيد الأجنبي:
   ///   advance_lines → advances → cash_advance_repayments → cash_advances
-  ///   → salary_payments → vouchers → voucher_sequences → fiscal_periods
+  ///   → salary_payments → **payroll_periods** → vouchers
+  ///   → voucher_sequences → fiscal_periods
+  ///
+  /// ⚠️ **موضع `payroll_periods` في هذه السلسلة ليس اعتباطياً** (Schema v7):
+  ///   `salary_payments.payroll_period_id` و`advance_lines.payroll_period_id`
+  ///   يشيران إليه، و`payroll_periods.fiscal_period_id` يشير إلى الفترة.
+  ///   فهو **ابنٌ للفترة وأبٌ للسطور** — تقديمه على سطوره أو تأخيره عن
+  ///   الفترة يُعيد العطل ع-٠٩ حرفياً.
   ///
   /// **ما لا يُمسّ عمداً:** الموظفون والخزائن والمقاولون والشركاء والمستخدمون
   /// والإعدادات وسجل التدقيق. التصفير يمحو **الحركة** لا **الهيكل** — ولو
   /// مُحي سجل التدقيق لضاع أثر التصفير نفسه.
   ///
   /// يُعيد عدّادات ما مُحي فعلاً، ليوثّقها المستدعي في سجل التدقيق.
-  Future<({int vouchers, int periods, int advances})> resetFinancialData() async {
+  Future<({int vouchers, int periods, int advances, int payrolls})>
+      resetFinancialData() async {
     return transaction(() async {
       // ── القراءة قبل المسح ────────────────────────────────────────────
       Future<int> countOf(String table) async {
@@ -467,6 +653,7 @@ class AppDatabase extends _$AppDatabase {
       final voucherCount = await countOf('vouchers');
       final periodCount = await countOf('fiscal_periods');
       final advanceCount = await countOf('advances');
+      final payrollCount = await countOf('payroll_periods');
 
       // ── المسح بالترتيب الآمن (الابن قبل الأب) ────────────────────────
       // المرفقات أولاً: صفوفها تشير إلى سلف وسندات على وشك الحذف
@@ -476,6 +663,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(cashAdvanceRepayments).go();
       await delete(cashAdvances).go();
       await delete(salaryPayments).go();
+      // كشوف الرواتب بعد سطورها وقبل الفترة المالية — راجع تعليق الدالة
+      await delete(payrollPeriods).go();
       await delete(vouchers).go();
       // بدون هذا السطر يستأنف ترقيم السندات من آخر رقم قبل التصفير
       await delete(voucherSequences).go();
@@ -485,6 +674,7 @@ class AppDatabase extends _$AppDatabase {
         vouchers: voucherCount,
         periods: periodCount,
         advances: advanceCount,
+        payrolls: payrollCount,
       );
     });
   }

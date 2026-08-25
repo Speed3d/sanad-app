@@ -1118,13 +1118,193 @@ class _ItemTypeNamesProviderElement
   String? get kind => (origin as ItemTypeNamesProvider).kind;
 }
 
-String _$advanceNotifierHash() => r'50c9cd6a791cd629f1f941e90ba58580754f5273';
+String _$payrollLinkPreviewsHash() =>
+    r'dd76abc7525a9507ee90ce539570aa5d796d2612';
 
 /// مدير عمليات السلف
 ///
 /// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+/// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
 ///
-/// Copied from [AdvanceNotifier].
+/// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+/// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+///
+/// Copied from [payrollLinkPreviews].
+@ProviderFor(payrollLinkPreviews)
+const payrollLinkPreviewsProvider = PayrollLinkPreviewsFamily();
+
+/// مدير عمليات السلف
+///
+/// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+/// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
+///
+/// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+/// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+///
+/// Copied from [payrollLinkPreviews].
+class PayrollLinkPreviewsFamily
+    extends Family<AsyncValue<List<PayrollLinkPreview>>> {
+  /// مدير عمليات السلف
+  ///
+  /// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+  /// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
+  ///
+  /// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+  /// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+  ///
+  /// Copied from [payrollLinkPreviews].
+  const PayrollLinkPreviewsFamily();
+
+  /// مدير عمليات السلف
+  ///
+  /// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+  /// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
+  ///
+  /// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+  /// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+  ///
+  /// Copied from [payrollLinkPreviews].
+  PayrollLinkPreviewsProvider call(
+    int advanceId,
+  ) {
+    return PayrollLinkPreviewsProvider(
+      advanceId,
+    );
+  }
+
+  @override
+  PayrollLinkPreviewsProvider getProviderOverride(
+    covariant PayrollLinkPreviewsProvider provider,
+  ) {
+    return call(
+      provider.advanceId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'payrollLinkPreviewsProvider';
+}
+
+/// مدير عمليات السلف
+///
+/// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+/// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
+///
+/// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+/// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+///
+/// Copied from [payrollLinkPreviews].
+class PayrollLinkPreviewsProvider
+    extends AutoDisposeFutureProvider<List<PayrollLinkPreview>> {
+  /// مدير عمليات السلف
+  ///
+  /// الحالة: AsyncData(رسالة نجاح) | AsyncError(رسالة خطأ) | AsyncLoading
+  /// معاينة مطابقة أسطر الرواتب في سلفة — **تُقرأ قبل الاعتماد**
+  ///
+  /// تُعاد قراءتها عند أي تغيّر في أسطر المسودة، فيرى المالك أثر تعديله على
+  /// المطابقة فوراً بدل أن يكتشف الفرق عند الرفض.
+  ///
+  /// Copied from [payrollLinkPreviews].
+  PayrollLinkPreviewsProvider(
+    int advanceId,
+  ) : this._internal(
+          (ref) => payrollLinkPreviews(
+            ref as PayrollLinkPreviewsRef,
+            advanceId,
+          ),
+          from: payrollLinkPreviewsProvider,
+          name: r'payrollLinkPreviewsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$payrollLinkPreviewsHash,
+          dependencies: PayrollLinkPreviewsFamily._dependencies,
+          allTransitiveDependencies:
+              PayrollLinkPreviewsFamily._allTransitiveDependencies,
+          advanceId: advanceId,
+        );
+
+  PayrollLinkPreviewsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.advanceId,
+  }) : super.internal();
+
+  final int advanceId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<PayrollLinkPreview>> Function(PayrollLinkPreviewsRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PayrollLinkPreviewsProvider._internal(
+        (ref) => create(ref as PayrollLinkPreviewsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        advanceId: advanceId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<PayrollLinkPreview>> createElement() {
+    return _PayrollLinkPreviewsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PayrollLinkPreviewsProvider && other.advanceId == advanceId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, advanceId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PayrollLinkPreviewsRef
+    on AutoDisposeFutureProviderRef<List<PayrollLinkPreview>> {
+  /// The parameter `advanceId` of this provider.
+  int get advanceId;
+}
+
+class _PayrollLinkPreviewsProviderElement
+    extends AutoDisposeFutureProviderElement<List<PayrollLinkPreview>>
+    with PayrollLinkPreviewsRef {
+  _PayrollLinkPreviewsProviderElement(super.provider);
+
+  @override
+  int get advanceId => (origin as PayrollLinkPreviewsProvider).advanceId;
+}
+
+String _$advanceNotifierHash() => r'92163fe89277090f0fa7dd5f8a3b48a8c29f88c3';
+
+/// See also [AdvanceNotifier].
 @ProviderFor(AdvanceNotifier)
 final advanceNotifierProvider =
     AutoDisposeNotifierProvider<AdvanceNotifier, AsyncValue<String?>>.internal(

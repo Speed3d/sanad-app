@@ -15,9 +15,12 @@
 import 'package:drift/drift.dart';
 
 import '../../core/services/fiscal_period_guard.dart';
+import '../../core/services/payroll_calculator.dart';
 import '../../domain/models/advance_model.dart';
 import '../../domain/repositories/i_advance_repository.dart';
 import '../database/app_database.dart';
+import '../database/daos/advances_dao.dart'
+    show AdvanceStatusDb, PayrollLinkPreview;
 
 /// تنفيذ مستودع سلف المشاريع باستخدام Drift
 class AdvanceRepository implements IAdvanceRepository {
@@ -68,6 +71,7 @@ class AdvanceRepository implements IAdvanceRepository {
         isExcluded: l.isExcluded,
         excludeReason: l.excludeReason,
         voucherId: l.voucherId,
+        payrollPeriodId: l.payrollPeriodId,
       );
 
   // ── قراءة ─────────────────────────────────────────────────────────────────
@@ -408,6 +412,63 @@ class AdvanceRepository implements IAdvanceRepository {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // ربط الرواتب (Schema v7)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<int> linkLineToPayroll({
+    required int lineId,
+    required int payrollPeriodId,
+  }) async {
+    final line = await _db.advancesDao.getLineById(lineId);
+    if (line == null) throw StateError('سطر المسودة غير موجود.');
+
+    final advance = await _db.advancesDao.getAdvanceById(line.advanceId);
+    if (advance == null) throw StateError('السلفة غير موجودة.');
+    if (advance.status != AdvanceStatusDb.draft) {
+      throw StateError(
+        'الربط متاح في المسودة فقط — السلفة رقم ${advance.advanceNumber} '
+        'حالتها «${advance.status}».',
+      );
+    }
+
+    final period = await _db.payrollDao.getPeriodById(payrollPeriodId);
+    if (period == null) throw StateError('كشف الرواتب غير موجود.');
+    if (period.status == PayrollStatusDb.posted) {
+      throw StateError(
+        'كشف ${PayrollCalculator.periodLabel(period.year, period.month)} '
+        'مُسدَّد بالفعل — لا يُربط بسلفة.',
+      );
+    }
+
+    final count = await _db.advancesDao.linkLineToPayroll(
+      lineId: lineId,
+      payrollPeriodId: payrollPeriodId,
+      projectTreasuryId: advance.projectTreasuryId,
+    );
+
+    if (count == 0) {
+      // نفكّ الربط فوراً بدل تركه رباطاً فارغاً يُفشل الاعتماد لاحقاً
+      await _db.advancesDao.unlinkLineFromPayroll(lineId);
+      throw StateError(
+        'لا يوجد في كشف '
+        '${PayrollCalculator.periodLabel(period.year, period.month)} '
+        'موظف واحد غير مسدَّد تابع لخزينة «${advance.projectName}».\n'
+        'تأكّد أن خزينة الموظفين في بطاقاتهم هي خزينة هذا المشروع.',
+      );
+    }
+    return count;
+  }
+
+  @override
+  Future<void> unlinkLineFromPayroll(int lineId) =>
+      _db.advancesDao.unlinkLineFromPayroll(lineId);
+
+  @override
+  Future<List<PayrollLinkPreview>> getPayrollLinkPreviews(int advanceId) =>
+      _db.advancesDao.getPayrollLinkPreviews(advanceId);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // 🔑 الاعتماد — اللحظة الوحيدة التي تتأثر فيها الخزينة
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -506,11 +567,23 @@ class AdvanceRepository implements IAdvanceRepository {
       );
     }
 
+    // ── أثر الرواتب في الرسالة (Schema v7) ────────────────────────────────
+    // الاعتماد الواحد صار حدثاً في نظامين. ورسالةٌ تذكر السندات وحدها تُخفي
+    // أن رواتب خمسة وعشرين موظفاً صارت مسدَّدة في اللحظة نفسها.
+    if (result.payrollEmployeesPaid > 0) {
+      msg.write('.\n✓ وسُدِّدت رواتب ${result.payrollEmployeesPaid} موظفاً');
+      if (result.payrollPeriodsCompleted.isNotEmpty) {
+        msg.write('، واكتمل كشف ${result.payrollPeriodsCompleted.join(' و')}');
+      }
+    }
+
     return PostAdvanceOutcome(
       success: true,
       message: msg.toString(),
       deficit: deficit,
       vouchersCreated: result.voucherIds.length,
+      payrollEmployeesPaid: result.payrollEmployeesPaid,
+      payrollPeriodsCompleted: result.payrollPeriodsCompleted,
     );
   }
 
