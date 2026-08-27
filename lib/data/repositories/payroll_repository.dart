@@ -16,9 +16,13 @@ import 'package:drift/drift.dart';
 import '../../core/services/balance_guard.dart';
 import '../../core/services/fiscal_period_guard.dart';
 import '../../core/services/payroll_calculator.dart';
+import '../../core/services/payroll_print_data.dart';
 import '../../core/services/payroll_row_parser.dart';
 import '../database/app_database.dart';
 import '../database/daos/payroll_dao.dart';
+
+part 'payroll_repository_reports.dart';
+part 'payroll_repository_corrections.dart';
 
 /// سطر ملف بعد أن بتّ المالك في مطابقته بموظف
 ///
@@ -69,12 +73,139 @@ class PayrollImportResult {
   });
 }
 
+/// كيف يُحذف كشفٌ فيه رواتب مصروفة (قرار المالك 2026-08-26)
+enum PayrollDeleteMode {
+  /// يُحذف المستحقّ وحده · ويبقى المدفوع بسنداته في كشفه
+  ///
+  /// 📌 وهذا بديلُ ما طلبه المالك أولاً («احذف الكشف وأبقِ السندات») — فذاك
+  ///   هو العطل نفسه: مالٌ خارج الخزينة بلا سجل. وهذا يحقّق مقصده (تنظيف
+  ///   المسودة) بلا كسر الدفاتر.
+  unpaidOnly,
+
+  /// تُعكَس التسديدات (يرجع المال وتُحذف السندات وتُعاد أقساط السلف)
+  /// ثم يُحذف الكشف كلّه
+  reverseAndDelete,
+}
+
+/// حصيلة حذف كشف — تُعرَض للمالك ليعرف ما وقع فعلاً
+class PayrollDeleteResult {
+  final bool deletedPeriod;
+  final int reversedCount;
+  final double reversedTotalIqd;
+  final int removedUnpaid;
+
+  const PayrollDeleteResult({
+    required this.deletedPeriod,
+    required this.reversedCount,
+    required this.reversedTotalIqd,
+    required this.removedUnpaid,
+  });
+}
+
+/// طبيعة تصحيح راتب مسدَّد — **تحدّد أثره المالي بالكامل**
+enum PayrollCorrectionMode {
+  /// المبلغ كُتب خطأً والمال **لم يخرج** به ⇒ يُصحَّح السند فيرجع الفرق
+  dataEntryError,
+
+  /// المال **خرج فعلاً** زائداً بيد الموظف ⇒ الفرق دينٌ عليه يُخصم لاحقاً
+  overpaid,
+}
+
+/// حصيلة تصحيح راتب مسدَّد
+class PayrollCorrectionResult {
+  final int entryId;
+  final String employeeName;
+  final double oldAmountIqd;
+  final double newAmountIqd;
+
+  /// ما تغيّر في مبلغ سند الصرف — صفرٌ حين سُجِّل الفرق سلفةً
+  final double voucherDelta;
+
+  /// الفرق الذي سُجِّل **سلفةً على الموظف** — صفرٌ حين رجع للخزينة
+  final double debtRecorded;
+
+  const PayrollCorrectionResult({
+    required this.entryId,
+    required this.employeeName,
+    required this.oldAmountIqd,
+    required this.newAmountIqd,
+    required this.voucherDelta,
+    required this.debtRecorded,
+  });
+}
+
+/// مقارنة راتبٍ مصروفٍ سلفاً بما يحسبه ملف الشهر
+class PaidVsFileComparison {
+  final int employeeId;
+  final String employeeName;
+
+  /// ما صُرف فعلاً · وما يحسبه الملف — كلاهما بالدينار
+  final double paidIqd;
+  final double fileIqd;
+
+  /// الأيام المستحقّة في كلٍّ منهما — **هي ما يشرح الفرق للمالك**
+  final int paidDays;
+  final int fileDays;
+
+  final DateTime? paidAt;
+
+  const PaidVsFileComparison({
+    required this.employeeId,
+    required this.employeeName,
+    required this.paidIqd,
+    required this.fileIqd,
+    required this.paidDays,
+    required this.fileDays,
+    required this.paidAt,
+  });
+
+  /// موجبٌ حين صُرف أكثر مما يستحقّ
+  double get difference => paidIqd - fileIqd;
+
+  /// هامش الدينار الواحد — ما دونه ضجيج فاصلة عائمة (نفس هامش المطابقة)
+  bool get hasGap => difference.abs() > 1;
+
+  bool get isOverpaid => difference > 1;
+}
+
+/// حصيلة صرف راتب موظف واحد مباشرةً
+class PaySingleSalaryResult {
+  final int periodId;
+  final int entryId;
+  final String periodLabel;
+  final String employeeName;
+  final double netIqd;
+  final int voucherId;
+  final int voucherNumber;
+
+  /// أُضيف إلى كشف كان **مُسدَّداً بالكامل** — يستحقّ أثراً في سجل التدقيق
+  final bool addedToPostedSheet;
+
+  /// سُدِّد سطرٌ كان قائماً في الكشف (استُورد الملف قبلاً) لا سطرٌ جديد
+  final bool joinedExistingEntry;
+
+  const PaySingleSalaryResult({
+    required this.periodId,
+    required this.entryId,
+    required this.periodLabel,
+    required this.employeeName,
+    required this.netIqd,
+    required this.voucherId,
+    required this.voucherNumber,
+    required this.addedToPostedSheet,
+    required this.joinedExistingEntry,
+  });
+}
+
 /// مستودع كشوف الرواتب
-class PayrollRepository {
+class PayrollRepository
+    with PayrollReportsMixin, PayrollCorrectionsMixin {
   PayrollRepository(this._db);
 
+  @override
   final AppDatabase _db;
 
+  @override
   PayrollDao get _dao => _db.payrollDao;
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -131,14 +262,18 @@ class PayrollRepository {
   }) async {
     final existing = await _dao.getPeriodForMonth(year, month);
     if (existing != null) {
-      // ⚠️ الكشف المُسدَّد لا يُضاف إليه (قرار المالك: منع التعديل بعد
-      //   التسديد). لولا هذا الحارس لأمكن حقن موظف في شهر أُقفلت حساباته.
-      if (existing.status == PayrollStatusDb.posted) {
-        throw StateError(
-          'كشف رواتب ${PayrollCalculator.periodLabel(year, month)} '
-          'مُسدَّد — لا يُعدَّل. للتصحيح: احذفه وأعد إنشاءه.',
-        );
-      }
+      // 🔴 **كان هنا حارسٌ يرفض الكشف المُسدَّد — وأُزيل 2026-08-26.**
+      //
+      //   بعد توحيد الصرف المباشر داخل الكشوف، صار صرفُ راتب **موظف واحد**
+      //   مباشرةً يُنشئ كشف الشهر ويجعله «مُسدَّداً» (لا سطر مستحقّ فيه).
+      //   فكان الحارس يرفض بعدها **استيراد ملف الشهر كلّه** — أي أن صرف
+      //   راتب واحد يقفل الشهر على سبعة وأربعين موظفاً.
+      //
+      //   كشفه اختبار «استيراد الملف بعد الصرف المباشر» قبل أن يصل للمالك.
+      //
+      //   **والحماية الحقيقية لم تُمَسّ:** `importRows` لا تلمس سطراً
+      //   مسدَّداً أبداً (المال خرج بذلك الرقم)، والكشف يعود «مسودة» ما دام
+      //   فيه سطر مستحقّ. المحمي هو **السطر المدفوع** لا حالة الكشف.
       // سعر الصرف يُحدَّث إن وصل مع الملف الجديد ولم يكن مضبوطاً
       if (exchangeRate != null && existing.exchangeRate == null) {
         await _dao.updatePeriod(
@@ -217,10 +352,12 @@ class PayrollRepository {
   }) async {
     final period = await _dao.getPeriodById(periodId);
     if (period == null) throw StateError('كشف الرواتب غير موجود.');
-    if (period.status == PayrollStatusDb.posted) {
-      throw StateError('الكشف مُسدَّد — لا يُستورَد إليه.');
-    }
     await FiscalPeriodGuard.ensureActive(_db, period.fiscalPeriodId);
+
+    // 📌 الكشف المُسدَّد **يُستورَد إليه** (2026-08-26): «مُسدَّد» تعني «لا
+    //   سطر مستحقّ فيه» لا «مُقفَل للأبد». وقد صار الوصول إليها ممكناً بصرف
+    //   راتب موظف واحد مباشرةً — فرفضُ الاستيراد بعدها كان يقفل الشهر على
+    //   بقية الموظفين. السطور المسدَّدة لا تُمَسّ، والحالة تُراجَع في النهاية.
 
     var added = 0;
     var updated = 0;
@@ -305,11 +442,37 @@ class PayrollRepository {
         await _dao.insertEntry(companion);
         added++;
       } else if (existing.paymentStatus == PayrollPaymentStatusDb.paid) {
-        // سطر مسدَّد لا يُعاد حسابه — المال خرج فعلاً بهذا الرقم
+        // ── سطر مسدَّد: المال خرج بهذا الرقم فلا يُعاد حسابه ──────────────
+        //
+        // 🔑 **لكن رقم الملف يُحفَظ** (بلاغ المالك 2026-08-26): بلا حفظه
+        //   يظهر فرقُ مجموع الكشف **يتيماً بلا سبب** بعد إغلاق المعالج —
+        //   والبرنامج يعرف سببه (راتبٌ صُرف لـ٣٠ يوماً والملف يحسب ٢٦).
+        //
+        // ⚠️ **ولا يُمَسّ أي مبلغ مالي هنا**: `file_net_amount` عمود مقارنة
+        //   لا عمود مال. الصافي والمصروف والسند كما هي.
+        await _dao.updateEntry(
+          existing.id,
+          SalaryPaymentsCompanion(
+            fileNetAmount: Value(r.fileNetAmount ?? amounts.netSalary),
+          ),
+        );
         continue;
       } else {
         await _dao.updateEntry(existing.id, companion);
         updated++;
+      }
+    }
+
+    // ── الحالة تتبع السطور لا العكس ──────────────────────────────────
+    // كشفٌ صار فيه سطر مستحقّ **ليس مُسدَّداً** مهما كانت حالته قبل قليل.
+    // وتاريخ الاعتماد الأصلي يبقى محفوظاً — فلا يضيع أثر اعتماده الأول.
+    if (period.status == PayrollStatusDb.posted) {
+      final totals = await _dao.getTotals(periodId);
+      if (totals.paidCount < totals.entryCount) {
+        await _dao.updatePeriod(
+          periodId,
+          const PayrollPeriodsCompanion(status: Value(PayrollStatusDb.draft)),
+        );
       }
     }
 
@@ -414,17 +577,154 @@ class PayrollRepository {
     await _dao.softDeleteEntry(entryId);
   }
 
-  /// حذف كشف — المسودة فقط
-  Future<void> deletePeriod(int periodId) async {
+  /// ما سيقع لو حُذف الكشف — تُقرأ **قبل** عرض الحوار
+  Future<PayrollDeletionImpact> getDeletionImpact(int periodId) =>
+      _dao.getDeletionImpact(periodId);
+
+  /// حذف كشف — **وأخطر ما فيه ما كان يقع بصمت** (ع-٣٣)
+  ///
+  /// 🔴 **العطل الذي وُلدت منه هذه الدالة** (بلاغ المالك 2026-08-26):
+  ///   كان الحذف يمسح سطور الكشف **بما فيها المدفوعة فعلاً**، فتبقى سنداتها
+  ///   حيّة والمال خارج الخزينة **بلا أي سجل يقابله**:
+  ///
+  ///   • الرصيد ناقص · والسندات حيّة · ولا أثر في بطاقة الموظف ولا التقرير
+  ///   • و«مصروف سلفاً» يعود صفراً ⇒ إعادة الاستيراد تُدرجهم **مستحقّين**،
+  ///     فيُصرف المال **مرّتين** لنفس الشهر
+  ///   • والفهارس الفريدة لا تمنع: كلها مشروطة بـ`is_deleted = 0`
+  ///
+  ///   ولم يكن الحذف يمرّ بأي حارس لأن الكشف **مسودة** — والحالة تصف
+  ///   السطور المستحقّة لا المدفوعة.
+  ///
+  /// **[mode] إلزامي حين يوجد مدفوع** (قرار المالك):
+  ///   • `reverseAndDelete` — تُلغى تسديداتها فيرجع المال وتُحذف سنداتها
+  ///     وتُعاد أقساط السلف، ثم يُحذف الكشف
+  ///   • `unpaidOnly` — يُحذف المستحقّ وحده ويبقى المدفوع بسنداته في كشفه
+  ///
+  /// وبلا [mode] يُرفض الحذف: **قرارٌ ماليّ لا يُفترَض عن صاحبه**.
+  Future<PayrollDeleteResult> deletePeriod(
+    int periodId, {
+    PayrollDeleteMode? mode,
+    String reason = '',
+    int? userId,
+  }) async {
     final period = await _dao.getPeriodById(periodId);
-    if (period == null) return;
-    if (period.status == PayrollStatusDb.posted) {
-      throw StateError(
-        'كشف ${PayrollCalculator.periodLabel(period.year, period.month)} '
-        'مُسدَّد — حذفه يمحو أثر رواتب صُرفت فعلاً.',
+    if (period == null) {
+      return const PayrollDeleteResult(
+        deletedPeriod: false,
+        reversedCount: 0,
+        reversedTotalIqd: 0,
+        removedUnpaid: 0,
       );
     }
+
+    final label = PayrollCalculator.periodLabel(period.year, period.month);
+    final impact = await _dao.getDeletionImpact(periodId);
+
+    // ── لا مدفوع ⇒ حذفٌ بلا أثر مالي، كما كان ────────────────────────
+    if (!impact.hasPaid) {
+      await _dao.softDeletePeriod(periodId);
+      return PayrollDeleteResult(
+        deletedPeriod: true,
+        reversedCount: 0,
+        reversedTotalIqd: 0,
+        removedUnpaid: impact.unpaidCount,
+      );
+    }
+
+    if (mode == null) {
+      throw StateError(
+        'كشف $label فيه ${impact.paidCount} '
+        '${impact.paidCount == 1 ? 'راتباً مصروفاً' : 'رواتب مصروفة'} '
+        'بمجموع ${impact.paidTotalIqd.round()} د.ع — '
+        'لا يُحذف بلا قرار في مصير ذلك المال.',
+      );
+    }
+
+    await FiscalPeriodGuard.ensureActive(_db, period.fiscalPeriodId);
+
+    // ── (ب) حذف المستحقّ وحده ────────────────────────────────────────
+    if (mode == PayrollDeleteMode.unpaidOnly) {
+      final removed = await _dao.softDeleteUnpaidEntries(periodId);
+      return PayrollDeleteResult(
+        deletedPeriod: false,
+        reversedCount: 0,
+        reversedTotalIqd: 0,
+        removedUnpaid: removed,
+      );
+    }
+
+    // ── (أ) عكس التسديدات ثم حذف الكشف ───────────────────────────────
+    final trimmed = reason.trim();
+    if (trimmed.isEmpty) {
+      throw StateError(
+        'اكتب سبب حذف الكشف — إرجاع مالٍ خرج فعلاً بلا سبب مكتوب '
+        'لا يُميَّز عن تلاعب حين يُراجَع بعد شهور.',
+      );
+    }
+
+    final entries = await _dao.getEntries(periodId);
+    final paid = entries
+        .where((e) => e.paymentStatus == PayrollPaymentStatusDb.paid)
+        .toList();
+
+    var reversedTotal = 0.0;
+    for (final e in paid) {
+      // كلٌّ منها معاملة ذرّية تعكس السطر والسند وقسط السلفة معاً
+      final r = await _dao.unpayEntry(
+        entryId: e.id,
+        reason: 'حذف كشف $label — $trimmed',
+        userId: userId,
+      );
+      reversedTotal += r.amountIqd;
+    }
+
     await _dao.softDeletePeriod(periodId);
+
+    return PayrollDeleteResult(
+      deletedPeriod: true,
+      reversedCount: paid.length,
+      reversedTotalIqd: reversedTotal,
+      removedUnpaid: impact.unpaidCount,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // سندات الرواتب اليتيمة — شبكة الأمان الأخيرة (ع-٣٣)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /// سندات رواتب لا يقابلها سطرٌ حيّ — **مالٌ خرج بلا سجل**
+  Future<List<OrphanPayrollVoucher>> getOrphanPayrollVouchers() =>
+      _dao.getOrphanPayrollVouchers();
+
+  /// حذف سند رواتب يتيم وإرجاع ماله إلى الخزينة
+  ///
+  /// ⚠️ **يُعاد التحقّق من يُتمه هنا** لا في الشاشة: قد يكون سطرٌ رُبط به
+  ///   بين لحظة العرض ولحظة الضغط، وحذفه عندها يُنتج بالضبط العطل الذي
+  ///   جاءت هذه الأداة لتنظّفه (ع-٣١).
+  Future<void> deleteOrphanPayrollVoucher({
+    required int voucherId,
+    required String reason,
+    int? userId,
+  }) async {
+    if (reason.trim().isEmpty) {
+      throw StateError('اكتب سبب حذف السند اليتيم.');
+    }
+
+    final orphans = await _dao.getOrphanPayrollVouchers();
+    if (!orphans.any((o) => o.voucherId == voucherId)) {
+      throw StateError(
+        'هذا السند لم يعد يتيماً — صار له سطر راتب حيّ يقابله.\n'
+        'أعد فتح القائمة لتراها محدَّثة.',
+      );
+    }
+
+    final voucher = await _db.vouchersDao.getVoucherById(voucherId);
+    if (voucher == null || voucher.isDeleted) return;
+    await FiscalPeriodGuard.ensureActive(_db, voucher.fiscalPeriodId);
+
+    // يمرّ بالمسار العادي: لا سطور حيّة فلن يعترض حارس الرواتب،
+    // ونكسب معه فكّ ربط سطر السلفة وحذف توأم التحويل إن وُجدا.
+    await _db.vouchersDao.softDeleteVoucher(voucherId, deletedByUser: userId);
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -526,4 +826,310 @@ class PayrollRepository {
       projectName: projectName,
     );
   }
+
+  /// تقرير رواتب موظف واحد أو كل موظفي مشروع خلال **مدى أشهر**
+  ///
+  /// **وضعان** (قرار المالك 2026-08-26):
+  ///   • [employeeId] محدَّد ⇒ شهرٌ شهراً بكل تفاصيل الراتب
+  ///   • [employeeId] فارغ  ⇒ كل الموظفين (أو موظفو [treasuryId]) بمجاميعهم
+  ///
+  /// 🔑 **الإجماليات تُحسَب هنا مرّة واحدة** ويقرأها العرضُ والورقةُ معاً —
+  ///   لا يجمع أيٌّ منهما شيئاً بنفسه. رقمان لنفس السؤال يعنيان أن أحدهما
+  ///   خاطئ ولا يُعرَف أيّهما.
+  ///
+  /// **والمدى يُصحَّح إن جاء مقلوباً** بدل أن يُعيد تقريراً فارغاً: مدىً
+  /// معكوس خطأُ إدخالٍ شائع، ونتيجتُه الفارغة تُقرأ «لا رواتب لهذا الموظف»
+  /// — وهي كذبة خطرة.
+  Future<EmployeePayrollReportData> buildEmployeeReport({
+    int? employeeId,
+    int? treasuryId,
+    required int fromYear,
+    required int fromMonth,
+    required int toYear,
+    required int toMonth,
+  }) async {
+    // ترتيب المدى — الأصغر أولاً مهما أُدخل
+    var (fy, fm, ty, tm) = (fromYear, fromMonth, toYear, toMonth);
+    if (fy * 12 + fm > ty * 12 + tm) {
+      (fy, fm, ty, tm) = (ty, tm, fy, fm);
+    }
+
+    final rangeLabel = '${PayrollCalculator.periodLabel(fy, fm)} — '
+        '${PayrollCalculator.periodLabel(ty, tm)}';
+
+    String? treasuryName;
+    if (treasuryId != null) {
+      final t = await _db.treasuriesDao.getTreasuryById(treasuryId);
+      treasuryName = t?.name;
+    }
+
+    // ── الوضع الأول: موظف واحد ───────────────────────────────────────
+    if (employeeId != null) {
+      final employee = await _db.employeesDao.getEmployeeById(employeeId);
+      final months = await _dao.getEmployeeMonths(
+        employeeId: employeeId,
+        fromYear: fy,
+        fromMonth: fm,
+        toYear: ty,
+        toMonth: tm,
+      );
+
+      // الجمع بالدينار: مبالغ الدولار تُضرب بسعر صرف شهرها قبل الجمع،
+      // وإلا جُمع دولارٌ على دينار فخرج رقم بلا معنى.
+      double iqd(double value, EmployeePayrollMonth m) =>
+          m.currency == PayrollCurrency.usd
+              ? value * (m.netIqd == 0 || m.net == 0 ? 0 : m.netIqd / m.net)
+              : value;
+
+      var total = 0.0, paid = 0.0, bonus = 0.0, ded = 0.0, adv = 0.0;
+      for (final m in months) {
+        total += m.netIqd;
+        if (m.isPaid) paid += m.netIqd;
+        bonus += iqd(m.bonus, m);
+        ded += iqd(m.deduction + m.absenceDeduction, m);
+        adv += iqd(m.advanceRepayment, m);
+      }
+
+      return EmployeePayrollReportData(
+        rangeLabel: rangeLabel,
+        employeeName: employee?.fullName ?? '—',
+        position: employee?.position ?? '',
+        treasuryName: treasuryName,
+        months: months,
+        employees: const [],
+        monthCount: months.length,
+        totalIqd: total,
+        paidIqd: paid,
+        bonusIqd: bonus,
+        deductionIqd: ded,
+        advanceRepaymentIqd: adv,
+      );
+    }
+
+    // ── الوضع الثاني: مجموعة موظفين ──────────────────────────────────
+    final employees = await _dao.getEmployeesSummary(
+      treasuryId: treasuryId,
+      fromYear: fy,
+      fromMonth: fm,
+      toYear: ty,
+      toMonth: tm,
+    );
+
+    return EmployeePayrollReportData(
+      rangeLabel: rangeLabel,
+      employeeName: null,
+      position: null,
+      treasuryName: treasuryName,
+      months: const [],
+      employees: employees,
+      monthCount: employees.fold<int>(0, (sum, e) => sum + e.monthCount),
+      totalIqd: employees.fold<double>(0, (sum, e) => sum + e.totalIqd),
+      paidIqd: employees.fold<double>(0, (sum, e) => sum + e.paidIqd),
+      bonusIqd: employees.fold<double>(0, (sum, e) => sum + e.bonusIqd),
+      deductionIqd:
+          employees.fold<double>(0, (sum, e) => sum + e.deductionIqd),
+      advanceRepaymentIqd:
+          employees.fold<double>(0, (sum, e) => sum + e.advanceRepaymentIqd),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🔑 صرف راتب موظف واحد — **داخل كشف شهره** (قرار المالك 2026-08-26)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /// صرف راتب موظف واحد عن شهر بعينه
+  ///
+  /// 🔑 **لماذا يمرّ بكشف الشهر بدل أن يكتب سطراً حرّاً؟**
+  ///   كان المسار المباشر يكتب سطراً بلا `payroll_period_id`، فيصير في النظام
+  ///   **طريقان** لتسجيل راتب: واحد داخل الكشوف وآخر خارجها. وأي تقرير يقرأ
+  ///   أحدهما وينسى الآخر يُخفي مالاً خرج فعلاً — وهو الصنف نفسه من العطل
+  ///   الذي ضرب المشروع المرجعي DMS، وهو ما ولّد ع-٢٨.
+  ///
+  ///   بعد التوحيد: الراتب المباشر **سطرٌ في كشف شهره**، فيراه الكشف والتقرير
+  ///   السنوي وتقرير الموظف بلا استثناء، ويمنع الفهرس الفريد `(كشف، موظف)`
+  ///   ازدواجَه بنيوياً.
+  ///
+  /// **الحرّاس بالترتيب — كلها قبل أي كتابة:**
+  ///   1. الموظف موجود · وعملة راتبه **دينار** (هذا المسار يُنشئ سنداً بالدينار)
+  ///   2. سنة مالية **موجودة ومفتوحة** تغطّي شهر الراتب *(قرار المالك)*
+  ///   3. الصافي موجب
+  ///   4. الموظف **غير مسدَّد** في هذا الشهر — وإلا رُفض بذكر سنده وتاريخه
+  ///   5. رصيد الخزينة كافٍ
+  ///
+  /// **والكشف المُسدَّد يُقبل** *(قرار المالك: الخيار أ)*: الموظف الذي التحق
+  /// متأخراً أو نُسي يُضاف سطراً **مسدَّداً** فيبقى الكشف مكتملاً ويقول الدفتر
+  /// الحقيقة. ولا يقع تسديد مزدوج: الـ DAO لا يدفع إلا سطراً `unpaid`.
+  Future<PaySingleSalaryResult> paySingleEmployee({
+    required int employeeId,
+    required int year,
+    required int month,
+    required int treasuryId,
+    required double basicSalary,
+    double additions = 0,
+    double deductions = 0,
+    required DateTime paymentDate,
+    String notes = '',
+    int? paidByUserId,
+  }) async {
+    final label = PayrollCalculator.periodLabel(year, month);
+
+    // ── 1. الموظف وعملته ─────────────────────────────────────────────
+    final employee = await _db.employeesDao.getEmployeeById(employeeId);
+    if (employee == null || employee.isDeleted) {
+      throw StateError('الموظف غير موجود.');
+    }
+    if (employee.salaryCurrency != PayrollCurrency.iqd) {
+      throw StateError(
+        'راتب «${employee.fullName}» بعملة ${employee.salaryCurrency} — '
+        'اصرفه من كشف الرواتب حيث يُثبَّت سعر صرف الشهر.\n'
+        'الصرف المباشر من بطاقة الموظف يفترض الدينار.',
+      );
+    }
+
+    // ── 2. السنة المالية لشهر **الراتب** لا لتاريخ الدفع ─────────────
+    // منتصف الشهر يقع داخل النطاق يقيناً أياً كانت حدوده.
+    final fiscal = await _db.fiscalPeriodsDao
+        .getAnyPeriodForDate(DateTime(year, month, 15));
+    if (fiscal == null) {
+      throw StateError(
+        'لا توجد سنة مالية تغطّي $label.\n'
+        'أنشئ السنة المالية من شاشة «السنوات المالية» أولاً — '
+        'فراتبٌ بلا سنة مالية راتبٌ بلا كشف ولا تقرير.',
+      );
+    }
+    if (fiscal.status != 'active') {
+      throw StateError(
+        'السنة المالية «${fiscal.name}» التي يقع فيها $label **مُقفَلة** — '
+        'لا تُضاف إليها رواتب.',
+      );
+    }
+
+    // ── 3. الصافي ────────────────────────────────────────────────────
+    final net = basicSalary + additions - deductions;
+    PayrollCalculator.ensurePayable(employee.fullName, net);
+    if (net <= 0) {
+      throw StateError(
+        'صافي راتب «${employee.fullName}» صفر — لا شيء ليُصرف.',
+      );
+    }
+
+    // ── 4. هل سُدِّد راتب هذا الشهر أصلاً؟ ────────────────────────────
+    final paidAlready = await _dao.getPaidEmployeesForMonth(year, month);
+    for (final p in paidAlready) {
+      if (p.employeeId != employeeId) continue;
+      final when = p.paidAt == null ? '' : ' بتاريخ ${_shortDate(p.paidAt!)}';
+      final voucher =
+          p.voucherNumber == null ? '' : ' بسند صرف رقم ${p.voucherNumber}';
+      throw StateError(
+        'راتب «${employee.fullName}» عن $label مصروفٌ سلفاً$when$voucher.\n'
+        'لا يُصرف الراتب مرّتين — راجع كشف الشهر.',
+      );
+    }
+
+    // ── 5. رصيد الخزينة — نفس حارس الصرف العادي ──────────────────────
+    final balanceError = await BalanceGuard.checkSufficientBalance(
+      _db,
+      treasuryId: treasuryId,
+      currency: PayrollCurrency.iqd,
+      amount: net,
+    );
+    if (balanceError != null) throw StateError(balanceError);
+
+    // ── التنفيذ الذرّي ───────────────────────────────────────────────
+    // إدراج السطر ثم تسديده في **معاملة واحدة**: لا لحظة يظهر فيها كشفٌ
+    // مُسدَّد وقد صار «مسودة» بسطر مستحقّ.
+    return _db.transaction(() async {
+      var period = await _dao.getPeriodForMonth(year, month);
+      final wasPosted = period?.status == PayrollStatusDb.posted;
+
+      if (period == null) {
+        final id = await _dao.insertPeriod(
+          PayrollPeriodsCompanion.insert(
+            year: year,
+            month: month,
+            fiscalPeriodId: fiscal.id,
+            createdByUserId: Value(paidByUserId),
+            notes: const Value('أُنشئ تلقائياً عند صرف راتب مباشر'),
+          ),
+        );
+        period = await _dao.getPeriodById(id);
+      }
+
+      // سطر الموظف: قائمٌ غير مسدَّد (استُورد الملف قبلاً) أم يُنشأ الآن؟
+      final existing = await _dao.getEntryForEmployee(
+        periodId: period!.id,
+        employeeId: employeeId,
+      );
+
+      final int entryId;
+      if (existing != null) {
+        // ⚠️ **يُسدَّد السطر القائم نفسه** لا يُنشأ ثانٍ: الفهرس الفريد
+        //   يمنع الثاني أصلاً، والمبلغ المُدخَل هنا هو ما يُصرف فعلاً.
+        entryId = existing.id;
+        await _dao.updateEntry(
+          existing.id,
+          SalaryPaymentsCompanion(
+            basicSalary: Value(basicSalary),
+            additions: Value(additions),
+            deductions: Value(deductions),
+            netAmount: Value(net),
+            netAmountIqd: Value(net),
+            notes: notes.trim().isEmpty
+                ? const Value.absent()
+                : Value(notes.trim()),
+          ),
+        );
+      } else {
+        entryId = await _dao.insertEntry(
+          SalaryPaymentsCompanion(
+            payrollPeriodId: Value(period.id),
+            employeeId: Value(employeeId),
+            periodLabel: Value(label),
+            // اللقطة: حالته لحظة الصرف لا اليوم
+            snapshotName: Value(employee.fullName),
+            snapshotPosition: Value(employee.position),
+            snapshotCurrency: const Value(PayrollCurrency.iqd),
+            snapshotHireDate: Value(employee.hireDate),
+            basicSalary: Value(basicSalary),
+            eligibleDays: Value(period.workingDays),
+            additions: Value(additions),
+            deductions: Value(deductions),
+            netAmount: Value(net),
+            netAmountIqd: Value(net),
+            paymentDate: Value(paymentDate),
+            notes: Value(notes.trim()),
+          ),
+        );
+      }
+
+      final result = await _dao.payEntries(
+        periodId: period.id,
+        entryIds: [entryId],
+        treasuryId: treasuryId,
+        fiscalPeriodId: period.fiscalPeriodId,
+        paymentDate: paymentDate,
+        periodLabel: label,
+        paidByUserId: paidByUserId,
+        // السند باسم الموظف لا «١ موظفاً» — الدفعة لشخص بعينه
+        personNameOverride: employee.fullName,
+      );
+
+      return PaySingleSalaryResult(
+        periodId: period.id,
+        entryId: entryId,
+        periodLabel: label,
+        employeeName: employee.fullName,
+        netIqd: net,
+        voucherId: result.voucherId,
+        voucherNumber: result.voucherNumber,
+        addedToPostedSheet: wasPosted,
+        joinedExistingEntry: existing != null,
+      );
+    });
+  }
+
+  /// تاريخ مختصر للرسائل — بلا حزمة تنسيق في طبقة البيانات
+  String _shortDate(DateTime d) =>
+      '${d.year}/${d.month.toString().padLeft(2, '0')}/'
+      '${d.day.toString().padLeft(2, '0')}';
 }

@@ -15,13 +15,16 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/auth/permissions.dart';
 import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/employee_model.dart';
+import '../../domain/models/user_model.dart';
 import 'auth_provider.dart';
 import 'database_provider.dart';
+import 'repository_providers.dart';
 
 part 'employee_providers.g.dart';
 
@@ -111,6 +114,25 @@ Future<double> pendingAdvancesAmount(Ref ref, int employeeId) {
 /// Notifier لإدارة عمليات الموظفين (إضافة / تعديل / حذف / تفعيل)
 @riverpod
 class EmployeeNotifier extends _$EmployeeNotifier {
+
+  /// نقل موظفي خزينة إلى أخرى — يُستدعى قبل حذف الخزينة
+  ///
+  /// [toTreasuryId] فارغ ⇒ يبقون بلا مشروع (وهو ما كان يقع صامتاً قبل ع-٣٤)
+  Future<int> reassignTreasury({
+    required int fromTreasuryId,
+    int? toTreasuryId,
+  }) async {
+    final moved = await ref
+        .read(appDatabaseProvider)
+        .employeesDao
+        .reassignTreasury(
+          fromTreasuryId: fromTreasuryId,
+          toTreasuryId: toTreasuryId,
+        );
+    ref.invalidate(allEmployeesProvider);
+    return moved;
+  }
+
   @override
   AsyncValue<String?> build() => const AsyncData(null);
 
@@ -224,6 +246,15 @@ class EmployeeNotifier extends _$EmployeeNotifier {
 // SalaryNotifier — صرف الرواتب
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// تُلحَق برسالة النجاح حين يُضاف موظف إلى كشف مُسدَّد بالكامل
+///
+/// الإخبار هنا **جزء من الأمان لا مجاملة**: المالك قد يكون طبع الكشف
+/// ووزّعه، فمعرفتُه أن مجموعه تغيّر تجعله يُعيد الطباعة بدل أن يكتشف
+/// الفرق بعد شهور.
+const String _kLateAdditionNote =
+    '\nملاحظة: كشف هذا الشهر كان مُسدَّداً — أُضيف الموظف إليه وسُجِّل ذلك '
+    'في سجل التدقيق.';
+
 /// Notifier لصرف الرواتب
 ///
 /// عند صرف الراتب:
@@ -234,19 +265,27 @@ class SalaryNotifier extends _$SalaryNotifier {
   @override
   AsyncValue<String?> build() => const AsyncData(null);
 
-  AppDatabase get _db => ref.read(appDatabaseProvider);
-
-  int? get _userId {
+  /// المستخدم الحالي — `null` إن لم يكن مصادَقاً
+  UserModel? get _user {
     final s = ref.read(authNotifierProvider);
-    return s is AuthAuthenticated ? s.user.id : null;
+    return s is AuthAuthenticated ? s.user : null;
   }
 
-  String get _username {
-    final s = ref.read(authNotifierProvider);
-    return s is AuthAuthenticated ? s.user.username : 'system';
-  }
-
-  /// صرف راتب موظف مع إنشاء سند صرف تلقائي
+  /// صرف راتب موظف واحد — **يقع داخل كشف شهره** (قرار المالك 2026-08-26)
+  ///
+  /// 🔑 **ما تغيّر ولماذا:** كانت هذه الدالة تُنشئ السند وتكتب سطر راتب
+  ///   **بلا كشف**، فيصير في النظام طريقان لتسجيل راتب: واحد داخل الكشوف
+  ///   وآخر خارجها. أي تقرير يقرأ أحدهما وينسى الآخر يُخفي مالاً خرج فعلاً
+  ///   (ع-٢٨). الآن تُفوَّض بالكامل إلى `PayrollRepository.paySingleEmployee`،
+  ///   فالسطر ينتسب لكشف شهره ويظهر في كل تقرير بلا استثناء.
+  ///
+  /// **والصلاحية صارت `managePayroll` (مدير)** — قرار المالك 2026-08-26.
+  ///   كان هذا المسار **بلا أي فحص صلاحية**: أي مستخدم عادي يصرف راتباً
+  ///   ويُنشئ سند صرف، بينما تسديد الكشف يحتاج مديراً. ثغرةٌ لا مبرّر لها:
+  ///   المسار الذي يُخرج المال هو ما يجب أن يُحرَس، لا الشاشة التي تعرضه.
+  ///
+  /// [year] و[month] — شهر **الراتب** لا شهر الصرف. إلزاميان: بهما يُنسَب
+  /// الراتب إلى كشفه، وبلا كشف لا تقرير ولا تنبيه عند الاستيراد.
   Future<bool> paySalary({
     required int employeeId,
     required String employeeName,
@@ -254,101 +293,79 @@ class SalaryNotifier extends _$SalaryNotifier {
     required double basicSalary,
     double additions = 0.0,
     double deductions = 0.0,
-    required String periodLabel,
+    required int year,
+    required int month,
     required DateTime paymentDate,
     String notes = '',
   }) async {
-    final netAmount = basicSalary + additions - deductions;
-    if (netAmount <= 0) {
+    final user = _user;
+    if (user == null || !user.can(AppPermission.managePayroll)) {
       state = const AsyncError(
-        'الراتب الصافي يجب أن يكون أكبر من صفر',
+        'لا تملك صلاحية صرف الرواتب — هذه العملية للمدير.',
         StackTrace.empty,
       );
       return false;
     }
+
     state = const AsyncLoading();
     try {
-      // فحص كفاية رصيد الخزينة (حسب سياسة المنع في الإعدادات)
-      final balanceError = await BalanceGuard.checkSufficientBalance(
-        _db,
-        treasuryId: treasuryId,
-        currency: 'IQD',
-        amount: netAmount,
-      );
-      if (balanceError != null) {
-        state = AsyncError(balanceError, StackTrace.empty);
-        return false;
-      }
+      final result =
+          await ref.read(payrollRepositoryProvider).paySingleEmployee(
+                employeeId: employeeId,
+                year: year,
+                month: month,
+                treasuryId: treasuryId,
+                basicSalary: basicSalary,
+                additions: additions,
+                deductions: deductions,
+                paymentDate: paymentDate,
+                notes: notes,
+                paidByUserId: user.id,
+              );
 
-      // 1. الفترة المالية
-      final period =
-          await _db.fiscalPeriodsDao.getFiscalPeriodForDate(paymentDate);
-      if (period == null) {
-        state = const AsyncError(
-          'لا توجد فترة مالية نشطة لهذا التاريخ',
-          StackTrace.empty,
-        );
-        return false;
-      }
-
-      // ⚠️ خطوات 2–4 داخل معاملة واحدة (إصلاح السند اليتيم):
-      //   سابقاً كان السند يُكتب في معاملة والراتب في أخرى، فلو فشلت
-      //   الخطوة الثانية يبقى السند (المال) بلا سجل راتب مقابل. لفّها في
-      //   db.transaction يجعلها ذرّية: إما تنجح كلها أو تتراجع كلها.
-      final voucherId = await _db.transaction(() async {
-        // 2. رقم السند التالي
-        final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
-          fiscalPeriodId: period.id,
-          voucherType: 'sarf',
-        );
-
-        // 3. إنشاء سند الصرف
-        final vid = await _db.vouchersDao.insertVoucher(
-          VouchersCompanion.insert(
-            voucherNumber: voucherNumber,
-            voucherType: 'sarf',
-            treasuryId: treasuryId,
-            fiscalPeriodId: period.id,
-            amount: netAmount,
-            currency: const Value('IQD'),
-            voucherDate: paymentDate,
-            personName: Value(employeeName),
-            reason: Value('راتب $periodLabel'),
-            itemType: const Value('راتب'),
-            linkedEntityId: Value(employeeId),
-            createdByUserId: Value(_userId),
-          ),
-        );
-
-        // 4. تسجيل دفعة الراتب مرتبطة بالسند
-        await _db.employeesDao.insertSalaryPayment(
-          SalaryPaymentsCompanion.insert(
-            employeeId: employeeId,
-            paymentDate: paymentDate,
-            periodLabel: Value(periodLabel),
-            basicSalary: Value(basicSalary),
-            additions: Value(additions),
-            deductions: Value(deductions),
-            netAmount: Value(netAmount),
-            voucherId: Value(vid),
-            notes: Value(notes.trim()),
-          ),
-        );
-        return vid;
-      });
-
-      // توثيق صرف الراتب في سجل التدقيق
+      // ── الأثر الرقابي ────────────────────────────────────────────────
       await ref.read(auditLoggerProvider).logVoucherCreated(
-            userId: _userId ?? 0,
-            username: _username,
-            voucherId: voucherId,
+            userId: user.id,
+            username: user.username,
+            voucherId: result.voucherId,
             voucherType: 'sarf',
-            amount: netAmount,
+            amount: result.netIqd,
             treasuryId: treasuryId,
           );
+      await ref.read(auditLoggerProvider).logPayrollPaid(
+            userId: user.id,
+            username: user.username,
+            periodId: result.periodId,
+            periodLabel: result.periodLabel,
+            employeeCount: 1,
+            totalIqd: result.netIqd,
+            voucherId: result.voucherId,
+          );
 
-      state = const AsyncData('تم صرف الراتب بنجاح ✓');
+      // ⚠️ حدثٌ مستقلّ حين يُضاف موظف إلى كشف **مُسدَّد بالكامل**: ورقةٌ
+      //   اعتُمدت وطُبعت يتغيّر مجموعها، فلا يجوز أن يقع ذلك بلا شاهد
+      //   يسمّي الموظف والمبلغ ومن فعلها.
+      if (result.addedToPostedSheet) {
+        await ref.read(auditLoggerProvider).logPayrollLateAddition(
+              userId: user.id,
+              username: user.username,
+              periodId: result.periodId,
+              periodLabel: result.periodLabel,
+              employeeName: result.employeeName,
+              amountIqd: result.netIqd,
+              voucherId: result.voucherId,
+            );
+      }
+
+      state = AsyncData(
+        'صُرف راتب ${result.employeeName} عن ${result.periodLabel} '
+        'بسند رقم ${result.voucherNumber} ✓'
+        '${result.addedToPostedSheet ? _kLateAdditionNote : ''}',
+      );
       return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;
@@ -525,6 +542,30 @@ class AdvanceNotifier extends _$AdvanceNotifier {
     }
     state = const AsyncLoading();
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // 🔴 **«خصم من الراتب» ليس تسديداً الآن** (ع-٣٩ — بلاغ المالك)
+      //
+      //   كان هذا المسار يُنشئ **سند قبض** لكل الطرق — بما فيها الخصم من
+      //   الراتب. والمال حينها **لم يدخل الخزينة**: سيخرج راتبٌ أقلّ في
+      //   نهاية الشهر. فيتضخّم الرصيد برقم وهمي، ثم يُخصم من الراتب فعلاً
+      //   فيُحتسب القسط **مرّتين**.
+      //
+      //   والخصم الحقيقي يقع في `PayrollDao.recordSalaryDeductions` لحظة
+      //   تسديد الراتب — وهو **المسار الوحيد** الذي يسجّله.
+      // ═══════════════════════════════════════════════════════════════
+      if (method == 'salary_deduction') {
+        await _db.employeesDao.markForSalaryDeduction(advanceId: advance.id);
+        if (advance.employeeId != null) {
+          ref.invalidate(pendingAdvancesAmountProvider(advance.employeeId!));
+        }
+        state = const AsyncData(
+          'سيُخصم المبلغ من راتب الشهر ✓\n'
+          'لم يُنشأ سند: المال لم يدخل الخزينة بل سيخرج راتبٌ أقلّ. '
+          'وسيظهر تنبيه السلفة في كشف الرواتب ليُخصم هناك مرّة واحدة.',
+        );
+        return true;
+      }
+
       // 1. الفترة المالية
       final period =
           await _db.fiscalPeriodsDao.getFiscalPeriodForDate(repaymentDate);
@@ -623,6 +664,52 @@ class AdvanceNotifier extends _$AdvanceNotifier {
 
       state = const AsyncData('تم تسجيل السداد بنجاح ✓');
       return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  // ── إلغاء سلفة موظف (ع-٣٨) ─────────────────────────────────────────────
+
+  /// إلغاء سلفة موظف كاملةً — السلفة وأقساطها وسندها معاً
+  ///
+  /// 🔑 **سبب وجوده** (طلب المالك 2026-08-27): الموظف قد يُعيد السلفة في
+  ///   يومها، فيُلغى كل شيء ويعود الرصيد إلى ما كان عليه بالضبط.
+  ///
+  /// ⚠️ تُستدعى **بعد** تأكيد كلمة المرور في الواجهة: العملية تُرجع مالاً خرج.
+  Future<bool> cancelEmployeeAdvance({
+    required int advanceId,
+    required String reason,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      // يُقرأ **قبل** الإلغاء — بعده يختفي فلا يبقى ما يُوثَّق
+      final advance = await _db.employeesDao.getAdvanceById(advanceId);
+
+      await _db.employeesDao.cancelEmployeeAdvance(
+        advanceId: advanceId,
+        reason: reason,
+      );
+
+      if (advance != null) {
+        await ref.read(auditLoggerProvider).logEmployeeAdvanceCancelled(
+              userId: _userId ?? 0,
+              username: _username,
+              advanceId: advanceId,
+              amount: advance.amount,
+              reason: reason.trim(),
+            );
+        if (advance.employeeId != null) {
+          ref.invalidate(pendingAdvancesAmountProvider(advance.employeeId!));
+        }
+      }
+
+      state = const AsyncData('أُلغيت السلفة ورجع المبلغ إلى الخزينة ✓');
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;

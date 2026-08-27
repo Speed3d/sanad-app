@@ -269,7 +269,71 @@ void main() {
       expect(result.added, 1, reason: 'الفرق تنبيه لا رفض');
     });
 
-    test('الاستيراد إلى كشف مُسدَّد مرفوض', () async {
+    test('⭐⭐ الاستيراد إلى كشف مُسدَّد يُقبل ولا يمسّ سطراً مدفوعاً',
+        () async {
+      // 🔴 **كان مرفوضاً حتى 2026-08-26، والرفض كان يقفل الشهر.**
+      //   بعد توحيد الصرف المباشر داخل الكشوف، صار صرفُ راتب **موظف واحد**
+      //   يجعل كشف الشهر «مُسدَّداً» (لا سطر مستحقّ فيه) — فكان استيراد ملف
+      //   الشهر بعده يُرفض، أي أن راتباً واحداً يقفل الشهر على بقية موظفيه.
+      //
+      //   والحماية الحقيقية بقيت: **السطر المدفوع لا يُمَسّ**، فالمال الذي
+      //   خرج لا يُعاد حسابه من ملف. المحمي هو السطر لا حالة الكشف.
+      final pid = await makePeriod();
+      final eid = await addEntry(
+          periodId: pid, employeeId: ahmedId, name: 'أحمد علي', salary: 600000);
+      await repo.payEntries(
+        periodId: pid,
+        entryIds: [eid],
+        treasuryId: mainTreasury,
+        paymentDate: DateTime(2025, 3, 1),
+      );
+      final postedAt = (await db.payrollDao.getPeriodById(pid))!.postedAt;
+      expect((await db.payrollDao.getPeriodById(pid))!.status,
+          PayrollStatusDb.posted);
+
+      // ملف الشهر يصل متأخراً: فيه أحمد بمبلغ مختلف، وسارة لم تكن فيه
+      final result = await repo.importRows(
+        periodId: pid,
+        rows: [
+          ResolvedPayrollRow(
+            employeeId: ahmedId,
+            row: const ParsedPayrollRow(
+              rowNumber: 1,
+              rowLabel: 'صف 1',
+              employeeName: 'أحمد علي',
+              basicSalary: 900000,
+            ),
+          ),
+          ResolvedPayrollRow(
+            employeeId: saraId,
+            row: const ParsedPayrollRow(
+              rowNumber: 2,
+              rowLabel: 'صف 2',
+              employeeName: 'سارة حسن',
+              basicSalary: 500000,
+            ),
+          ),
+        ],
+      );
+
+      expect(result.added, 1, reason: 'سارة وحدها تُضاف');
+      expect(result.updated, 0, reason: 'أحمد مدفوع — لا يُحدَّث');
+
+      final entries = await db.payrollDao.getEntries(pid);
+      final ahmed = entries.firstWhere((e) => e.employeeId == ahmedId);
+      expect(ahmed.netAmountIqd, 600000,
+          reason: 'المال خرج بهذا الرقم — الملف لا يُعيد كتابته');
+      expect(ahmed.paymentStatus, PayrollPaymentStatusDb.paid);
+
+      // الحالة تتبع السطور: صار في الكشف سطر مستحقّ فليس مُسدَّداً
+      final period = await db.payrollDao.getPeriodById(pid);
+      expect(period!.status, PayrollStatusDb.draft);
+      expect(period.postedAt, postedAt,
+          reason: 'تاريخ الاعتماد الأول يبقى شاهداً — لا يُمحى');
+    });
+
+    test('كشفٌ كل سطوره مدفوعة يبقى مُسدَّداً بعد استيراد لا يضيف شيئاً',
+        () async {
       final pid = await makePeriod();
       final eid = await addEntry(
           periodId: pid, employeeId: ahmedId, name: 'أحمد علي');
@@ -280,10 +344,11 @@ void main() {
         paymentDate: DateTime(2025, 3, 1),
       );
 
-      await expectLater(
-        repo.importRows(periodId: pid, rows: const []),
-        throwsA(isA<StateError>()),
-      );
+      await repo.importRows(periodId: pid, rows: const []);
+
+      expect((await db.payrollDao.getPeriodById(pid))!.status,
+          PayrollStatusDb.posted,
+          reason: 'لا سطر مستحقّ دخل — فلا سبب لتغيير الحالة');
     });
   });
 
@@ -635,8 +700,13 @@ void main() {
       expect(repayments.first.amount, 100000);
       expect(repayments.first.method, 'salary_deduction',
           reason: 'قيمة كانت في الجدول بصفر استعمال — وُصلت أخيراً');
-      expect(repayments.first.voucherId, isNull,
-          reason: 'لا سند قبض: المال لم يتحرّك بل خرج راتبٌ أقل');
+      // 🔄 **تغيّر العقد 2026-08-26 (المرحلة ٦):** كان العمود يُترك فارغاً
+      //   لأن «لا سند قبض هنا — المال لم يتحرّك بل خرج راتبٌ أقل». وهو
+      //   صحيح، لكنه ترك القسط **بلا أثرٍ يربطه بالراتب الذي وُلد منه**،
+      //   فتعذّر عكسه عند إلغاء التسديد — فتبقى السلفة منقوصة بمبلغٍ لم
+      //   يُدفَع. الآن يُملأ بسند **الصرف** الذي وقع الخصم ضمنه.
+      expect(repayments.first.voucherId, isNotNull,
+          reason: 'بلا ربطٍ بسنده لا سبيل لعكس القسط عند إلغاء التسديد');
 
       final advance = await db.employeesDao.getAdvanceById(advId);
       expect(advance!.totalRepaid, 100000);

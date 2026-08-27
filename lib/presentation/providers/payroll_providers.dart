@@ -15,6 +15,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/auth/permissions.dart';
 import '../../core/services/payroll_calculator.dart';
 import '../../core/services/payroll_name_matcher.dart';
+import '../../core/services/payroll_print_data.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../data/database/daos/payroll_dao.dart';
@@ -74,6 +75,57 @@ Future<PayrollPeriodTotals> payrollTotals(Ref ref, int periodId) {
   return ref.watch(payrollRepositoryProvider).getTotals(periodId);
 }
 
+/// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+///
+/// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+///   ممكناً بضغطة، لا بعد أن يخرج المال.
+///
+/// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+@riverpod
+Future<List<PaidEmployeeInMonth>> payrollPaidEmployeesForMonth(
+  Ref ref,
+  int year,
+  int month,
+) {
+  ref.watch(allPayrollPeriodsProvider);
+  return ref.watch(appDatabaseProvider).payrollDao
+      .getPaidEmployeesForMonth(year, month);
+}
+
+/// كشوف فيها رواتب «مسدَّدة» بسندٍ محذوف — الكاشف المرآة (ع-٤٠)
+@riverpod
+Future<List<StalePaidPayroll>> stalePaidPayrolls(Ref ref) {
+  ref.watch(allPayrollPeriodsProvider);
+  return ref.watch(payrollRepositoryProvider).getStalePaidPayrolls();
+}
+
+/// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+///
+/// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+///   بالضبط ما انفرط في المشروع المرجعي DMS.
+@riverpod
+Future<PayrollYearReportData> payrollYearReport(Ref ref, int year) {
+  // إعادة القراءة عند أي إنشاء أو حذف أو اعتماد كشف
+  ref.watch(allPayrollPeriodsProvider);
+  return ref.watch(payrollRepositoryProvider).buildYearReport(year);
+}
+
+/// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+///
+/// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+///   الصنف نفسه من العطل الذي ضرب DMS.
+@riverpod
+Future<({int count, double totalIqd})> payrollOutOfSheet(Ref ref, int year) {
+  ref.watch(allPayrollPeriodsProvider);
+  return ref.watch(payrollRepositoryProvider).getOutOfSheetSalaries(year);
+}
+
 /// موظفو القاعدة بصيغة مرشّحي المطابقة — لمعالج الاستيراد
 @riverpod
 Future<List<PayrollMatchCandidate>> payrollMatchCandidates(Ref ref) async {
@@ -86,6 +138,24 @@ Future<List<PayrollMatchCandidate>> payrollMatchCandidates(Ref ref) async {
             hireDate: e.hireDate,
           ))
       .toList();
+}
+
+/// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+///
+/// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+///
+/// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+@riverpod
+Future<Map<int, double>> pendingAdvancesForEmployees(
+  Ref ref,
+  List<int> employeeIds,
+) {
+  return ref
+      .watch(appDatabaseProvider)
+      .employeesDao
+      .getPendingAdvancesForEmployees(employeeIds);
 }
 
 /// سلف الموظف غير المسدَّدة — لاقتراح الخصم في شاشة الكشف
@@ -163,6 +233,78 @@ Future<PayrollMonthFiscalCheck> payrollMonthFiscalCheck(
     PayrollMonthFiscalState.ready,
     fiscal.name,
   );
+}
+
+/// معاملات تقرير الموظف — كائن واحد بدل ستّة معاملات في مزوّد عائلي
+///
+/// ⚠️ **ولماذا `==` و`hashCode` بيدنا؟** لأن المزوّد العائلي يُخزّن نتيجته
+///   بمفتاح المعامل. كائنٌ بلا مساواةٍ قيمية يُنتج مفتاحاً جديداً في **كل
+///   بناء**، فيُعاد الاستعلام بلا انقطاع ولا ينتهي التحميل — وهو نفس العطل
+///   الذي سبّبه `DateTime.now()` مفتاحاً (ع-٠٦).
+class EmployeeReportQuery {
+  final int? employeeId;
+  final int? treasuryId;
+  final int fromYear;
+  final int fromMonth;
+  final int toYear;
+  final int toMonth;
+
+  const EmployeeReportQuery({
+    this.employeeId,
+    this.treasuryId,
+    required this.fromYear,
+    required this.fromMonth,
+    required this.toYear,
+    required this.toMonth,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is EmployeeReportQuery &&
+      other.employeeId == employeeId &&
+      other.treasuryId == treasuryId &&
+      other.fromYear == fromYear &&
+      other.fromMonth == fromMonth &&
+      other.toYear == toYear &&
+      other.toMonth == toMonth;
+
+  @override
+  int get hashCode =>
+      Object.hash(employeeId, treasuryId, fromYear, fromMonth, toYear, toMonth);
+}
+
+/// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+@riverpod
+Future<EmployeePayrollReportData> employeePayrollReport(
+  Ref ref,
+  EmployeeReportQuery query,
+) {
+  // يُعاد بناؤه عند أي تغيّر في الكشوف — راتبٌ صُرف اليوم يظهر فوراً
+  ref.watch(allPayrollPeriodsProvider);
+  return ref.watch(payrollRepositoryProvider).buildEmployeeReport(
+        employeeId: query.employeeId,
+        treasuryId: query.treasuryId,
+        fromYear: query.fromYear,
+        fromMonth: query.fromMonth,
+        toYear: query.toYear,
+        toMonth: query.toMonth,
+      );
+}
+
+/// كل الموظفين لقائمة اختيار التقرير — الاسم والصفة وخزينته
+@riverpod
+Future<List<Employee>> payrollReportEmployees(Ref ref) {
+  return ref.watch(appDatabaseProvider).employeesDao.getAllEmployees();
+}
+
+/// سندات رواتب لا يقابلها سطرٌ حيّ — **مالٌ خرج بلا سجل** (ع-٣٣)
+///
+/// 🔑 شبكة أمان تكشف **العَرَض** لا السبب: هذه الحالة وُلدت من بابٍ لم
+///   نتوقّعه (حذف الكشف)، وأيّ باب آخر لم يُشخَّص بعدُ سيُنتجها ثانيةً.
+@riverpod
+Future<List<OrphanPayrollVoucher>> orphanPayrollVouchers(Ref ref) {
+  ref.watch(allPayrollPeriodsProvider);
+  return ref.watch(payrollRepositoryProvider).getOrphanPayrollVouchers();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -342,8 +484,12 @@ class PayrollNotifier extends _$PayrollNotifier {
     }
   }
 
-  /// حذف كشف مسودة
-  Future<bool> deletePeriod(int periodId) async {
+  /// حذف كشف — [mode] إلزامي حين يكون فيه رواتب مصروفة (ع-٣٣)
+  Future<bool> deletePeriod(
+    int periodId, {
+    PayrollDeleteMode? mode,
+    String reason = '',
+  }) async {
     if (!_allows(AppPermission.managePayroll, 'حذف كشوف الرواتب')) {
       return false;
     }
@@ -351,7 +497,12 @@ class PayrollNotifier extends _$PayrollNotifier {
       final period = await _repo.getPeriod(periodId);
       // تُقرأ **قبل** الحذف — بعده تختفي فلا يبقى ما يُوثَّق
       final entries = await _repo.getEntries(periodId);
-      await _repo.deletePeriod(periodId);
+      final result = await _repo.deletePeriod(
+        periodId,
+        mode: mode,
+        reason: reason,
+        userId: _user?.id,
+      );
 
       if (period != null) {
         await ref.read(auditLoggerProvider).logPayrollDeleted(
@@ -364,10 +515,265 @@ class PayrollNotifier extends _$PayrollNotifier {
             );
       }
 
-      state = const AsyncData('حُذف الكشف ✓');
+      // ⚠️ حدث تدقيق مستقلّ حين رجع مالٌ فعلاً — لا يكفي «حُذف الكشف»
+      if (result.reversedCount > 0 && period != null) {
+        await ref.read(auditLoggerProvider).logPayrollReversal(
+              userId: _user?.id ?? 0,
+              username: _user?.username ?? 'system',
+              entryId: periodId,
+              event: 'payroll_period_reversed',
+              employeeName: '${result.reversedCount} موظفاً',
+              periodLabel:
+                  PayrollCalculator.periodLabel(period.year, period.month),
+              reason: reason.trim(),
+              oldAmountIqd: result.reversedTotalIqd,
+            );
+      }
+
+      state = AsyncData(
+        result.deletedPeriod
+            ? 'حُذف الكشف ✓'
+                '${result.reversedCount > 0 ? '\nوأُلغي تسديد ${result.reversedCount} راتباً ورجع ${result.reversedTotalIqd.round()} د.ع إلى الخزينة' : ''}'
+            : 'حُذفت ${result.removedUnpaid} سطراً مستحقّاً ✓'
+                '\nوالرواتب المصروفة بقيت في الكشف بسنداتها',
+      );
       return true;
     } on StateError catch (e, st) {
       state = AsyncError(e.message, st);
+      return false;
+    }
+  }
+
+  /// إلغاء تسديد كل رواتب الشهر — بلا حذف الكشف
+  Future<bool> unpayPeriod({
+    required int periodId,
+    required String reason,
+  }) async {
+    if (!_allows(AppPermission.managePayroll, 'إلغاء تسديد الرواتب')) {
+      return false;
+    }
+    state = const AsyncLoading();
+    try {
+      final period = await _repo.getPeriod(periodId);
+      final result = await _repo.unpayPeriod(
+        periodId: periodId,
+        reason: reason,
+        userId: _user?.id,
+      );
+
+      if (period != null) {
+        await ref.read(auditLoggerProvider).logPayrollReversal(
+              userId: _user?.id ?? 0,
+              username: _user?.username ?? 'system',
+              entryId: periodId,
+              event: 'payroll_period_unpaid',
+              employeeName: '${result.count} موظفاً',
+              periodLabel:
+                  PayrollCalculator.periodLabel(period.year, period.month),
+              reason: reason.trim(),
+              oldAmountIqd: result.totalIqd,
+            );
+      }
+
+      ref.invalidate(payrollTotalsProvider(periodId));
+      state = AsyncData(
+        'أُلغي تسديد ${result.count} راتباً ورجع '
+        '${result.totalIqd.round()} د.ع إلى الخزينة ✓\n'
+        'الكشف صار مسودة — صحّحه ثم سدّده من جديد.',
+      );
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// إعادة رواتب فقدت سندها إلى «مستحقّة» (ع-٤٠)
+  Future<bool> restoreStalePaidPayroll({
+    required int periodId,
+    required String reason,
+  }) async {
+    if (!_allows(AppPermission.managePayroll, 'تصحيح كشوف الرواتب')) {
+      return false;
+    }
+    state = const AsyncLoading();
+    try {
+      final count = await _repo.restoreStalePaidPayroll(
+        periodId: periodId,
+        reason: reason,
+      );
+      ref.invalidate(stalePaidPayrollsProvider);
+      ref.invalidate(payrollTotalsProvider(periodId));
+      state = AsyncData('أُعيد $count راتباً إلى «مستحقّ» وعاد الكشف مسودة ✓');
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// حذف سند رواتب يتيم وإرجاع ماله إلى الخزينة (ع-٣٣)
+  Future<bool> deleteOrphanVoucher({
+    required int voucherId,
+    required String reason,
+  }) async {
+    if (!_allows(AppPermission.managePayroll, 'حذف سندات الرواتب')) {
+      return false;
+    }
+    state = const AsyncLoading();
+    try {
+      // يُقرأ **قبل** الحذف — مبلغه جزءٌ من الأثر الرقابي ويختفي بعده
+      final voucher = await ref
+          .read(appDatabaseProvider)
+          .vouchersDao
+          .getVoucherById(voucherId);
+
+      await _repo.deleteOrphanPayrollVoucher(
+        voucherId: voucherId,
+        reason: reason,
+        userId: _user?.id,
+      );
+      await ref.read(auditLoggerProvider).logVoucherDeleted(
+            userId: _user?.id ?? 0,
+            username: _user?.username ?? 'system',
+            voucherId: voucherId,
+            amount: voucher?.amount ?? 0,
+          );
+      ref.invalidate(orphanPayrollVouchersProvider);
+      state = const AsyncData('حُذف السند اليتيم ورجع مبلغه إلى الخزينة ✓');
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  // ── 🔑 الإلغاء والتصحيح بعد التسديد (المرحلة ٦) ────────────────────────
+
+  /// إلغاء تسديد راتب — يعكس السطر والسند وقسط السلفة **معاً**
+  ///
+  /// صلاحية **مدير** كالتسديد نفسه: العملية تُعيد مالاً إلى الخزينة وتُبطل
+  /// سنداً، فهي بخطورة الصرف لا بخفّة التعديل.
+  Future<bool> unpayEntry({
+    required int entryId,
+    required String reason,
+  }) async {
+    if (!_allows(AppPermission.managePayroll, 'إلغاء تسديد الرواتب')) {
+      return false;
+    }
+    state = const AsyncLoading();
+    try {
+      final entry = await ref.read(appDatabaseProvider).payrollDao
+          .getEntryById(entryId);
+      final result = await _repo.unpayEntry(
+        entryId: entryId,
+        reason: reason,
+        userId: _user?.id,
+      );
+
+      await ref.read(auditLoggerProvider).logPayrollReversal(
+            userId: _user?.id ?? 0,
+            username: _user?.username ?? 'system',
+            entryId: entryId,
+            event: 'payroll_unpaid',
+            employeeName: result.employeeName,
+            periodLabel: entry?.periodLabel ?? '',
+            reason: reason.trim(),
+            oldAmountIqd: result.amountIqd,
+            voucherId: result.voucherId,
+            voucherDeleted: result.voucherDeleted,
+            reversedRepayment: result.reversedRepayment,
+          );
+
+      if (entry?.payrollPeriodId != null) {
+        ref.invalidate(payrollTotalsProvider(entry!.payrollPeriodId!));
+      }
+
+      state = AsyncData(
+        'أُلغي تسديد راتب ${result.employeeName} ✓'
+        '${result.voucherDeleted ? '\nوحُذف سنده لأنه كان له وحده' : '\nونقص مبلغ سند الدفعة بحصته'}'
+        '${result.reversedRepayment > 0 ? '\nوأُعيد قسط سلفة بمبلغ ${result.reversedRepayment.round()}' : ''}',
+      );
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// تصحيح مبلغ راتب مسدَّد — يبقى مسدَّداً ويتغيّر رقمه
+  Future<bool> correctPaidEntry({
+    required int entryId,
+    required String reason,
+    required PayrollCorrectionMode mode,
+    double? basicSalary,
+    int? eligibleDays,
+    int? absenceDays,
+    double? absenceDeduction,
+    double? bonus,
+    double? deduction,
+  }) async {
+    if (!_allows(AppPermission.managePayroll, 'تصحيح الرواتب المسدَّدة')) {
+      return false;
+    }
+    state = const AsyncLoading();
+    try {
+      final entry = await ref.read(appDatabaseProvider).payrollDao
+          .getEntryById(entryId);
+      final result = await _repo.correctPaidEntry(
+        entryId: entryId,
+        reason: reason,
+        mode: mode,
+        newBasicSalary: basicSalary,
+        newEligibleDays: eligibleDays,
+        newAbsenceDays: absenceDays,
+        newAbsenceDeduction: absenceDeduction,
+        newBonus: bonus,
+        newDeduction: deduction,
+        userId: _user?.id,
+      );
+
+      await ref.read(auditLoggerProvider).logPayrollReversal(
+            userId: _user?.id ?? 0,
+            username: _user?.username ?? 'system',
+            entryId: entryId,
+            event: 'payroll_corrected',
+            employeeName: result.employeeName,
+            periodLabel: entry?.periodLabel ?? '',
+            reason: reason.trim(),
+            oldAmountIqd: result.oldAmountIqd,
+            newAmountIqd: result.newAmountIqd,
+            voucherId: entry?.voucherId,
+            debtRecorded: result.debtRecorded,
+          );
+
+      if (entry?.payrollPeriodId != null) {
+        ref.invalidate(payrollTotalsProvider(entry!.payrollPeriodId!));
+      }
+
+      state = AsyncData(
+        'صُحِّح راتب ${result.employeeName} من '
+        '${result.oldAmountIqd.round()} إلى ${result.newAmountIqd.round()} ✓'
+        '${result.debtRecorded > 0 ? '\nوسُجِّل الفرق ${result.debtRecorded.round()} سلفةً على الموظف تُخصم من راتب قادم' : '\nورجع الفرق إلى الخزينة'}',
+      );
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
       return false;
     }
   }

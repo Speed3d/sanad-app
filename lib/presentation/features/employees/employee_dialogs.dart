@@ -226,11 +226,20 @@ class _PaySalaryDialogState extends State<_PaySalaryDialog> {
   late final TextEditingController _basicCtrl;
   final _additionsCtrl = TextEditingController(text: '0');
   final _deductionsCtrl = TextEditingController(text: '0');
-  final _periodCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   int? _treasuryId;
   DateTime _paymentDate = DateTime.now();
   bool _saving = false;
+
+  /// شهر **الراتب** وسنته — إلزاميان (قرار المالك 2026-08-26)
+  ///
+  /// 🔑 **لماذا قائمتان لا نصّ حرّ؟**
+  ///   كان الحقل نصّاً يكتب فيه المستخدم ما شاء، وافتراضيه بأسماء أشهر
+  ///   مختلفة عن نظام الرواتب («أغسطس 2025» مقابل «آب 2025») — فتعذّر
+  ///   بنيوياً ربطُ راتبٍ مباشر بكشف شهره. وبالقائمتين يصير الراتب سطراً
+  ///   في كشفه، فيظهر في التقارير ويُنبَّه عند استيراد ملف الشهر نفسه.
+  late int _salaryYear;
+  late int _salaryMonth;
 
   @override
   void initState() {
@@ -240,13 +249,12 @@ class _PaySalaryDialogState extends State<_PaySalaryDialog> {
           ? widget.employee.basicSalary.toStringAsFixed(0)
           : '',
     );
-    // افتراضي للفترة: الشهر الحالي
-    final now = DateTime.now();
-    final months = [
-      '', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
-    ];
-    _periodCtrl.text = '${months[now.month]} ${now.year}';
+    // الافتراضي: **الشهر السابق** (قرار المالك 2026-08-26) — الرواتب
+    // تُصرف بعد انتهاء شهرها، فالشهر الحالي كان يعني تصحيحاً يدوياً في
+    // كل مرة تقريباً.
+    final previous = DateTime(DateTime.now().year, DateTime.now().month - 1);
+    _salaryYear = previous.year;
+    _salaryMonth = previous.month;
   }
 
   @override
@@ -254,7 +262,6 @@ class _PaySalaryDialogState extends State<_PaySalaryDialog> {
     _basicCtrl.dispose();
     _additionsCtrl.dispose();
     _deductionsCtrl.dispose();
-    _periodCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -279,7 +286,8 @@ class _PaySalaryDialogState extends State<_PaySalaryDialog> {
       'basicSalary': double.tryParse(_basicCtrl.text) ?? 0.0,
       'additions': double.tryParse(_additionsCtrl.text) ?? 0.0,
       'deductions': double.tryParse(_deductionsCtrl.text) ?? 0.0,
-      'periodLabel': _periodCtrl.text.trim(),
+      'year': _salaryYear,
+      'month': _salaryMonth,
       'paymentDate': _paymentDate,
       'notes': _notesCtrl.text.trim(),
     });
@@ -302,16 +310,70 @@ class _PaySalaryDialogState extends State<_PaySalaryDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // الفترة
-                TextFormField(
-                  controller: _periodCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'الفترة *',
-                    hintText: 'مثال: يناير 2025',
-                    prefixIcon: Icon(Icons.event_note_outlined, size: 20),
-                  ),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'الفترة مطلوبة' : null,
+                // ── شهر الراتب — إلزامي ──────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<int>(
+                        initialValue: _salaryMonth,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'شهر الراتب *',
+                          prefixIcon:
+                              Icon(Icons.event_note_outlined, size: 20),
+                        ),
+                        items: [
+                          for (var m = 1; m <= 12; m++)
+                            DropdownMenuItem(
+                              value: m,
+                              child: Text(PayrollCalculator.arabicMonth(m)),
+                            ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _salaryMonth = v ?? _salaryMonth),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<int>(
+                        initialValue: _salaryYear,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'السنة *',
+                        ),
+                        items: [
+                          // نطاق معقول حول اليوم: ماضٍ للتصحيح ومستقبل
+                          // قريب لا يُغري بخطأ إدخال
+                          for (var y = DateTime.now().year - 3;
+                              y <= DateTime.now().year + 1;
+                              y++)
+                            DropdownMenuItem(value: y, child: Text('$y')),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _salaryYear = v ?? _salaryYear),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // 🔑 إخبارٌ صريح بأثر العملية قبل وقوعها
+                Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 14, color: Colors.blueGrey.shade400),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'سيُسجَّل هذا الراتب ضمن كشف رواتب '
+                        '${PayrollCalculator.periodLabel(_salaryYear, _salaryMonth)}'
+                        '، ويُنبَّه عند استيراد ملف الشهر نفسه.',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.blueGrey.shade400),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 // الخزينة

@@ -8,6 +8,15 @@
 //   1. generateVoucherReceipt — إنشاء سند قبض/صرف PDF فردي
 //   2. generateVaultStatement — إنشاء كشف حساب خزينة PDF
 //   3. generateAdvanceReport  — إنشاء تقرير سلفة مجمعة PDF
+//
+// ومستندات الرواتب في الجزء `pdf_payroll_documents.dart` (المرحلة ٤):
+//   4. generatePayrollSheet      — كشف رواتب الشهر
+//   5. generateSalarySlip        — إيصال راتب موظف
+//   6. generatePayrollYearReport — تقرير رواتب سنة
+//
+// **الجزء لا خدمة ثانية:** تحميل الخطوط وبناء النمط هنا هما موضع عطل
+// «العربي غير مفهوم» — ونسخة ثانية منهما تعني أن إصلاحاً واحداً لن يصل
+// إلى المستندات كلها. راجع `_loadFonts` أدناه.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/services.dart';
@@ -18,6 +27,9 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../domain/models/voucher_model.dart';
 import '../extensions/number_extensions.dart';
 import '../extensions/string_extensions.dart';
+import 'payroll_print_data.dart';
+
+part 'pdf_payroll_documents.dart';
 
 /// هوية الشركة على مستندات PDF — الاسم والشعار
 ///

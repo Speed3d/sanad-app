@@ -21,7 +21,9 @@ import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
 import 'advance_report_tab.dart';
 import 'deficit_report_tab.dart';
+import 'employee_payroll_report_tab.dart';
 import 'expenses_by_item_tab.dart';
+import 'payroll_report_tab.dart';
 import 'report_widgets.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -42,7 +44,7 @@ class _ReportsScreenState extends State<ReportsScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 6, vsync: this);
+    _tabCtrl = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -66,6 +68,8 @@ class _ReportsScreenState extends State<ReportsScreen>
             Tab(icon: Icon(Icons.manage_search), text: 'سلف المشاريع'),
             Tab(icon: Icon(Icons.pie_chart_outline), text: 'حسب البند'),
             Tab(icon: Icon(Icons.trending_down), text: 'المستحقات'),
+            Tab(icon: Icon(Icons.badge_outlined), text: 'الرواتب'),
+            Tab(icon: Icon(Icons.person_search_outlined), text: 'تقرير الموظف'),
           ],
         ),
       ),
@@ -78,6 +82,8 @@ class _ReportsScreenState extends State<ReportsScreen>
           AdvanceReportTab(),
           ExpensesByItemTab(),
           DeficitReportTab(),
+          PayrollReportTab(),
+          EmployeePayrollReportTab(),
         ],
       ),
     );

@@ -22,6 +22,8 @@ import 'package:intl/intl.dart';
 
 import '../../../domain/models/treasury_model.dart';
 import '../../providers/advance_providers.dart';
+import '../../providers/database_provider.dart';
+import '../../providers/employee_providers.dart';
 import '../../providers/treasury_providers.dart';
 
 // ── أجزاء المكتبة (المرحلة د) ───────────────────────────────────────
@@ -363,15 +365,38 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
   // تأكيد الحذف
   // ══════════════════════════════════════════════════════════════════════
 
+  /// تأكيد حذف خزينة — **ويسأل عن موظفيها قبل أن يتيتّموا** (ع-٣٤)
+  ///
+  /// 🔑 **سبب التنبيه** (بلاغ المالك 2026-08-26): حُذفت خزينة «البصرة» وبقي
+  ///   ٤٦ موظفاً منسوبين إليها بصمت. لم يشتكِ النظام، لكن كل ما يعتمد على
+  ///   «مشروع الموظف» صار يقرأ خزينةً لا وجود لها — ومنها تقرير الموظف
+  ///   بالمشروع.
   Future<void> _confirmDelete(
     BuildContext context,
     TreasuryBalanceModel balance,
   ) async {
     final theme = Theme.of(context);
 
+    // ⚠️ **قراءة مباشرة لا `ref.read(provider.future)`** (ع-٣٥):
+    //   المزوّدات المولَّدة `autoDispose` بطبعها. وقراءة `.future` منها في
+    //   دالة async **بلا مراقب** تُنشئها ثم تتخلّص منها قبل أن يكتمل
+    //   المستقبل، فترمي: «disposed during loading state».
+    //   وهو **سباق**: ينجح حين يسبق الاستعلام دورةَ التخلّص ويفشل حين
+    //   يتأخّر — فبدا أنه يعمل مع خزينة ويُسقط التطبيق مع التالية.
+    //   الاستعلام لمرّة واحدة لا يحتاج مزوّداً أصلاً.
+    final employeeCount = await ref
+        .read(appDatabaseProvider)
+        .employeesDao
+        .countEmployeesInTreasury(balance.treasuryId);
+    if (!context.mounted) return;
+
+    // وجهة النقل التي يختارها المالك — `null` يعني «اتركهم بلا مشروع»
+    int? moveTo;
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
         title: const Row(
           children: [
             Icon(Icons.delete_outline, size: 20),
@@ -409,11 +434,77 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
                   ],
                 ),
               )
-            else
+            else ...[
               Text(
                 'هل تريد حذف خزينة "${balance.treasuryName}"؟\n'
                 'سيتم الحذف بشكل ناعم ولن تُفقَد البيانات.',
               ),
+              if (employeeCount > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.groups_outlined,
+                              color: Colors.orange, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '$employeeCount موظفاً منسوبون إلى هذه '
+                              'الخزينة — سيبقون **بلا مشروع** بعد حذفها.',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Consumer(
+                        builder: (ctx, ref2, _) {
+                          final others = (ref2
+                                      .watch(allTreasuriesProvider)
+                                      .valueOrNull ??
+                                  const [])
+                              .where((t) =>
+                                  t.id != balance.treasuryId && t.isActive)
+                              .toList();
+                          return DropdownButtonFormField<int?>(
+                            initialValue: moveTo,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'انقلهم إلى (اختياري)',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('اتركهم بلا مشروع'),
+                              ),
+                              for (final t in others)
+                                DropdownMenuItem<int?>(
+                                  value: t.id,
+                                  child: Text(t.name,
+                                      overflow: TextOverflow.ellipsis),
+                                ),
+                            ],
+                            onChanged: (v) => setState(() => moveTo = v),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ],
         ),
         actions: [
@@ -432,10 +523,19 @@ class _TreasuriesScreenState extends ConsumerState<TreasuriesScreen> {
               label: const Text('حذف'),
             ),
         ],
+        ),
       ),
     );
 
     if (confirmed == true) {
+      // ⚠️ **النقل قبل الحذف**: بعده تصير الخزينة محذوفة ويبقى الموظفون
+      //   يشيرون إليها — وهو العطل نفسه الذي جاء التنبيه ليمنعه.
+      if (employeeCount > 0) {
+        await ref.read(employeeNotifierProvider.notifier).reassignTreasury(
+              fromTreasuryId: balance.treasuryId,
+              toTreasuryId: moveTo,
+            );
+      }
       await ref.read(treasuryNotifierProvider.notifier).deleteTreasury(
             balance.treasuryId,
             totalVouchers: balance.totalVouchers,

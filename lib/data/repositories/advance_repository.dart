@@ -222,8 +222,8 @@ class AdvanceRepository implements IAdvanceRepository {
     return _db.advancesDao.insertAdvance(
       AdvancesCompanion.insert(
         advanceNumber: number,
-        projectTreasuryId: projectTreasuryId,
         fiscalPeriodId: period.id,
+        projectTreasuryId: projectTreasuryId,
         advanceDate: advanceDate,
         projectName: Value(name),
         notes: Value(notes),
@@ -444,17 +444,16 @@ class AdvanceRepository implements IAdvanceRepository {
     final count = await _db.advancesDao.linkLineToPayroll(
       lineId: lineId,
       payrollPeriodId: payrollPeriodId,
-      projectTreasuryId: advance.projectTreasuryId,
     );
 
     if (count == 0) {
       // نفكّ الربط فوراً بدل تركه رباطاً فارغاً يُفشل الاعتماد لاحقاً
       await _db.advancesDao.unlinkLineFromPayroll(lineId);
       throw StateError(
-        'لا يوجد في كشف '
+        'كشف '
         '${PayrollCalculator.periodLabel(period.year, period.month)} '
-        'موظف واحد غير مسدَّد تابع لخزينة «${advance.projectName}».\n'
-        'تأكّد أن خزينة الموظفين في بطاقاتهم هي خزينة هذا المشروع.',
+        'ليس فيه راتبٌ مستحقّ واحد — كلّها مصروفة أو الكشف فارغ.\n'
+        'اربط سطر السلفة بكشفٍ فيه رواتب لم تُصرف بعد.',
       );
     }
     return count;
@@ -587,6 +586,24 @@ class AdvanceRepository implements IAdvanceRepository {
     );
   }
 
+  /// أثر إلغاء السلفة على الرواتب — يُقرأ **قبل** الحوار
+  ///
+  /// 🔑 حوارُ إلغاءٍ لا يذكر أن ٤٧ موظفاً ستُسحب رواتبهم يُخفي أخطر ما فيه.
+  @override
+  Future<({int employees, double amountIqd, List<String> periods})>
+      getCancelPayrollImpact(int advanceId) async {
+    final rows = await _db.payrollDao.getPaidEntriesForAdvance(advanceId);
+    return (
+      employees: rows.length,
+      amountIqd: rows.fold<double>(0, (s, e) => s + e.netAmountIqd),
+      periods: rows
+          .map((e) => e.periodLabel)
+          .where((l) => l.isNotEmpty)
+          .toSet()
+          .toList(),
+    );
+  }
+
   @override
   Future<CancelAdvanceInfo> cancelAdvance({
     required int advanceId,
@@ -611,9 +628,10 @@ class AdvanceRepository implements IAdvanceRepository {
         .where((l) => l.voucherId != null)
         .length;
 
-    await _db.advancesDao.cancelAdvance(
+    final reversal = await _db.advancesDao.cancelAdvance(
       advanceId: advanceId,
       cancelledByUserId: cancelledByUserId,
+      reason: 'إلغاء سلفة ${advance.advanceNumber}',
     );
 
     return CancelAdvanceInfo(
@@ -621,6 +639,9 @@ class AdvanceRepository implements IAdvanceRepository {
       previousStatus: advance.status,
       vouchersReversed: reversedCount,
       reversedAmount: reversedAmount,
+      payrollEmployeesReversed: reversal.employeeCount,
+      payrollAmountReversed: reversal.totalIqd,
+      payrollPeriods: reversal.periodLabels,
     );
   }
 

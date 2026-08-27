@@ -677,6 +677,110 @@ class AuditLogger {
   /// الكشف المسدَّد لا يُحذف أصلاً، فهذا يوثّق حذف مسودة. ومع ذلك يستحقّ
   /// شاهداً: مسودةٌ فيها ثلاثون سطراً راجعها المحاسب ساعةً ثم اختفت بلا أثر
   /// تجعل مَن يبحث عنها لاحقاً يظنّ أنها لم تُنشأ قط.
+  /// إضافة موظف إلى كشف **مُسدَّد بالكامل** (قرار المالك 2026-08-26)
+  ///
+  /// 🔑 **لماذا حدثٌ مستقلّ لا مجرد «راتب صُرف»؟**
+  ///   لأن الكشف المُسدَّد ورقةٌ اعتُمدت وقد تكون طُبعت ووُقّعت. إضافةُ موظف
+  ///   إليه تُغيّر مجموعها **بعد** اعتمادها — وهذا يقع بحقّ (الموظف التحق
+  ///   متأخراً أو نُسي)، لكنه لا يجوز أن يقع **بلا شاهد** يسمّي من فعله
+  ///   ومتى وبكم. الفرق بين تصحيحٍ مشروع وتلاعبٍ صامت هو هذا السطر.
+  Future<void> logPayrollLateAddition({
+    required int userId,
+    required String username,
+    required int periodId,
+    required String periodLabel,
+    required String employeeName,
+    required double amountIqd,
+    required int voucherId,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.salaryPayments,
+          action: AuditActions.insert,
+          recordId: periodId,
+          meta: _toMeta({
+            'event': 'payroll_late_addition',
+            'period': periodLabel,
+            'employee': employeeName,
+            'amount_iqd': amountIqd,
+            'voucher_id': voucherId,
+          }),
+        ));
+  }
+
+  /// إلغاء تسديد راتب أو تصحيح مبلغه بعد صرفه (المرحلة ٦ — 2026-08-26)
+  ///
+  /// 🔑 **الحدث الأهم رقابياً في نظام الرواتب كله.** هنا يتغيّر مبلغٌ **خرج
+  ///   من الخزينة فعلاً**، وهو بالضبط ما يفعله من يريد إخفاء أثر صرف. الفرق
+  ///   بين تصحيحٍ مشروع وتلاعبٍ صامت هو هذا السطر: **من** و**متى** و**من كم
+  ///   إلى كم** و**لماذا**.
+  ///
+  /// [reason] هو ما كتبه المستخدم — إلزامي في المستودع، فلا يصل هنا فارغاً.
+  /// إلغاء **سلفة موظف** — تُحذف السلفة وسندها وأقساطها معاً (ع-٣٨)
+  ///
+  /// 🔑 العملية تُرجع مالاً خرج من الخزينة، وتمحو دَيناً على موظف. من فعلها
+  ///   ولماذا سؤالٌ يُطرَح بعد شهور — والجواب هنا وحده.
+  ///
+  /// 📌 غير `logAdvanceCancelled` التي توثّق إلغاء **سلفة مشروع** — جدولان
+  ///   مختلفان وعمليتان مختلفتان، والاسمان يجب أن يفترقا.
+  Future<void> logEmployeeAdvanceCancelled({
+    required int userId,
+    required String username,
+    required int advanceId,
+    required double amount,
+    required String reason,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.cashAdvances,
+          action: AuditActions.delete,
+          recordId: advanceId,
+          meta: _toMeta({
+            'event': 'employee_advance_cancelled',
+            'amount': amount,
+            'reason': reason,
+          }),
+        ));
+  }
+
+  Future<void> logPayrollReversal({
+    required int userId,
+    required String username,
+    required int entryId,
+    required String event,
+    required String employeeName,
+    required String periodLabel,
+    required String reason,
+    required double oldAmountIqd,
+    double? newAmountIqd,
+    int? voucherId,
+    bool voucherDeleted = false,
+    double reversedRepayment = 0,
+    double debtRecorded = 0,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.salaryPayments,
+          action: AuditActions.update,
+          recordId: entryId,
+          meta: _toMeta({
+            'event': event,
+            'employee': employeeName,
+            'period': periodLabel,
+            'reason': reason,
+            'old_amount_iqd': oldAmountIqd,
+            if (newAmountIqd != null) 'new_amount_iqd': newAmountIqd,
+            if (voucherId != null) 'voucher_id': voucherId,
+            if (voucherDeleted) 'voucher_deleted': true,
+            if (reversedRepayment > 0) 'reversed_repayment': reversedRepayment,
+            if (debtRecorded > 0) 'debt_recorded': debtRecorded,
+          }),
+        ));
+  }
+
   Future<void> logPayrollDeleted({
     required int userId,
     required String username,

@@ -17,6 +17,7 @@
 
 import 'package:drift/drift.dart';
 import '../app_database.dart';
+import 'payroll_dao.dart';
 import '../tables/advances_table.dart';
 import '../tables/advance_lines_table.dart';
 import '../tables/item_types_table.dart';
@@ -434,27 +435,38 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
 
   /// سطور كشف الرواتب التي يغطّيها سطر سلفة
   ///
-  /// **من يُعتبَر مشمولاً؟** موظفو **خزينة هذا المشروع** غير المسدَّدين.
-  /// (قرار المالك 2026-08-24: `employees.treasury_id` هو رابط المشروع —
-  /// موظفو خزنة البصرة هم موظفو مشروع البصرة، لأن `project_treasury_id`
-  /// في السلفة تشير إلى الخزينة نفسها.)
-  Future<List<SalaryPayment>> getPayrollEntriesForProject({
+  /// **من يُعتبَر مشمولاً؟** **كل سطور الكشف غير المسدَّدة.**
+  ///
+  /// 🔄 **تغيّرت القاعدة 2026-08-26** (بلاغ المالك). كانت: «موظفو **خزينة
+  ///   المشروع** غير المسدَّدين» — أي `employees.treasury_id` يساوي
+  ///   `advances.project_treasury_id`.
+  ///
+  ///   **وكيف انكسرت؟** ربط المالك سطر سلفة بمبلغ ٦٢٬٠٣٨٬٣٣٤ بكشفٍ مجموعه
+  ///   ٦٢٬٠٣٨٬٣٣٣ — الرقمان متطابقان — فقال البرنامج «لا تطابق: مجموع
+  ///   **١ موظفاً** ٢٬٢٥٠٬٠٠٠». والسبب أن ٤٦ من أصل ٤٧ موظفاً كانوا
+  ///   منسوبين إلى خزينة **أخرى محذوفة** (استُوردوا حين كانت هي الافتراضية،
+  ///   ثم حُذفت وأُنشئت خزينة المشروع الجديدة).
+  ///
+  ///   فالقاعدة كانت تربط **مالاً بمالٍ** عبر حقلٍ في **ملفّ الموظف** —
+  ///   وهو حقلٌ يتغيّر لأسباب لا علاقة لها بالسلفة (نقل موظف · حذف خزينة ·
+  ///   استيراد بلا خزينة افتراضية). فيصير المال معلَّقاً على بيانات إدارية.
+  ///
+  ///   **والقاعدة الجديدة تربط ما ربطه المالك بيده:** هذا السطر مربوط بهذا
+  ///   الكشف، فهو يغطّي الكشف. لا وسيط يمكن أن ينحرف.
+  ///
+  /// 📌 وثمنُ ذلك: لا يمكن تقسيم كشفٍ واحد بين سلفتَي مشروعَين. وهي حالة لم
+  ///   تقع، ومسارها قائم: كشفٌ لكل مشروع، أو تسديدٌ مباشر لمن بقي.
+  Future<List<SalaryPayment>> getPayrollEntriesForSheet({
     required int payrollPeriodId,
-    required int projectTreasuryId,
   }) async {
     final rows = await customSelect(
       'SELECT s.* FROM salary_payments s '
-      'INNER JOIN employees e ON e.id = s.employee_id '
       'WHERE s.payroll_period_id = ? '
       '  AND s.is_deleted = 0 '
       "  AND s.payment_status = 'unpaid' "
-      '  AND e.treasury_id = ? '
       'ORDER BY s.snapshot_name',
-      variables: [
-        Variable.withInt(payrollPeriodId),
-        Variable.withInt(projectTreasuryId),
-      ],
-      readsFrom: {salaryPayments, db.employees},
+      variables: [Variable.withInt(payrollPeriodId)],
+      readsFrom: {salaryPayments},
     ).get();
     // `QueryRow.data` خريطة أعمدة خام — نحوّلها بمخطّط الجدول نفسه فلا
     // نُعيد كتابة أسماء الأعمدة يدوياً (وهو موضعٌ يُنسى فيه حقل عند التوسعة)
@@ -469,7 +481,6 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
   Future<int> linkLineToPayroll({
     required int lineId,
     required int payrollPeriodId,
-    required int projectTreasuryId,
   }) async {
     return transaction(() async {
       // فكّ أي ربط سابق لهذا السطر أولاً — وإلا تراكمت سطور من كشف قديم
@@ -482,9 +493,8 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
         payrollPeriodId: Value(payrollPeriodId),
       ));
 
-      final entries = await getPayrollEntriesForProject(
+      final entries = await getPayrollEntriesForSheet(
         payrollPeriodId: payrollPeriodId,
-        projectTreasuryId: projectTreasuryId,
       );
       for (final e in entries) {
         await (update(salaryPayments)..where((s) => s.id.equals(e.id)))
@@ -593,9 +603,9 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
 
         if (entries.isEmpty) {
           throw StateError(
-            'سطر «${line.reason}» مربوط بكشف رواتب لا يشمل أي موظف من '
-            'خزينة هذا المشروع.\n'
-            'افكك الربط أو راجع خزائن الموظفين في الكشف.',
+            'سطر «${line.reason}» مربوط بكشف رواتب **بلا سطور مستحقّة**.\n'
+            'قد تكون رواتبه سُدِّدت بعد الربط — افكك الربط أو أعد ربطه '
+            'ليُحدَّث.',
           );
         }
 
@@ -622,7 +632,73 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
       var payrollEmployeesPaid = 0;
       final completedPeriods = <String>[];
 
-      for (final line in lines) {
+      // ═══════════════════════════════════════════════════════════════
+      // 🔑 **سند واحد للمصاريف · وسند مستقلّ لكل سطر رواتب**
+      //   (قرار المالك 2026-08-27)
+      //
+      // **ما كان:** سندٌ لكل سطر. سلفةٌ بـ١٥٠ سطراً تُنتج **١٥٠ سنداً**،
+      //   وأي تصحيح لاحق يعني حذفها واحداً واحداً. والمفارقة أن نظام
+      //   الرواتب اتُّخذ فيه القرار المعاكس منذ يومه الأول.
+      //
+      // **والتفصيل لا يضيع**: يعيش في `advance_lines` — وهي مصدره الأصلي.
+      //   السند يمثّل **حركة المال**، والسلفة تمثّل **التفصيل**. وتقرير
+      //   «حسب البند» صار يقرأ من السطور مباشرةً فبقي أدقّ ممّا كان.
+      //
+      // ⚠️ **ولماذا تُعزَل الرواتب؟** لأن سند الرواتب ليس مصروفاً عادياً:
+      //   يحرسه حارس (ع-٣١) ويُطبَع منه إيصال ويلتقطه كاشف السندات
+      //   اليتيمة (ع-٣٣). خلطُه بالبنزين والطعام في سندٍ واحد يُبطل ذلك كله.
+      // ═══════════════════════════════════════════════════════════════
+      final payrollLinesToPost =
+          lines.where((l) => l.payrollPeriodId != null).toList();
+      final expenseLines =
+          lines.where((l) => l.payrollPeriodId == null).toList();
+
+      // ── سند المصاريف المجمَّع ──────────────────────────────────────
+      if (expenseLines.isNotEmpty) {
+        final expensesTotal =
+            expenseLines.fold<double>(0, (sum, l) => sum + l.amount);
+        final voucherNumber = await db.fiscalPeriodsDao.getNextVoucherNumber(
+          fiscalPeriodId: advance.fiscalPeriodId,
+          voucherType: 'sarf',
+        );
+
+        final voucherId = await into(vouchers).insert(
+          VouchersCompanion.insert(
+            voucherNumber: voucherNumber,
+            voucherType: 'sarf',
+            treasuryId: advance.projectTreasuryId,
+            fiscalPeriodId: advance.fiscalPeriodId,
+            amount: expensesTotal,
+            currency: const Value('IQD'),
+            exchangeRate: const Value(1.0),
+            // تاريخ آخر مصروف: السند يغطّي مدى، وأحدثُها يمثّل لحظة إثباته
+            voucherDate: expenseLines
+                .map((l) => l.voucherDate)
+                .reduce((a, b) => a.isAfter(b) ? a : b),
+            personName: Value(
+                'سلفة ${advance.advanceNumber} — ${expenseLines.length} سطراً'),
+            reason: Value('صرف سلفة ${advance.advanceNumber}'
+                '${advance.projectName.isEmpty ? '' : ' — ${advance.projectName}'}'),
+            // بندٌ جامع: التفصيل في السطور ويقرأه تقرير البنود منها
+            itemType: const Value('سلفة'),
+            projectName: Value(advance.projectName),
+            advanceNumber: Value(advance.advanceNumber),
+            advanceId: Value(advanceId),
+            createdByUserId: Value(postedByUserId),
+          ),
+        );
+
+        // كل السطور تشير إليه — فيبقى الأثر مزدوج الاتجاه كما كان
+        for (final line in expenseLines) {
+          await (update(advanceLines)..where((l) => l.id.equals(line.id)))
+              .write(AdvanceLinesCompanion(voucherId: Value(voucherId)));
+        }
+
+        voucherIds.add(voucherId);
+        total += expensesTotal;
+      }
+
+      for (final line in payrollLinesToPost) {
         // رقم السند التالي — ذرّي عبر UPSERT في voucher_sequences
         final voucherNumber = await db.fiscalPeriodsDao.getNextVoucherNumber(
           fiscalPeriodId: advance.fiscalPeriodId,
@@ -640,9 +716,19 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
             currency: const Value('IQD'),
             exchangeRate: const Value(1.0),
             voucherDate: line.voucherDate,
-            personName: Value(line.personName),
+            // 🔑 **اسم المستفيد يقول ما هو السند لا من كتبه** (بلاغ المالك
+            //   2026-08-27): كان يحمل اسم الشخص المكتوب في سطر الملف
+            //   («تحسين») فيبدو في كشف الحساب راتبَ شخصٍ واحد — وهو سندٌ
+            //   يغطّي كشف شهرٍ كاملاً.
+            personName: Value(
+              'رواتب سلفة ${advance.advanceNumber}'
+              '${advance.projectName.isEmpty ? '' : ' — ${advance.projectName}'}',
+            ),
             reason: Value(line.reason),
-            itemType: Value(line.itemType),
+            // ⚠️ **بندٌ ثابت لا من الملف**: به يتعرّف كاشفُ السندات اليتيمة
+            //   (ع-٣٣) على سندات الرواتب. بندٌ مكتوب في الإكسل («رواتب»
+            //   مثلاً) يُسقط السند من شبكة الأمان بصمت.
+            itemType: const Value('راتب'),
             projectName: Value(line.projectName ?? advance.projectName),
             invoiceNumber: Value(line.invoiceNumber),
             spentBy: Value(line.spentBy),
@@ -663,7 +749,7 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
         //   زال «مسودة» حتى يتذكّر المالك أن يعلّمه. ونسيانها يُبقي الكشف
         //   معلَّقاً إلى الأبد فيبدو بعد شهرين أن الرواتب لم تُدفع.
         //   وهو نمط د-٨ حرفياً: خطوة يدوية بعد عملية مالية = نصف ميزة.
-        if (line.payrollPeriodId != null) {
+        {
           final now = DateTime.now();
           final entries = await (select(salaryPayments)
                 ..where((sp) =>
@@ -685,6 +771,24 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
             ));
           }
           payrollEmployeesPaid += entries.length;
+
+          // ⚠️ **أقساط سلف الموظفين** — بنفس المسار الذي يمرّ به التسديد
+          //   من خزينة (ع-٣٧ — بلاغ المالك 2026-08-27): كان هذا المسار
+          //   يُعلّم السطور مدفوعة **بلا تسجيل أقساطها**، فيُخصَم من راتب
+          //   الموظف ولا يُحسَب له وتبقى سلفته كاملةً عليه.
+          if (entries.isNotEmpty) {
+            final period = await (select(payrollPeriods)
+                  ..where((pp) => pp.id.equals(line.payrollPeriodId!)))
+                .getSingleOrNull();
+            await db.payrollDao.recordSalaryDeductions(
+              entries: entries,
+              paymentDate: line.voucherDate,
+              voucherId: voucherId,
+              periodLabel: period == null
+                  ? ''
+                  : PayrollCalculator.periodLabel(period.year, period.month),
+            );
+          }
 
           // هل اكتمل الكشف؟ — يُقرأ **بعد** التحديث لا قبله
           final remaining = await customSelect(
@@ -749,12 +853,24 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
   ///   فعلاً من الخزينة الرئيسية إلى خزنة المشروع وما زال هناك. حذفه كان
   ///   يُبخّر التمويل ويُظهر خزنة المشروع صفراً بدل رصيدها الحقيقي.
   ///   (كشفه اختبار «إلغاء سلفة معتمدة يُعيد المبلغ للخزينة».)
-  Future<void> cancelAdvance({
+  ///
+  /// 🔴 **ويسحب رواتبها معه** (ع-٣٦ — بلاغ المالك 2026-08-27): كان الإلغاء
+  ///   يحذف السندات ويُعيد المال، **ويترك سطور الرواتب مسدَّدة** — فيظهر
+  ///   الموظفون مستلمين في بطاقاتهم وفي كل تقرير ومالُهم في الخزينة.
+  ///   والعكس يقع **قبل** حذف السندات وفي المعاملة نفسها.
+  Future<AdvancePayrollReversal> cancelAdvance({
     required int advanceId,
     int? cancelledByUserId,
+    String reason = '',
   }) async {
-    await db.transaction(() async {
+    return db.transaction(() async {
       final now = DateTime.now();
+
+      // ── 1. عكس الرواتب أولاً — قبل أن تختفي سنداتها ──────────────────
+      final reversal = await db.payrollDao.unpayEntriesForAdvance(
+        advanceId: advanceId,
+        reason: reason.trim().isEmpty ? 'أُلغيت السلفة' : reason.trim(),
+      );
 
       // حذف ناعم لسندات الصرف الناتجة عن الاعتماد فقط
       await (update(vouchers)
@@ -783,6 +899,8 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
           cancelledByUserId: Value(cancelledByUserId),
         ),
       );
+
+      return reversal;
     });
   }
 }

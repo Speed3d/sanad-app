@@ -96,6 +96,11 @@ void main() {
     );
 
     // رواتب مصروفة فعلاً بالصيغة القديمة
+    //
+    // 📌 `netAmountIqd` مملوء هنا **لإرضاء حارس الكتابة الجديد** وحده
+    //   (المرحلة ٤: لا راتب يُكتب بلا مقابله بالدينار). وهو لا يُضعف
+    //   الاختبار: جملة `UPDATE` أدناه تُفرّغه فعلياً، وهي ما يُنشئ حالة v6
+    //   التي يُختبَر الترحيل عليها.
     await db.employeesDao.insertSalaryPayment(
       SalaryPaymentsCompanion.insert(
         employeeId: ahmed,
@@ -103,6 +108,7 @@ void main() {
         periodLabel: const Value('شباط 2025'),
         basicSalary: const Value(600000), // راتبه **وقتها** قبل الزيادة
         netAmount: const Value(600000),
+        netAmountIqd: const Value(600000),
         voucherId: Value(voucherId),
       ),
     );
@@ -115,6 +121,7 @@ void main() {
         additions: const Value(50000),
         deductions: const Value(20000),
         netAmount: const Value(530000),
+        netAmountIqd: const Value(530000),
       ),
     );
 

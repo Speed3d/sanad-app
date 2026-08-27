@@ -40,11 +40,12 @@ enum _Col {
   advanceDed('خصم سلفة', 110),
   net('الصافي', 120),
   netIqd('بالدينار', 128),
-  // ⚠️ يتّسع للشارة **وأيقونة القلم** معاً. كان 90 فتجاوزته المحتويات بنصف
-  //   بكسل لحظة إضافة الأيقونة — وأمسكه اختبار الودجت فوراً. هذا بالضبط ما
-  //   يجعل اشتقاق العرض من هذا التعداد ذا قيمة: تغيير رقم واحد هنا يُصلح
-  //   الجدول كلّه بلا تذكّر رقم في مكان آخر.
-  status('الحالة', 112);
+  // ⚠️ يتّسع للشارة **وأيقونتَي الطباعة والقلم** معاً. كان 90 فتجاوزته
+  //   المحتويات بنصف بكسل لحظة إضافة أيقونة القلم، ثم وُسِّع إلى 150 لحظة
+  //   إضافة أيقونة طباعة الإيصال (المرحلة ٤). هذا بالضبط ما يجعل اشتقاق
+  //   العرض من هذا التعداد ذا قيمة: تغيير رقم واحد هنا يُصلح الجدول كلّه
+  //   بلا تذكّر رقم في مكان آخر — ويحرسه اختبار الودجت.
+  status('الحالة', 150);
 
   const _Col(this.label, this.width);
 
@@ -113,7 +114,27 @@ class _SheetHeader extends ConsumerWidget {
                 color: isPosted ? Colors.green : colors.gold,
               ),
               const Spacer(),
-              if (!isPosted && canPrepare)
+              // الطباعة متاحة للجميع: قراءةٌ لا تكتب شيئاً ولا تمسّ مالاً
+              TextButton.icon(
+                onPressed: () => _openPrintSheetDialog(context, ref, period),
+                icon: const Icon(Icons.print_outlined, size: 18),
+                label: const Text('طباعة الكشف'),
+              ),
+              const SizedBox(width: 4),
+              // 🔑 **إلغاء تسديد الشهر** (بلاغ المالك 2026-08-27): الكشف
+              //   المُسدَّد كان بلا أي زرّ سوى الطباعة — فلا سبيل لتصحيح شهر
+              //   اعتُمد خطأً إلا بالالتفاف على النظام (وهو ما ولّد ع-٣٢).
+              if (isPosted && canPay && (t?.paidCount ?? 0) > 0)
+                TextButton.icon(
+                  onPressed: () => _confirmUnpayPeriod(context, ref, period),
+                  icon: Icon(Icons.undo_rounded, color: colors.gold),
+                  label: Text('إلغاء تسديد الشهر',
+                      style: TextStyle(color: colors.gold)),
+                ),
+              // ⚠️ **والحذف يظهر للمُسدَّد أيضاً**: حواره صار يتعامل مع
+              //   المدفوع بأمان منذ المرحلة ٧ (يعكسه أو يُبقيه)، والشرط
+              //   الذي كان يُخفيه بقي من قبلها.
+              if (canPrepare)
                 TextButton.icon(
                   onPressed: () => _confirmDeletePeriod(context, ref, period),
                   icon: Icon(Icons.delete_outline, color: colors.danger),
@@ -175,6 +196,11 @@ class _SheetHeader extends ConsumerWidget {
             _MismatchBanner(
               computed: t.totalIqd,
               fromFile: period.fileTotal,
+              // السطور تُقرأ من المزوّد نفسه الذي يبني الجدول — لا استعلام
+              // ثانٍ ولا حساب ثانٍ، فقط نسبة الفرق إلى أصحابه
+              entries:
+                  ref.watch(payrollEntriesProvider(period.id)).valueOrNull ??
+                      const [],
             ),
           ],
         ],
@@ -224,17 +250,40 @@ class _Stat extends StatelessWidget {
 }
 
 /// شريط يعلن فرق المجموع بدل أن يتركه رقمين متجاورين يلاحظهما من ينتبه
+/// لافتة فرق المجموع — **وتقول سببه حين تعرفه**
+///
+/// 🔑 **بلاغ المالك 2026-08-26:** صرف راتباً كاملاً (٣٠ يوماً) لموظف له أربعة
+///   أيام غياب، ثم استورد ملف الشهر — فظهرت هذه اللافتة برقمٍ **بلا سبب**.
+///   والبرنامج يعرف السبب: سطر الموظف يحمل ما صُرف **وما يقوله الملف** معاً
+///   (يُحفظ `file_net_amount` حتى للسطر المسدَّد).
+///
+///   **تنبيهٌ يذكر رقماً بلا سببه يُدرّب العين على تخطّي ما حوله.**
 class _MismatchBanner extends StatelessWidget {
   final double computed;
   final double fromFile;
+  final List<SalaryPayment> entries;
 
-  const _MismatchBanner({required this.computed, required this.fromFile});
+  const _MismatchBanner({
+    required this.computed,
+    required this.fromFile,
+    this.entries = const [],
+  });
+
+  /// السطور التي يختلف فيها المصروف عمّا يقوله الملف — أصحاب الفرق
+  ///
+  /// هامش الدينار الواحد: ما دونه ضجيج فاصلة عائمة (نفس هامش المطابقة).
+  List<SalaryPayment> get _contributors => entries
+      .where((e) =>
+          e.fileNetAmount != null &&
+          (e.netAmount - e.fileNetAmount!).abs() > 1)
+      .toList();
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final money = NumberFormat('#,##0.##');
     final diff = computed - fromFile;
+    final causes = _contributors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -243,16 +292,42 @@ class _MismatchBanner extends StatelessWidget {
         border: Border.all(color: colors.danger.withValues(alpha: 0.35)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.warning_amber_rounded, color: colors.danger, size: 18),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              'إجمالي الكشف المحسوب يخالف المجموع المذكور في الملف بمقدار '
-              '${money.format(diff.abs())} د.ع '
-              '(${diff > 0 ? 'المحسوب أعلى' : 'المحسوب أقل'}). '
-              'راجع السطور قبل التسديد.',
-              style: TextStyle(fontSize: 12.5, color: colors.text),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'إجمالي الكشف المحسوب يخالف المجموع المذكور في الملف بمقدار '
+                  '${money.format(diff.abs())} د.ع '
+                  '(${diff > 0 ? 'المحسوب أعلى' : 'المحسوب أقل'}). '
+                  'راجع السطور قبل التسديد.',
+                  style: TextStyle(fontSize: 12.5, color: colors.text),
+                ),
+                // ── سبب الفرق باسم صاحبه ─────────────────────────────
+                if (causes.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  for (final e in causes.take(4))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        '• ${e.snapshotName}: '
+                        'صُرف ${money.format(e.netAmount)} '
+                        'والملف يحسب ${money.format(e.fileNetAmount!)} '
+                        '(${e.netAmount > e.fileNetAmount! ? 'زيادة' : 'نقص'} '
+                        '${money.format((e.netAmount - e.fileNetAmount!).abs())})',
+                        style: TextStyle(fontSize: 12, color: colors.subtext),
+                      ),
+                    ),
+                  if (causes.length > 4)
+                    Text('• و${causes.length - 4} غيرهم',
+                        style:
+                            TextStyle(fontSize: 12, color: colors.subtext)),
+                ],
+              ],
             ),
           ),
         ],
@@ -417,6 +492,10 @@ class _EntryRow extends ConsumerWidget {
     final money = NumberFormat('#,##0.##');
     final isPaid = entry.paymentStatus == PayrollPaymentStatusDb.paid;
     final isNegative = entry.netAmount < 0;
+    // من `paid_at` لا `created_at`: الأخير بدقّة الثانية فيكذب داخلها
+    final isLateAddition = period.postedAt != null &&
+        entry.paidAt != null &&
+        entry.paidAt!.isAfter(period.postedAt!);
 
     Widget cell(_Col col, String text, {Color? color, bool bold = false}) {
       return SizedBox(
@@ -435,7 +514,11 @@ class _EntryRow extends ConsumerWidget {
     }
 
     return InkWell(
-      onTap: isPaid ? null : () => _openEditDialog(context, ref, entry),
+      // 🔑 الضغط على السطر يفتح ما يناسب حالته: تعديلاً للمسودة، وإجراءات
+      //   التصحيح/الإلغاء للمسدَّد. إيماءةٌ واحدة لا اثنتان (المرحلة ٦).
+      onTap: isPaid
+          ? () => _openPaidEntryActions(context, ref, period, entry)
+          : () => _openEditDialog(context, ref, entry),
       child: Container(
         padding: const EdgeInsets.symmetric(
             horizontal: _kRowPadding, vertical: 11),
@@ -495,13 +578,42 @@ class _EntryRow extends ConsumerWidget {
               child: Row(
                 children: [
                   AppStatusBadge(
-                    label: isPaid ? 'مُسدَّد' : 'مستحقّ',
-                    color: isPaid ? Colors.green : colors.subtext,
+                    // 🔑 «لاحق» = أُضيف بعد اعتماد الكشف (صرفٌ مباشر متأخّر).
+                    //   يُشتقّ من `created_at` مقابل `posted_at` بلا عمود
+                    //   جديد. وبدونه يجد المالك في كشفٍ اعتمده اسماً لا
+                    //   يذكره ولا يعرف متى دخل.
+                    label: isPaid
+                        ? (isLateAddition ? 'مُسدَّد · لاحق' : 'مُسدَّد')
+                        : 'مستحقّ',
+                    color: isPaid
+                        ? (isLateAddition ? Colors.orange : Colors.green)
+                        : colors.subtext,
                   ),
-                  if (!isPaid) ...[
-                    const SizedBox(width: 4),
-                    Icon(Icons.edit_outlined, size: 13, color: colors.subtext),
-                  ],
+                  const SizedBox(width: 6),
+                  // 🔑 **الإيصال متاح للسطر المسدَّد وغير المسدَّد معاً:**
+                  //   المسدَّد يُسلَّم للموظف مع راتبه، وغير المسدَّد بيانُ
+                  //   استحقاق يُراجَع (والمستند نفسه يقول أيّهما بوضوح).
+                  //   والضغط على السطر نفسه يفتح التعديل، فلا تتضارب
+                  //   الإيماءتان: هذه أيقونة مستقلّة بمنطقة ضغط خاصة بها.
+                  Tooltip(
+                    message: 'طباعة إيصال الراتب',
+                    child: InkWell(
+                      onTap: () => PayrollPrintActions.printSlip(
+                          context, ref, entry.id),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: Icon(Icons.receipt_long_outlined,
+                            size: 15, color: colors.subtext),
+                      ),
+                    ),
+                  ),
+                  // ⚠️ أيقونة **في الحالتين بالعرض نفسه**: عمود الحالة
+                  //   محسوب على المحتوى (١١٢px)، وإخفاؤها في حالة وإظهارها
+                  //   في أخرى كان يغيّر العرض الفعلي — وهو مصدر ع-٢٣.
+                  const SizedBox(width: 2),
+                  Icon(isPaid ? Icons.tune_rounded : Icons.edit_outlined,
+                      size: 13, color: colors.subtext),
                 ],
               ),
             ),
@@ -526,7 +638,8 @@ Future<void> _openEditDialog(
   SalaryPayment entry,
 ) async {
   final advances =
-      await ref.read(employeePendingAdvancesProvider(entry.employeeId).future);
+      await ref.readOnce(employeePendingAdvancesProvider(entry.employeeId),
+          employeePendingAdvancesProvider(entry.employeeId).future);
   if (!context.mounted) return;
 
   double? basic = entry.basicSalary;
@@ -704,8 +817,10 @@ Future<void> _openPayDialog(
   WidgetRef ref,
   PayrollPeriod period,
 ) async {
-  final entries = await ref.read(payrollEntriesProvider(period.id).future);
-  final treasuries = await ref.read(allTreasuriesProvider.future);
+  final entries = await ref.readOnce(payrollEntriesProvider(period.id),
+      payrollEntriesProvider(period.id).future);
+  final treasuries = await ref.readOnce(
+      allTreasuriesProvider, allTreasuriesProvider.future);
   if (!context.mounted) return;
 
   final unpaid = entries
@@ -889,24 +1004,74 @@ Future<void> _openPayDialog(
 // حذف الكشف
 // ═══════════════════════════════════════════════════════════════════════════
 
-Future<void> _confirmDeletePeriod(
+// ═══════════════════════════════════════════════════════════════════════════
+// حوار خيارات طباعة الكشف
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// يسأل عن عمود توقيع الاستلام قبل الطباعة (قرار المالك 2026-08-26)
+///
+/// **ولماذا سؤال لا ثابت؟** الورقة التي تُوزَّع على الموظفين تحتاج خانة
+/// توقيع، ونسخة الأرشيف لا تحتاجها فتتّسع بقيةُ الأعمدة. والافتراضي
+/// **مُفعَّل** لأن ورقة التوزيع هي الاستعمال الأشيع.
+///
+/// ⚠️ **بلا `TextEditingController`** — مربّع اختيار فقط داخل
+///   `StatefulBuilder`. راجع تحذير أعلى هذا الملف (ع-٠٤).
+Future<void> _openPrintSheetDialog(
   BuildContext context,
   WidgetRef ref,
   PayrollPeriod period,
 ) async {
-  final label = PayrollCalculator.periodLabel(period.year, period.month);
-  final ok = await showConfirmDialog(
-    context,
-    title: 'حذف كشف $label',
-    message: 'سيُحذف الكشف وكل سطوره.\n'
-        'لا سندات صُرفت منه بعد، فلا أثر مالي — ويمكن استيراد الشهر '
-        'من جديد بعد الحذف.',
-    confirmLabel: 'حذف',
-    isDestructive: true,
-  );
-  if (ok != true || !context.mounted) return;
+  var withSignature = true;
 
-  final done =
-      await ref.read(payrollNotifierProvider.notifier).deletePeriod(period.id);
-  if (done && context.mounted) PayrollSheetScreen._goBack(context);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        title: const Text('طباعة كشف الرواتب'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'رواتب '
+              '${PayrollCalculator.periodLabel(period.year, period.month)}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: withSignature,
+              onChanged: (v) => setLocal(() => withSignature = v ?? false),
+              title: const Text('عمود توقيع الاستلام'),
+              subtitle: const Text(
+                'خانة فارغة يوقّع فيها كل موظف عند استلام راتبه.',
+                style: TextStyle(fontSize: 12),
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.print_outlined, size: 18),
+            label: const Text('معاينة وطباعة'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (confirmed != true || !context.mounted) return;
+  await PayrollPrintActions.printSheet(
+    context,
+    ref,
+    period.id,
+    withSignatureColumn: withSignature,
+  );
 }

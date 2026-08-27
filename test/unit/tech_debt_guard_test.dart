@@ -139,6 +139,43 @@ void main() {
   // ٤. حجم الملفات
   // ═══════════════════════════════════════════════════════════════════════
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // ٥. قراءة المزوّدات غير المتزامنة (ع-٣٥)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  test('⭐⭐ لا `ref.read(provider.future)` — يُسقط التطبيق بسباق تخلّص', () {
+    // 🔴 **بلاغ المالك 2026-08-27:** أسقط التطبيقَ حذفُ خزينة بالاستثناء
+    //   «disposed during loading state, yet no value could be emitted».
+    //
+    //   المزوّدات المولَّدة كلها `autoDispose`، و`ref.read` لا يضيف مستمعاً —
+    //   فيُنشَأ المزوّد ويبدأ استعلامه ثم يُتخلَّص منه قبل وصول الجواب.
+    //   **وهو سباق**: ينجح حين يسبق الاستعلامُ دورةَ التخلّص. فمرّ من كل
+    //   الاختبارات وظهر عند المالك وحده.
+    //
+    //   البديل: `ref.readOnce(p, p.future)` في `provider_read_once.dart`،
+    //   أو القراءة من المستودع/الـDAO مباشرةً حين يكون الاستعلام لمرّة واحدة.
+    final offenders = <String>[];
+    final pattern = RegExp(r'ref\s*\.\s*read\s*\([^;]*\.future\s*\)');
+
+    for (final f in _sourceFiles()) {
+      // ملف الأداة نفسه يذكر النمط في توثيقه
+      if (f.path.contains('provider_read_once')) continue;
+      for (final line in _read(f.path).split('\n')) {
+        final trimmed = line.trimLeft();
+        // التعليقات تشرح العطل ولا تُنتجه
+        if (trimmed.startsWith('//')) continue;
+        if (pattern.hasMatch(line)) {
+          offenders.add('${f.path}: ${line.trim()}');
+        }
+      }
+    }
+
+    expect(offenders, isEmpty,
+        reason: 'كانت ١٢ موضعاً قبل ع-٣٥ — كلها قنابل موقوتة.\n'
+            'استعمل `ref.readOnce(p, p.future)` بدلاً منها.\n'
+            '${offenders.join('\n')}');
+  });
+
   test('⭐ لا ملف مصدر يتجاوز ١٢٠٠ سطر', () {
     // employees_screen كان ٢٤٨٩ سطراً — أكبر ملف بفارق كبير — فقُسِّم
     // بـ part إلى ثلاثة. الحدّ يمنع عودة ملف عملاق آخر بصمت.

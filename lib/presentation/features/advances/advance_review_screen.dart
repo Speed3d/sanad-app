@@ -21,7 +21,10 @@ import '../../../domain/models/advance_model.dart';
 import '../../../core/services/attachment_service.dart';
 import '../../../data/database/daos/attachments_dao.dart';
 import '../../providers/advance_providers.dart';
+import '../../providers/provider_read_once.dart';
 import '../../providers/payroll_providers.dart';
+import '../../providers/repository_providers.dart';
+import '../../widgets/common/password_confirm_dialog.dart';
 import '../../../core/services/payroll_calculator.dart';
 import '../../widgets/common/attachments_panel.dart';
 import '../../providers/auth_provider.dart';
@@ -213,12 +216,15 @@ class _ReviewBody extends ConsumerWidget {
     WidgetRef ref,
     bool canPostDeficit,
   ) async {
-    final summary = await ref.read(advanceSummaryProvider(advance.id).future);
+    final summary = await ref.readOnce(advanceSummaryProvider(advance.id),
+        advanceSummaryProvider(advance.id).future);
 
     // معاينات الربط + تحذير الأسطر غير المربوطة — تُقرأ قبل فتح الحوار
     // ليعرف المالك الأثر كلّه في مكان واحد (قرارا المالك ٩ و١٢).
-    final links = await ref.read(payrollLinkPreviewsProvider(advance.id).future);
-    final lines = await ref.read(advanceLinesProvider(advance.id).future);
+    final links = await ref.readOnce(payrollLinkPreviewsProvider(advance.id),
+        payrollLinkPreviewsProvider(advance.id).future);
+    final lines = await ref.readOnce(advanceLinesProvider(advance.id),
+        advanceLinesProvider(advance.id).future);
     final unlinked = lines
         .where((l) =>
             !l.isExcluded && !l.isPayrollLinked && l.itemType == 'راتب')
@@ -261,6 +267,14 @@ class _ReviewBody extends ConsumerWidget {
     WidgetRef ref,
     AdvanceModel advance,
   ) async {
+    // يُقرأ **قبل** الحوار: بعده لا يبقى ما يُعرَض
+    final payrollImpact = advance.isPosted
+        ? await ref
+            .read(advanceRepositoryProvider)
+            .getCancelPayrollImpact(advance.id)
+        : (employees: 0, amountIqd: 0.0, periods: <String>[]);
+    if (!context.mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -269,6 +283,12 @@ class _ReviewBody extends ConsumerWidget {
           advance.isPosted
               ? 'ستُعكَس كل سندات صرف السلفة رقم ${advance.advanceNumber} '
                   'ويرتدّ المبلغ إلى خزينة المشروع.\n\n'
+                  // 🔑 **أخطر ما في الإلغاء يُقال أولاً** (ع-٣٦): كان يُسحب
+                  //   المال وتبقى الرواتب «مسدَّدة» بصمت. والآن تُسحب معه —
+                  //   فيجب أن يعرف المالك ذلك **قبل** أن يضغط.
+                  '${payrollImpact.employees > 0 ? '⚠️ وستُسحب رواتب ${payrollImpact.employees} موظفاً بمجموع ${NumberFormat('#,##0').format(payrollImpact.amountIqd)} د.ع'
+                      '${payrollImpact.periods.isEmpty ? '' : ' عن ${payrollImpact.periods.join(' · ')}'}'
+                      '، ويعود كشفها مسودة.\n\n' : ''}'
                   'ملاحظة: سند التحويل الذي موّل السلفة لن يُمَسّ — المال '
                   'انتقل فعلاً إلى الخزينة وما زال فيها.'
               : 'ستُلغى السلفة رقم ${advance.advanceNumber} ومسودتها.',
@@ -287,7 +307,22 @@ class _ReviewBody extends ConsumerWidget {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !context.mounted) return;
+
+    // 🔑 تأكيد الهويّة قبل إرجاع مالٍ خرج (طلب المالك 2026-08-27)
+    if (advance.isPosted) {
+      final identityOk = await confirmWithPassword(
+        context,
+        ref,
+        action: 'إلغاء السلفة رقم ${advance.advanceNumber}',
+        impact: payrollImpact.employees > 0
+            ? 'سيرجع المال إلى الخزينة وتُسحب رواتب '
+                '${payrollImpact.employees} موظفاً.'
+            : 'سيرجع مبلغ السلفة إلى الخزينة وتُعكَس سنداتها.',
+      );
+      if (!identityOk) return;
+    }
+
     await ref.read(advanceNotifierProvider.notifier).cancelAdvance(advance.id);
   }
 }
@@ -539,7 +574,8 @@ class _LineCard extends ConsumerWidget {
       return;
     }
 
-    final periods = await ref.read(allPayrollPeriodsProvider.future);
+    final periods = await ref.readOnce(
+        allPayrollPeriodsProvider, allPayrollPeriodsProvider.future);
     final drafts = periods
         .where((p) => p.status == PayrollStatusDb.draft)
         .toList();

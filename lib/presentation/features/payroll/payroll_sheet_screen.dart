@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -28,13 +29,19 @@ import '../../../core/services/payroll_calculator.dart';
 import '../../../core/theme/app_theme_extension.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/database/daos/payroll_dao.dart';
+import '../../../data/repositories/payroll_repository.dart';
 import '../../../domain/models/auth_state.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payroll_providers.dart';
+import '../../providers/provider_read_once.dart';
+import '../../providers/repository_providers.dart';
 import '../../providers/treasury_providers.dart';
 import '../../widgets/common/app_components.dart';
+import '../../widgets/common/password_confirm_dialog.dart';
+import 'payroll_print_actions.dart';
 
 part 'payroll_sheet_widgets.dart';
+part 'payroll_correction_dialogs.dart';
 
 class PayrollSheetScreen extends ConsumerWidget {
   final int periodId;

@@ -147,7 +147,11 @@ void main() {
       deficitCoveredBy: 'أبو أحمد — مدير المشروع',
     );
     expect(ok.success, isTrue);
-    expect(ok.vouchersCreated, equals(4));
+    // 🔄 **تغيّر العقد 2026-08-27** (بلاغ المالك): كان سندٌ لكل سطر —
+    //   فسلفةٌ بـ١٥٠ سطراً تُنتج ١٥٠ سنداً يستحيل تصحيحها. الآن **سند
+    //   واحد** لمصاريفها، والتفصيل يبقى في سطورها.
+    expect(ok.vouchersCreated, equals(1),
+        reason: 'أربعة مصاريف بلا رواتب = سندٌ واحد مجمَّع');
     expect(ok.deficit, closeTo(500000, 0.01));
 
     // 🔑 النتيجة التي طلبها المالك: الخزنة بالسالب بمقدار ما تستحقه
@@ -196,13 +200,16 @@ void main() {
       expenses: [100000, 200000, 300000],
     );
 
-    // مُشغِّل يسمح بإدراج سندَي صرف ثم يُفشل الثالث.
-    // الفشل في المنتصف تحديداً هو ما يُثبت التراجع: لو فشل السطر الأول لما
-    // كان هناك ما يُتراجَع عنه أصلاً.
+    // 🔄 **أُعيدت صياغته 2026-08-27**: كان المُشغِّل يُفشل السند **الثالث**
+    //   لأن الاعتماد كان يُنشئ سنداً لكل سطر. وبعد التجميع لا يوجد سند
+    //   ثالث أصلاً — فصار المُشغِّل لا يُطلَق والاختبار يمرّ بلا أن يختبر.
+    //
+    //   الآن يُفشل **سند الصرف** أياً كان، ويُوسَّع الفحص ليشمل ما كان
+    //   «المنتصف» يُثبته: أن **ربط السطور بسندها تراجع أيضاً** لا السند
+    //   وحده — وهو جوهر الذرّية.
     await db.customStatement('''
       CREATE TRIGGER fail_third_sarf BEFORE INSERT ON vouchers
       WHEN NEW.voucher_type = 'sarf'
-       AND (SELECT COUNT(*) FROM vouchers WHERE voucher_type = 'sarf') >= 2
       BEGIN
         SELECT RAISE(ABORT, 'فشل مقصود لاختبار الذرّية');
       END
@@ -214,6 +221,11 @@ void main() {
     );
 
     await db.customStatement('DROP TRIGGER fail_third_sarf');
+
+    // ⭐ ولا سطرَ ارتبط بسند: التراجع يشمل الربط لا الإدراج وحده
+    final linesAfterRollback = await db.advancesDao.getLines(advanceId);
+    expect(linesAfterRollback.every((l) => l.voucherId == null), isTrue,
+        reason: 'سطرٌ يشير إلى سند لم يُخلق = أثرٌ نصفيّ لعملية أُلغيت');
 
     // لا سند صرف واحد نجا.
     // نفلتر على 'sarf' عمداً: سند التحويل الذي موّل السلفة يحمل نفس
@@ -571,6 +583,99 @@ void main() {
         ),
         throwsA(isA<StateError>()),
       );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // تقرير «حسب البند» بعد تجميع السندات (2026-08-27)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('تقرير المصروفات حسب البند', () {
+    test('⭐⭐ يقرأ بنود السلفة من **سطورها** بعد تجميع سندها', () async {
+      // 🔑 لولا هذا لضاع تفصيل بنود المشاريع كلها خلف بندٍ واحد «سلفة»
+      final advanceId = await setupAdvance(
+        funded: 5000000,
+        expenses: [100000, 200000, 300000],
+      );
+      await repo.postAdvance(advanceId: advanceId);
+
+      final rows = await db.vouchersDao.getExpensesByItemType(
+        from: DateTime(2020),
+        to: DateTime(2030),
+      );
+
+      // سندٌ واحد مجمَّع — ومع ذلك تظهر بنود السطور لا بند «سلفة»
+      expect(rows.any((r) => r.itemType == 'سلفة'), isFalse,
+          reason: 'بندُ السند المجمَّع لا يُحتسب — التفصيل من السطور');
+
+      final total = rows.fold<double>(0, (sum, r) => sum + r.totalEquivalentIqd);
+      expect(total, closeTo(600000, 0.01),
+          reason: 'مجموع البنود = مجموع مصاريف السلفة بلا زيادة ولا نقص');
+    });
+
+    test('⭐⭐ لا ازدواج: مال السلفة يُحتسب مرّة واحدة لا مرّتين', () async {
+      // ⚠️ الخطر الأول في هذا التغيير: احتساب السند المجمَّع **و**سطوره معاً
+      //   يُضاعف مصاريف المشاريع كلها — وهو صنف ع-١٣ نفسه.
+      final advanceId = await setupAdvance(
+        funded: 5000000,
+        expenses: [250000, 250000],
+      );
+      await repo.postAdvance(advanceId: advanceId);
+
+      // سند صرف عادي خارج السلفة — يجب أن يُحتسب هو أيضاً
+      final n = await db.fiscalPeriodsDao.getNextVoucherNumber(
+        fiscalPeriodId: 1,
+        voucherType: 'sarf',
+      );
+      await db.vouchersDao.insertVoucher(
+        VouchersCompanion.insert(
+          voucherNumber: n,
+          voucherType: 'sarf',
+          treasuryId: mainTreasury,
+          fiscalPeriodId: 1,
+          amount: 75000,
+          voucherDate: DateTime(2025, 2, 15),
+          itemType: const Value('قرطاسية'),
+        ),
+      );
+
+      final rows = await db.vouchersDao.getExpensesByItemType(
+        from: DateTime(2020),
+        to: DateTime(2030),
+      );
+      final total = rows.fold<double>(0, (sum, r) => sum + r.totalEquivalentIqd);
+
+      expect(total, closeTo(500000 + 75000, 0.01),
+          reason: 'الازدواج كان سيُنتج ١٬٠٧٥٬٠٠٠ بدل ٥٧٥٬٠٠٠');
+      expect(rows.any((r) => r.itemType == 'قرطاسية'), isTrue);
+    });
+
+    test('⭐ السلفة الملغاة لا تدخل التقرير — لم يخرج مالها', () async {
+      final advanceId = await setupAdvance(
+        funded: 5000000,
+        expenses: [400000],
+      );
+      await repo.postAdvance(advanceId: advanceId);
+      await repo.cancelAdvance(advanceId: advanceId);
+
+      final rows = await db.vouchersDao.getExpensesByItemType(
+        from: DateTime(2020),
+        to: DateTime(2030),
+      );
+      final total = rows.fold<double>(0, (sum, r) => sum + r.totalEquivalentIqd);
+      expect(total, closeTo(0, 0.01));
+    });
+
+    test('المسودة غير المعتمدة لا تدخل التقرير', () async {
+      await setupAdvance(funded: 5000000, expenses: [900000]);
+
+      final rows = await db.vouchersDao.getExpensesByItemType(
+        from: DateTime(2020),
+        to: DateTime(2030),
+      );
+      final total = rows.fold<double>(0, (sum, r) => sum + r.totalEquivalentIqd);
+      expect(total, closeTo(0, 0.01),
+          reason: 'مسودة لم يخرج مالها بعد');
     });
   });
 }

@@ -123,7 +123,8 @@ class _EmployeeDetailSheetState
 
   Future<void> _showPaySalaryDialog() async {
     final treasuries =
-        await ref.read(allTreasuriesProvider.future);
+        await ref.readOnce(
+        allTreasuriesProvider, allTreasuriesProvider.future);
     final active = treasuries.where((t) => t.isActive).toList();
     if (active.isEmpty) {
       if (mounted) {
@@ -150,7 +151,8 @@ class _EmployeeDetailSheetState
                 basicSalary: data['basicSalary'] as double,
                 additions: data['additions'] as double,
                 deductions: data['deductions'] as double,
-                periodLabel: data['periodLabel'] as String,
+                year: data['year'] as int,
+                month: data['month'] as int,
                 paymentDate: data['paymentDate'] as DateTime,
                 notes: data['notes'] as String,
               );
@@ -162,7 +164,8 @@ class _EmployeeDetailSheetState
   // ── حوار منح سلفة ────────────────────────────────────────────────────────
 
   Future<void> _showGrantAdvanceDialog() async {
-    final treasuries = await ref.read(allTreasuriesProvider.future);
+    final treasuries = await ref.readOnce(
+        allTreasuriesProvider, allTreasuriesProvider.future);
     final active = treasuries.where((t) => t.isActive).toList();
     if (active.isEmpty) {
       if (mounted) {
@@ -675,12 +678,110 @@ class _AdvanceCard extends ConsumerWidget {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
+                // 🔑 **إلغاء السلفة** (طلب المالك 2026-08-27): قد يُعيد
+                //   الموظف المبلغ في يومه، فيُلغى كل شيء ويعود الرصيد كما
+                //   كان. وقبله كان `softDeleteAdvance` موجوداً في الـDAO
+                //   **بلا أي زرّ يستدعيه** — أي ميزةٌ غير موجودة.
+                TextButton.icon(
+                  onPressed: () => _confirmCancelAdvance(context, ref),
+                  icon: const Icon(Icons.undo_rounded, size: 14),
+                  label: const Text('إلغاء', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// إلغاء السلفة — **بسبب مكتوب وكلمة مرور** (ع-٣٨)
+  ///
+  /// ⚠️ كلمة المرور ليست تشديداً بلا سبب: العملية تُرجع مالاً خرج من
+  ///   الخزينة وتمحو دَيناً على موظف. والجلسة المفتوحة تُثبت أن أحداً سجّل
+  ///   الدخول، لا أن **صاحبها** هو من يضغط الآن (طلب المالك).
+  Future<void> _confirmCancelAdvance(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final money = NumberFormat('#,##0', 'ar');
+    var reason = '';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('إلغاء السلفة'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'سيُلغى كل شيء ويعود الرصيد كما كان:\n'
+                  '• السلفة (${money.format(advance.amount)} '
+                  '${advance.currency == 'IQD' ? 'د.ع' : '\$'}) وسند صرفها\n'
+                  '• وأقساطها المسدَّدة وسنداتها',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: reason,
+                  minLines: 2,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'سبب الإلغاء *',
+                    hintText: 'مثال: أعاد المبلغ في يومه',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) => setState(() => reason = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('تراجع'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error),
+              onPressed: reason.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(ctx, true),
+              child: const Text('إلغاء السلفة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // 🔑 تأكيد الهويّة **بعد** جمع السبب وقبل أي كتابة
+    final identityOk = await confirmWithPassword(
+      context,
+      ref,
+      action: 'إلغاء سلفة الموظف',
+      impact: 'سيرجع ${money.format(advance.amount)} د.ع إلى الخزينة '
+          'وتُمحى السلفة وأقساطها.',
+    );
+    if (!identityOk) return;
+
+    await ref.read(advanceNotifierProvider.notifier).cancelEmployeeAdvance(
+          advanceId: advance.id,
+          reason: reason,
+        );
   }
 
   Future<void> _showRepayDialog(BuildContext context, WidgetRef ref) async {
@@ -719,13 +820,13 @@ class _AdvanceCard extends ConsumerWidget {
 // بطاقة الراتب
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _SalaryCard extends StatelessWidget {
+class _SalaryCard extends ConsumerWidget {
   final SalaryPaymentModel salary;
 
   const _SalaryCard({required this.salary});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final fmtNum = NumberFormat('#,##0', 'ar');
     final fmtDate = DateFormat('dd/MM/yyyy', 'ar');
@@ -761,6 +862,37 @@ class _SalaryCard extends StatelessWidget {
                     color: theme.colorScheme.primary,
                   ),
                 ),
+                // إيصال الراتب — نفس الإجراء المستعمَل في كشف الشهر
+                // (المرحلة ٤). موضعه هنا لأن هذا هو المكان الذي يفتحه
+                // المالك حين يسأله موظف عن راتب شهر مضى.
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () =>
+                      PayrollPrintActions.printSlip(context, ref, salary.id),
+                  icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                  tooltip: 'طباعة إيصال الراتب',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                      minWidth: 32, minHeight: 32),
+                ),
+                // 🔑 **إلغاء التسديد من البطاقة** (طلب المالك 2026-08-26):
+                //   لم يكن للمالك سبيلٌ لحذف راتب من هنا إطلاقاً، فكان
+                //   يلجأ إلى حذف السند من شاشة الخزينة — وهو ما أنتج
+                //   ع-٣١. والمسار هنا **هو نفسه** الذي في شاشة الكشف:
+                //   يرجع المال ويُحذف السند ويُعاد قسط السلفة معاً.
+                if (salary.voucherId != null)
+                  IconButton(
+                    onPressed: () =>
+                        _confirmUnpaySalary(context, ref, salary),
+                    icon: const Icon(Icons.undo_rounded, size: 18),
+                    tooltip: 'إلغاء التسديد وإرجاع المال',
+                    color: theme.colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                        minWidth: 32, minHeight: 32),
+                  ),
               ],
             ),
             if (salary.additions > 0 || salary.deductions > 0) ...[
@@ -825,6 +957,78 @@ class _SalaryCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// تأكيد إلغاء تسديد راتب من بطاقة الموظف
+///
+/// ⚠️ **يمرّ بالمسار نفسه** الذي في شاشة الكشف (`unpayEntry`) لا بمسارٍ ثانٍ:
+///   مساران لعكس عملية مالية يعنيان أن أحدهما سيُنسى عند أول إصلاح — وهي
+///   العلّة نفسها التي ولّدت ع-٢٨ وع-٣١ وع-٣٣.
+Future<void> _confirmUnpaySalary(
+  BuildContext context,
+  WidgetRef ref,
+  SalaryPaymentModel salary,
+) async {
+  final money = NumberFormat('#,##0', 'ar');
+  var reason = '';
+
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: const Text('إلغاء تسديد الراتب'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'راتب ${salary.periodLabel} بمبلغ '
+                '${money.format(salary.netAmount)} د.ع.\n\n'
+                'سيرجع المال إلى الخزينة · ويُحذف سند الصرف (أو يُنقَص إن كان '
+                'ضمن دفعة) · ويُعاد قسط السلفة إن كان مخصوماً · ويعود السطر '
+                'مستحقّاً في كشف شهره.',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: reason,
+                minLines: 2,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'السبب *',
+                  hintText: 'مثال: صُرف بمبلغ خاطئ',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() => reason = v),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: reason.trim().isEmpty
+                ? null
+                : () async {
+                    Navigator.pop(ctx);
+                    await ref
+                        .read(payrollNotifierProvider.notifier)
+                        .unpayEntry(entryId: salary.id, reason: reason);
+                  },
+            child: const Text('إلغاء التسديد'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _SalaryDetailItem extends StatelessWidget {

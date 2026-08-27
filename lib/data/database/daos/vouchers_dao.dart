@@ -24,6 +24,7 @@ import 'dart:math' show Random;
 
 import 'package:drift/drift.dart';
 import '../app_database.dart';
+import '../../../core/services/payroll_calculator.dart';
 import '../tables/vouchers_table.dart';
 import '../tables/fiscal_periods_table.dart';
 import '../tables/treasuries_table.dart';
@@ -270,9 +271,27 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     int? treasuryId,
     String? projectName,
   }) async {
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔑 **مصدران لا مصدر واحد** (2026-08-27)
+    //
+    // منذ تجميع سندات السلفة في سندٍ واحد، صار بندُ ذلك السند «سلفة» —
+    // ولو قرأنا البنود من السندات وحدها لضاع تفصيل **كل مصاريف المشاريع**
+    // (بنزين · طعام · صيانة…) وهي غالب الإنفاق.
+    //
+    // فالتقرير يجمع الآن:
+    //   ١. سندات الصرف التي **لا سلفة لها** — ببنودها كما كُتبت
+    //   ٢. **سطور السلف المعتمدة** — ببند كل سطر على حدة
+    //
+    // ⚠️ **واستثناء سندات السلف من الفرع الأول إلزامي**: بدونه يُحتسب مال
+    //   السلفة مرّتين — مرة بسندها المجمَّع ومرة بسطورها. وهو صنف العطل
+    //   ع-١٣ نفسه (الرصيد الافتتاحي يُضاعف الرصيد).
+    //
+    // 📌 والنتيجة **أدقّ ممّا كانت**: البنود تُقرأ من مصدرها المباشر.
+    // ═══════════════════════════════════════════════════════════════════
     final where = StringBuffer(
-      "voucher_type = 'sarf' AND is_deleted = 0 "
-      'AND voucher_date BETWEEN ? AND ?',
+      "v.voucher_type = 'sarf' AND v.is_deleted = 0 "
+      'AND v.advance_id IS NULL '
+      'AND v.voucher_date BETWEEN ? AND ?',
     );
     final vars = <Variable<Object>>[
       Variable.withDateTime(from),
@@ -280,31 +299,71 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
     ];
 
     if (treasuryId != null) {
-      where.write(' AND treasury_id = ?');
+      where.write(' AND v.treasury_id = ?');
       vars.add(Variable.withInt(treasuryId));
     }
     if (projectName != null) {
-      where.write(' AND project_name = ?');
+      where.write(' AND v.project_name = ?');
       vars.add(Variable.withString(projectName));
     }
 
+    // ── الفرع الثاني: سطور السلف المعتمدة ──────────────────────────────
+    // سطور السلف بالدينار حصراً (موثَّق في الاستيراد) فلا التباس عملات،
+    // ولا تُحتسب سطور السلف الملغاة ولا المسودات: لم يخرج مالها.
+    final lineWhere = StringBuffer(
+      "a.status = 'posted' AND l.is_excluded = 0 "
+      'AND l.voucher_date BETWEEN ? AND ?',
+    );
+    final lineVars = <Variable<Object>>[
+      Variable.withDateTime(from),
+      Variable.withDateTime(to),
+    ];
+    if (treasuryId != null) {
+      lineWhere.write(' AND a.project_treasury_id = ?');
+      lineVars.add(Variable.withInt(treasuryId));
+    }
+    if (projectName != null) {
+      lineWhere.write(' AND COALESCE(l.project_name, a.project_name) = ?');
+      lineVars.add(Variable.withString(projectName));
+    }
+
     final rows = await customSelect(
-      'SELECT '
-      '  item_type AS item_type, '
-      "  COALESCE(SUM(CASE WHEN currency = 'IQD' THEN amount ELSE 0 END), 0) "
-      '    AS total_iqd, '
-      "  COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) "
-      '    AS total_usd, '
+      'SELECT item_type, '
+      '       SUM(total_iqd) AS total_iqd, '
+      '       SUM(total_usd) AS total_usd, '
+      '       SUM(total_equiv) AS total_equiv, '
+      '       SUM(cnt) AS cnt '
+      'FROM ('
+      // (١) السندات المستقلّة
+      '  SELECT v.item_type AS item_type, '
+      "    COALESCE(SUM(CASE WHEN v.currency = 'IQD' "
+      '      THEN v.amount ELSE 0 END), 0) AS total_iqd, '
+      "    COALESCE(SUM(CASE WHEN v.currency = 'USD' "
+      '      THEN v.amount ELSE 0 END), 0) AS total_usd, '
       // المعادل: الدينار كما هو، والدولار مضروباً بسعر صرف سنده
-      "  COALESCE(SUM(CASE WHEN currency = 'USD' "
-      '    THEN amount * exchange_rate ELSE amount END), 0) AS total_equiv, '
-      '  COUNT(*) AS cnt '
-      'FROM vouchers '
-      'WHERE ${where.toString()} '
+      "    COALESCE(SUM(CASE WHEN v.currency = 'USD' "
+      '      THEN v.amount * v.exchange_rate ELSE v.amount END), 0) '
+      '      AS total_equiv, '
+      '    COUNT(*) AS cnt '
+      '  FROM vouchers v '
+      '  WHERE ${where.toString()} '
+      '  GROUP BY v.item_type '
+      '  UNION ALL '
+      // (٢) سطور السلف المعتمدة
+      '  SELECT l.item_type AS item_type, '
+      '    COALESCE(SUM(l.amount), 0) AS total_iqd, '
+      '    0 AS total_usd, '
+      '    COALESCE(SUM(l.amount), 0) AS total_equiv, '
+      '    COUNT(*) AS cnt '
+      '  FROM advance_lines l '
+      '  INNER JOIN advances a ON a.id = l.advance_id '
+      '  WHERE ${lineWhere.toString()} '
+      '  GROUP BY l.item_type'
+      ') '
       'GROUP BY item_type '
       'ORDER BY total_equiv DESC',
-      variables: vars,
-      readsFrom: {vouchers},
+      variables: [...vars, ...lineVars],
+      readsFrom: {vouchers, db.advanceLines, db.advances},
     ).get();
 
     return rows
@@ -460,7 +519,127 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
   ///   فتعديل سند كان يُعيد is_deleted إلى false (يُحيي سنداً محذوفاً فيدخل
   ///   حساب الأرصدة!)، ويمسح notes، ويُعيد created_at إلى الآن — تدمير
   ///   الأثر المحاسبي. write يتجاهل الحقول الغائبة فلا يمسّها إطلاقاً.
+  /// ارتباط سند بكشف رواتب — `null` حين لا علاقة له بالرواتب
+  ///
+  /// 🔑 **لماذا وُجد هذا الحارس؟** (ع-٣١ — بلاغ المالك 2026-08-26)
+  ///   حذفُ سند صرف الرواتب من شاشة السندات كان **يُعيد المال إلى الخزينة
+  ///   ويترك سطور الرواتب معلَّمة «مسدَّدة»**. أي راتبٌ يظهر مصروفاً في كل
+  ///   تقرير ولم يخرج قرشٌ واحد — وهو **معكوس ع-٢٨** تماماً.
+  ///
+  ///   والأسوأ: استيراد ملف الشهر بعدها يستبعد الموظف بحجة «مصروف سلفاً»،
+  ///   فلا يُدفع له أبداً بينما الكشف يشهد أنه قبض.
+  ///
+  /// 📌 ولماذا **هنا** لا في الشاشة؟ لأنها أعمق نقطة يمرّ بها كل حذف وتعديل
+  ///   (القانون ٤). ومسار الرواتب نفسه لا يمرّ بها — يعدّل السند مباشرةً
+  ///   داخل معاملته الذرّية، فيبقى الطريق المشروع مفتوحاً والالتفاف مغلقاً.
+  Future<({int count, String label, String employee, DateTime? paidAt})?>
+      payrollLink(int voucherId) async {
+    final row = await customSelect(
+      'SELECT COUNT(*) AS c, MIN(p.year) AS y, MIN(p.month) AS m, '
+      '       MIN(s.snapshot_name) AS nm, MIN(s.paid_at) AS pa '
+      'FROM salary_payments s '
+      'LEFT JOIN payroll_periods p ON p.id = s.payroll_period_id '
+      'WHERE s.voucher_id = ? AND s.is_deleted = 0 '
+      "  AND s.payment_status = 'paid'",
+      variables: [Variable.withInt(voucherId)],
+    ).getSingle();
+
+    final count = row.data['c'] as int? ?? 0;
+    if (count == 0) return null;
+
+    final year = row.data['y'] as int?;
+    final month = row.data['m'] as int?;
+    return (
+      count: count,
+      label: year == null || month == null
+          ? ''
+          : ' ${PayrollCalculator.periodLabel(year, month)}',
+      // اسم الموظف يُذكَر حين يكون السند **له وحده** — وإلا فالعدد أوضح
+      employee: count == 1 ? (row.read<String?>('nm') ?? '') : '',
+      paidAt: row.read<DateTime?>('pa'),
+    );
+  }
+
+  /// ارتباط سند بسلفة موظف — `null` حين لا علاقة له بها (ع-٣٨)
+  ///
+  /// 🔴 **بلاغ المالك 2026-08-27:** حذف سند منح السلفة كان يُرجع المال إلى
+  ///   الخزينة **ويترك السلفة قائمة على الموظف** — فيصير في الخزينة مالٌ
+  ///   بلا مقابل (زادت ٥٠٠ ألف «عن الطبيعي»).
+  ///
+  /// 📌 وهو **الباب الخامس**: `softDeleteVoucher` كان يعرف `advance_lines`
+  ///   و`salary_payments` ولا يعرف `cash_advances`.
+  Future<({String employee, double amount})?> employeeAdvanceLink(
+    int voucherId,
+  ) async {
+    final row = await customSelect(
+      'SELECT a.amount AS amt, e.full_name AS nm '
+      'FROM cash_advances a '
+      'LEFT JOIN employees e ON e.id = a.employee_id '
+      'WHERE a.voucher_id = ? AND a.is_deleted = 0 '
+      'LIMIT 1',
+      variables: [Variable.withInt(voucherId)],
+    ).getSingleOrNull();
+
+    if (row == null) return null;
+    return (
+      employee: row.read<String?>('nm') ?? 'موظف',
+      amount: (row.data['amt'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  /// رسالة رفض سند سلفة الموظف — تسمّي صاحبه ومبلغه وتقول ما العمل
+  static String _employeeAdvanceGuardMessage(
+    ({String employee, double amount}) link,
+    String action,
+  ) {
+    return 'هذا سند سلفة الموظف «${link.employee}» بمبلغ '
+        '${link.amount.round()} — لا يُ$action من هنا.\n'
+        'ألغِ السلفة من بطاقة الموظف: يُحذف السند وتُلغى السلفة وأقساطها '
+        '**معاً** ويرجع الرصيد إلى ما كان عليه بالضبط.';
+  }
+
+  /// رسالة الرفض — **تقول ما العمل** لا أن العملية ممنوعة وحسب
+  ///
+  /// حاجزٌ يقول «ممنوع» بلا بديل يدفع صاحبه إلى الالتفاف عليه (ع-٣٢).
+  static String _payrollGuardMessage(
+    ({int count, String label, String employee, DateTime? paidAt}) link,
+    String action,
+  ) {
+    // 🔑 **الرسالة تسمّي صاحب المال والشهر والتاريخ** (طلب المالك
+    //   2026-08-26): «سند رواتب» وحدها لا تكفي ليعرف المالك أي مالٍ يمسّ —
+    //   وقد يكون أمامه عشرات السندات المتشابهة.
+    final who = link.employee.isNotEmpty
+        ? 'راتب «${link.employee}»'
+        : 'رواتب ${link.count} موظفين';
+    final when = link.paidAt == null
+        ? ''
+        : ' وصُرف بتاريخ '
+            '${link.paidAt!.toLocal().year}/'
+            '${link.paidAt!.toLocal().month.toString().padLeft(2, '0')}/'
+            '${link.paidAt!.toLocal().day.toString().padLeft(2, '0')}';
+
+    return 'هذا السند يحمل $who عن${link.label}$when — '
+        'لا يُ$action من هنا.\n'
+        'استعمل **إلغاء التسديد** من شاشة كشف الرواتب: يرجع المال ويُحذف '
+        'السند وتعود السطور مستحقّة وتُعاد أقساط السلف **معاً** في عملية '
+        'واحدة.';
+  }
+
   Future<bool> updateVoucher(VouchersCompanion voucher) async {
+    // ⚠️ تعديل مبلغ سند رواتب يفصله عن مجموع كشفه بصمت (ع-٣١)
+    if (voucher.id.present) {
+      final link = await payrollLink(voucher.id.value);
+      if (link != null) {
+        throw StateError(_payrollGuardMessage(link, 'عدَّل'));
+      }
+      // ⚠️ وسند سلفة الموظف: تعديل مبلغه يفصله عن سجلّ سلفته (ع-٣٨)
+      final advanceLink = await employeeAdvanceLink(voucher.id.value);
+      if (advanceLink != null) {
+        throw StateError(
+            _employeeAdvanceGuardMessage(advanceLink, 'عدَّل'));
+      }
+    }
+
     final count = await (update(vouchers)
           ..where((v) => v.id.equals(voucher.id.value)))
         .write(voucher);
@@ -478,6 +657,21 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
       // 1. جلب بيانات السند المراد حذفه
       final target = await (select(vouchers)..where((v) => v.id.equals(id))).getSingleOrNull();
       if (target == null) return;
+
+      // ⚠️ **سند الرواتب لا يُحذف من هنا** (ع-٣١): حذفه يُعيد المال ويُبقي
+      //   السطور «مسدَّدة» — راتبٌ يظهر مصروفاً ولم يخرج قرش.
+      final payroll = await payrollLink(id);
+      if (payroll != null) {
+        throw StateError(_payrollGuardMessage(payroll, 'حذف'));
+      }
+
+      // ⚠️ **وسند سلفة الموظف لا يُحذف من هنا** (ع-٣٨): حذفه يُرجع المال
+      //   ويُبقي السلفة على الموظف — فيصير في الخزينة مالٌ بلا مقابل.
+      final employeeAdvance = await employeeAdvanceLink(id);
+      if (employeeAdvance != null) {
+        throw StateError(
+            _employeeAdvanceGuardMessage(employeeAdvance, 'حذف'));
+      }
 
       // 2. تحديث السند الأساسي كـ محذوف
       await (update(vouchers)..where((v) => v.id.equals(id))).write(

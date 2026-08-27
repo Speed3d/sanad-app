@@ -19,6 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:drift/drift.dart';
+import '../../../core/services/payroll_calculator.dart';
 import '../app_database.dart';
 import '../tables/employees_table.dart';
 
@@ -114,6 +115,35 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   /// الموظفون المرتبطون بخزينة محددة
   ///
   /// يُستخدَم عند حذف خزينة للتحقق من عدم وجود موظفين مرتبطين
+  /// نقل موظفي خزينة إلى أخرى — أو تجريدهم من الخزينة بـ`null`
+  ///
+  /// 🔑 **سبب وجوده** (ع-٣٤ — بلاغ المالك 2026-08-26): حُذفت خزينة «البصرة»
+  ///   وبقي ٤٦ موظفاً منسوبين إليها. لم يشتكِ النظام، لكن كل ما يعتمد على
+  ///   «مشروع الموظف» صار يقرأ خزينةً لا وجود لها — ومنه تقرير الموظف
+  ///   بالمشروع.
+  ///
+  /// يُعيد عدد من نُقلوا.
+  Future<int> reassignTreasury({
+    required int fromTreasuryId,
+    int? toTreasuryId,
+  }) {
+    return (update(employees)
+          ..where((e) =>
+              e.treasuryId.equals(fromTreasuryId) & e.isDeleted.equals(false)))
+        .write(EmployeesCompanion(treasuryId: Value(toTreasuryId)));
+  }
+
+  /// عدد الموظفين الأحياء المنسوبين إلى خزينة — لتنبيه الحذف
+  Future<int> countEmployeesInTreasury(int treasuryId) async {
+    final row = await customSelect(
+      'SELECT COUNT(*) AS c FROM employees '
+      'WHERE treasury_id = ? AND is_deleted = 0',
+      variables: [Variable.withInt(treasuryId)],
+      readsFrom: {employees},
+    ).getSingle();
+    return row.data['c'] as int? ?? 0;
+  }
+
   Future<List<Employee>> getEmployeesByTreasury(int treasuryId) {
     return (select(employees)
           ..where(
@@ -254,6 +284,177 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// إلغاء سلفة موظف كاملةً — **السلفة وأقساطها وسندها معاً** (ع-٣٨)
+  ///
+  /// 🔑 **سبب وجوده** (طلب المالك 2026-08-27): «ممكن أن يُعيد الموظف السلفة
+  ///   بنفس اليوم فتُلغى ويرجع كل شيء إلى ما كان عليه».
+  ///
+  /// ⚠️ **ولماذا معاملة واحدة؟** لأن السلفة تعيش في **ثلاثة أماكن**: سجلّها
+  ///   · أقساطها · وسند منحها (وسندات أقساطها النقدية). إلغاءٌ يلمس بعضها
+  ///   يترك الباقي يُحرّك الرصيد بلا مقابل — وهو العطل نفسه الذي تكرّر خمس
+  ///   مرّات في هذا المشروع (ع-٢٨ · ع-٣١ · ع-٣٣ · ع-٣٦ · ع-٣٨).
+  Future<void> cancelEmployeeAdvance({
+    required int advanceId,
+    required String reason,
+  }) async {
+    if (reason.trim().isEmpty) {
+      throw StateError(
+        'اكتب سبب إلغاء السلفة — إلغاءٌ يُرجع مالاً بلا سبب مكتوب لا '
+        'يُميَّز عن تلاعب حين يُراجَع بعد شهور.',
+      );
+    }
+
+    // ⚠️ **حارسٌ قبل أي كتابة** (قرار المالك 2026-08-27): سلفةٌ خُصم منها
+    //   في راتبٍ **مسدَّد** صارت جزءاً من عملية مالية مكتملة — إلغاؤها
+    //   يعني أن الموظف خُصم منه بلا سلفة، فيستحقّ الفرق.
+    //
+    //   والمسار المشروع قائم: `PayrollDao.unpayEntry` يعكس القسط تلقائياً.
+    //   فالمنع هنا **بمسارٍ بديل محروس** لا منعٌ يُهجّر الخطر (درس ع-٣٢).
+    final salaryDeductions = (await getRepaymentsByAdvance(advanceId))
+        .where((r) => r.method == 'salary_deduction')
+        .toList();
+    if (salaryDeductions.isNotEmpty) {
+      final total =
+          salaryDeductions.fold<double>(0, (sum, r) => sum + r.amount);
+      final months = <String>{};
+      for (final r in salaryDeductions) {
+        final entry = await (select(db.salaryPayments)
+              ..where((sp) =>
+                  sp.voucherId.equals(r.voucherId ?? -1) &
+                  sp.cashAdvanceId.equals(advanceId) &
+                  sp.isDeleted.equals(false)))
+            .getSingleOrNull();
+        if (entry != null && entry.periodLabel.isNotEmpty) {
+          months.add(entry.periodLabel);
+        }
+      }
+
+      throw StateError(
+        'خُصم من هذه السلفة ${total.round()} '
+        '${months.isEmpty ? 'في راتبٍ مسدَّد' : 'في راتب ${months.join(' و')} المسدَّد'}.\n'
+        'ألغِ تسديد راتب الموظف من كشف الشهر أولاً — يُعاد القسط تلقائياً — '
+        'ثم ألغِ السلفة.',
+      );
+    }
+
+    await transaction(() async {
+      final advance = await getAdvanceById(advanceId);
+      if (advance == null || advance.isDeleted) return;
+
+      final now = DateTime.now();
+
+      // ── 1. الأقساط ──────────────────────────────────────────────────
+      //
+      // 🔴 **ع-٤٠ — العطل الذي وقع هنا (2026-08-27):** كانت الحلقة تحذف
+      //   سندَ **كل** قسط له `voucher_id`، بناءً على تعليقٍ كتبتُه يقول إن
+      //   قسط `salary_deduction` «بلا سند». **وذلك التعليق كان كاذباً**:
+      //   العمود يُملأ منذ المرحلة ٦ بـ**سند رواتب الشهر** ليمكن عكس القسط
+      //   بدقّة عند إلغاء التسديد.
+      //
+      //   فحُذف سند رواتب الشهر كلّه — يغطّي كل الموظفين — بسبب إلغاء سلفة
+      //   موظفٍ واحد. رجع مال الجميع إلى الخزينة وبقيت سطورهم «مسدَّدة».
+      //
+      // 🔑 **والفلترة الآن بالطريقة لا بوجود `voucher_id`:**
+      //   | الطريقة | ما يعنيه `voucher_id` |
+      //   |---|---|
+      //   | `cash` · `bank_transfer` | سند **قبضٍ خاصّ بهذا القسط** ⇒ يُحذف معه |
+      //   | `salary_deduction` | سند **رواتب الشهر** يغطّي عشرات الموظفين ⇒ **لا يُمَسّ** |
+      //
+      //   عمودٌ واحد بمعنيين مختلفين حسب حقلٍ آخر — وهذا ما يجب أن يُقرأ
+      //   صراحةً لا أن يُفترَض.
+      final repayments = await getRepaymentsByAdvance(advanceId);
+      for (final r in repayments) {
+        if (r.method != 'salary_deduction' && r.voucherId != null) {
+          await (update(db.vouchers)..where((v) => v.id.equals(r.voucherId!)))
+              .write(VouchersCompanion(
+            isDeleted: const Value(true),
+            deletedAt: Value(now),
+            updatedAt: Value(now),
+          ));
+        }
+        await deleteRepayment(r.id);
+      }
+
+      // ── 2. سند المنح ────────────────────────────────────────────────
+      if (advance.voucherId != null) {
+        await (update(db.vouchers)
+              ..where((v) => v.id.equals(advance.voucherId!)))
+            .write(VouchersCompanion(
+          isDeleted: const Value(true),
+          deletedAt: Value(now),
+          updatedAt: Value(now),
+        ));
+      }
+
+      // ── 3. السلفة نفسها ─────────────────────────────────────────────
+      await (update(cashAdvances)..where((a) => a.id.equals(advanceId)))
+          .write(CashAdvancesCompanion(
+        isDeleted: const Value(true),
+        totalRepaid: const Value(0),
+        // 📌 الحالة تبقى كما هي: الحذف الناعم هو ما يُخرجها من كل استعلام،
+        //   و`CHECK` الجدول لا يعرف قيمة «ملغاة». والسبب يُحفظ في `reason`.
+        reason: Value('أُلغيت: ${reason.trim()}'),
+      ));
+    });
+  }
+
+  /// تعليم سلفة بأنها ستُخصم من الراتب — **بلا سند ولا قسط** (ع-٣٩)
+  ///
+  /// 🔴 **العطل الذي وُلدت منه:** كان تسديد السلفة بطريقة «خصم من الراتب»
+  ///   يُنشئ **سند قبض** كأي تسديد نقدي — والمال **لم يدخل الخزينة**، بل
+  ///   سيخرج راتبٌ أقلّ في نهاية الشهر. فيتضخّم الرصيد برقم وهمي، ثم يُخصم
+  ///   من الراتب فعلاً فيُحتسب القسط **مرّتين**.
+  ///
+  /// 📌 **ولماذا لا تُسجّل قسطاً أيضاً؟** لأن القسط يُسجَّل تلقائياً لحظة
+  ///   تسديد الراتب (`PayrollDao.recordSalaryDeductions`). تسجيلُه هنا هو
+  ///   الاحتساب المزدوج بعينه.
+  ///
+  /// كل ما تفعله: تُثبِت النيّة في ملاحظات السلفة ليقرأها من يفتحها لاحقاً.
+  /// والتنبيه في كشف الرواتب يُشتقّ من **وجود سلفة غير مسدَّدة** لا من علامة.
+  Future<void> markForSalaryDeduction({
+    required int advanceId,
+    String note = 'سيُخصم من الراتب',
+  }) async {
+    final advance = await getAdvanceById(advanceId);
+    if (advance == null || advance.isDeleted) return;
+
+    final existing = advance.reason.trim();
+    await (update(cashAdvances)..where((a) => a.id.equals(advanceId))).write(
+      CashAdvancesCompanion(
+        reason: Value(existing.isEmpty ? note : '$existing — $note'),
+      ),
+    );
+  }
+
+  /// المتبقّي من سلف كل موظف — **باستعلام واحد** لا واحدٍ لكل موظف
+  ///
+  /// 🔑 معالج الاستيراد يعرض سبعة وأربعين موظفاً؛ استعلامٌ لكل واحد يعني
+  ///   سبعة وأربعين رحلةً إلى القاعدة في كل فتح للخطوة. والخريطة الراجعة
+  ///   **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+  Future<Map<int, double>> getPendingAdvancesForEmployees(
+    List<int> employeeIds,
+  ) async {
+    if (employeeIds.isEmpty) return {};
+
+    final rows = await customSelect(
+      'SELECT employee_id AS eid, '
+      '       SUM(amount - total_repaid) AS remaining '
+      'FROM cash_advances '
+      'WHERE is_deleted = 0 AND employee_id IN ('
+      '${List.filled(employeeIds.length, '?').join(',')}) '
+      "  AND status IN ('pending', 'partial') "
+      'GROUP BY employee_id '
+      'HAVING remaining > 0.001',
+      variables: [for (final id in employeeIds) Variable.withInt(id)],
+      readsFrom: {cashAdvances},
+    ).get();
+
+    return {
+      for (final r in rows)
+        r.read<int>('eid'): (r.data['remaining'] as num?)?.toDouble() ?? 0.0,
+    };
+  }
+
   /// حذف ناعم للسلفة
   Future<void> softDeleteAdvance(int id) async {
     await (update(cashAdvances)..where((a) => a.id.equals(id))).write(
@@ -377,7 +578,51 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// تسجيل دفعة راتب جديدة — يُعيد الـ ID المُولَّد
-  Future<int> insertSalaryPayment(SalaryPaymentsCompanion payment) {
+  ///
+  /// 🔑 **حارسان قبل أي كتابة** (المرحلة ٤ — 2026-08-26):
+  ///
+  ///   ١. **لا راتب بلا مقابله بالدينار.** `net_amount_iqd` هو العمود الذي
+  ///      تجمعه كل التقارير؛ صفرٌ فيه مع صافٍ غير صفري يعني راتباً يختفي من
+  ///      كل تقرير بينما المال خرج من الخزينة فعلاً.
+  ///
+  ///   ٢. **لقطة العملة تطابق عملة راتب الموظف.** مسار «صرف راتب» من بطاقة
+  ///      الموظف يُنشئ سند صرف **بالدينار حصراً**، فلو مرّ به موظفٌ راتبه
+  ///      بالدولار لصُرف رقمُه الدولاري ديناراً — أي كسرٌ صامت لقيمة الراتب.
+  ///      الرفض هنا يوجّهه إلى كشف الرواتب حيث سعر الصرف مثبَّت على الشهر.
+  ///
+  /// **ولماذا في الـ DAO لا في الشاشة؟** لأن هذا المسار يعيش في `Notifier`
+  /// بلا مستودع، وحارسٌ في الواجهة لا يمرّ به اختبار ولا يحمي مستدعياً
+  /// جديداً (القانون ٤).
+  Future<int> insertSalaryPayment(SalaryPaymentsCompanion payment) async {
+    final employeeId = payment.employeeId.present ? payment.employeeId.value : 0;
+    final snapshotName = payment.snapshotName.present
+        ? payment.snapshotName.value.trim()
+        : '';
+
+    final employee = await getEmployeeById(employeeId);
+    final displayName = snapshotName.isNotEmpty
+        ? snapshotName
+        : (employee?.fullName ?? 'موظف #$employeeId');
+
+    PayrollCalculator.ensureIqdRecorded(
+      employeeName: displayName,
+      netSalary: payment.netAmount.present ? payment.netAmount.value : 0,
+      netSalaryIqd:
+          payment.netAmountIqd.present ? payment.netAmountIqd.value : 0,
+    );
+
+    final rowCurrency = payment.snapshotCurrency.present
+        ? payment.snapshotCurrency.value
+        : PayrollCurrency.iqd;
+    if (employee != null && employee.salaryCurrency != rowCurrency) {
+      throw StateError(
+        'راتب «$displayName» بعملة ${employee.salaryCurrency} '
+        'ويُسجَّل هنا بعملة $rowCurrency.\n'
+        'اصرفه من كشف الرواتب حيث يُثبَّت سعر صرف الشهر — '
+        'فالصرف المباشر من بطاقة الموظف يفترض الدينار.',
+      );
+    }
+
     return into(salaryPayments).insert(payment);
   }
 

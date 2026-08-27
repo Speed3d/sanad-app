@@ -489,7 +489,7 @@ class _PendingAdvancesAmountProviderElement
   int get employeeId => (origin as PendingAdvancesAmountProvider).employeeId;
 }
 
-String _$employeeNotifierHash() => r'5a202d1b39e09e89045aef5d520d1a7781edabb4';
+String _$employeeNotifierHash() => r'd648f98634f3da2e170c371ef05ac09e434a7ccb';
 
 /// Notifier لإدارة عمليات الموظفين (إضافة / تعديل / حذف / تفعيل)
 ///
@@ -507,7 +507,7 @@ final employeeNotifierProvider =
 );
 
 typedef _$EmployeeNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
-String _$salaryNotifierHash() => r'e526545c095c59717523edb1c3e9e7f04467a233';
+String _$salaryNotifierHash() => r'1c6c2a08ea221c1e1d87202cd336eeaabf6740e0';
 
 /// Notifier لصرف الرواتب
 ///
@@ -529,7 +529,7 @@ final salaryNotifierProvider =
 );
 
 typedef _$SalaryNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
-String _$advanceNotifierHash() => r'05f89f6c472235b288bb842e83c7e1f67a07903a';
+String _$advanceNotifierHash() => r'53640e2ba2cd0267a90be00effa2edd4106569c5';
 
 /// Notifier لإدارة السلف وأقساط السداد
 ///

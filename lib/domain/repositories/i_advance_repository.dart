@@ -90,11 +90,23 @@ class CancelAdvanceInfo {
   final int vouchersReversed;
   final double reversedAmount;
 
+  /// عدد الموظفين الذين سُحبت رواتبهم مع الإلغاء (ع-٣٦)
+  final int payrollEmployeesReversed;
+
+  /// مجموع تلك الرواتب بالدينار
+  final double payrollAmountReversed;
+
+  /// أشهر الكشوف التي عادت مسودة
+  final List<String> payrollPeriods;
+
   const CancelAdvanceInfo({
     required this.advanceNumber,
     required this.previousStatus,
     this.vouchersReversed = 0,
     this.reversedAmount = 0,
+    this.payrollEmployeesReversed = 0,
+    this.payrollAmountReversed = 0,
+    this.payrollPeriods = const [],
   });
 }
 
@@ -202,6 +214,12 @@ abstract class IAdvanceRepository {
 
   /// معاينة مطابقة كل سطر مربوط — **تُقرأ قبل الاعتماد**
   Future<List<PayrollLinkPreview>> getPayrollLinkPreviews(int advanceId);
+
+  /// أثر إلغاء السلفة على الرواتب — يُقرأ **قبل** حوار التأكيد (ع-٣٦)
+  ///
+  /// حوارُ إلغاءٍ لا يذكر أن رواتب موظفين ستُسحب يُخفي أخطر ما فيه.
+  Future<({int employees, double amountIqd, List<String> periods})>
+      getCancelPayrollImpact(int advanceId);
 
   /// إلغاء سلفة — يحذف **سندات صرفها** حذفاً ناعماً فيرتدّ المبلغ للخزينة
   ///

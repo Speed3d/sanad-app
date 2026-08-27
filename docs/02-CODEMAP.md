@@ -42,7 +42,8 @@ lib/
 | `services/cloud_backup_service.dart` | نسخة محلية إضافية (**ليست سحابة** — التسمية صادقة) | نسخة ثانية على الجهاز |
 | `services/attachment_service.dart` | نسخ المرفقات · بصمة SHA-256 · تنقية المسارات · الفتح عبر `explorer` | أي تعامل مع ملفات المرفقات — **لا تلمس نظام الملفات مباشرةً** |
 | `services/smart_alert_service.dart` | تنبيهات: رصيد منخفض · سلف معلّقة قديمة | شريط التنبيهات في لوحة التحكم |
-| `services/pdf_service.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم) | طباعة السندات. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء** |
+| `services/pdf_service.dart` + جزء `pdf_payroll_documents.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم). **مستندات الرواتب الثلاثة في `part` لا خدمة ثانية** — مسار الخطوط العربية واحد | طباعة السندات والرواتب. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء** |
+| `services/payroll_print_data.dart` | نماذج مستندات الرواتب **النقيّة** (كشف · إيصال · تقرير سنة · **تقرير موظف**) — بلا Drift، فتبقى `PdfService` جاهلةً بقاعدة البيانات | أي طباعة رواتب. **الإجماليات حقولٌ تُمرَّر لا تُحسَب في المستند** |
 | `auth/permissions.dart` | **مصدر الحقيقة الوحيد للصلاحيات** — `AppPermission` + `user.can()` | أي فحص صلاحية. **لا تكتب `role == 'admin'` يدوياً أبداً** |
 | `utils/audit_logger.dart` | ١٩ دالة تسجيل جاهزة | **إلزامي** بعد أي عملية حساسة |
 | `constants/app_routes.dart` | مسارات go_router | أي تنقّل |
@@ -107,7 +108,9 @@ lib/
 | `treasuries_dao` | `getTreasuryBalance()` — يقرأ من الـ VIEW |
 | `attachments_dao` | `watchForEntity()` · `findDuplicate()` · `deleteForEntity()` **يُعيد الصفوف** ليحذف المستدعي ملفاتها |
 | `advances_dao` | **+Schema v7**: `linkLineToPayroll()` · `getPayrollLinkPreviews()` · و**حارس المطابقة داخل `postAdvance`** يمنع احتساب المال مرّتين |
-| `payroll_dao` | `payEntries()` **ذرّية** (سند واحد + السطور + أقساط السلف) · `getTotals()` **مصدر الحقيقة الوحيد للمجموع** · `getYears()` تشتقّ السنوات · `findByFileHash()` |
+| `payroll_dao` | `payEntries()` **ذرّية** (سند واحد + السطور + أقساط السلف) · `getTotals()` **مصدر الحقيقة الوحيد للمجموع** · `getYears()` تشتقّ السنوات · `findByFileHash()` · `getYearMonths()` و`getYearTreasuryShares()` و`getOutOfSheetSalaries()` لتقرير السنة |
+| `payroll_dao_reports.dart` | جزء (`mixin`) — **قراءة فقط**: تقرير الموظف والسنة · و`getStalePaidPayrolls()` **الكاشف المرآة**: سطورٌ «مسدَّدة» فقدت سندها |
+| `payroll_dao_reversals.dart` | جزء (`mixin`) — **كل ما يعكس راتباً خرج ماله**: `unpayEntry` · `correctPaidEntry` · `unpayEntriesForAdvance` · `recordSalaryDeductions` (المسار الوحيد لأقساط السلف). مصدر ستة أعطال متتالية فجُمعت لتُقرأ ككتلة |
 | `audit_log_dao` | `logSimpleAction()` · `getLogsByTable()` · `getRecentLogs()` |
 | `app_settings_dao` | `getString/setString` · `getBool/setBool` · `getBlob/setBlob` |
 
@@ -117,7 +120,9 @@ lib/
 |---|---|
 | `voucher_repository.dart` | منع تعديل التحويل · منع نقل السند بين السنوات · حارس الفترة · كتابة `updated_at`/`updated_by` |
 | `advance_repository.dart` | `postAdvance` — الفترة مفتوحة · حساب العجز · طلب اسم من غطّاه |
-| `payroll_repository.dart` | الفترة مفتوحة · لا دولار بلا سعر صرف · لا صافي سالب · كفاية الرصيد · منع التعديل والتسديد المزدوج |
+| `payroll_repository.dart` | الفترة مفتوحة · لا دولار بلا سعر صرف · لا صافي سالب · كفاية الرصيد · منع التعديل والتسديد المزدوج · و`buildSheetPrintData` / `buildSlipPrintData` / `buildYearReport` — **تجميع بيانات الطباعة من `getTotals` لا بجمع جديد** |
+| `payroll_repository_reports.dart` | جزء (`mixin`) — بناء بيانات المستندات والتقارير · لا يُعيد حساب أي مجموع |
+| `payroll_repository_corrections.dart` | جزء (`mixin`) — **عمليات ما بعد التسديد**: إلغاء التسديد · التصحيح بوضعَيه · `unpayPeriod` (الشهر كلّه) · تنظيف السندات اليتيمة وإصلاح الرواتب العالقة. كلها بسببٍ إلزامي وفترة مفتوحة |
 | `user_repository` · `treasury_repository` · `settings_repository` | CRUD مع تحويل النماذج |
 
 ---
@@ -137,12 +142,16 @@ lib/
 | `advances_list_screen` · `advance_review_screen` | `/advances` | شاشة المراجعة أهمّها |
 | `employees_screen` + جزآن | `/employees` | ✅ قُسِّم بـ `part`: `employee_detail_sheet` · `employee_dialogs` |
 | `contractors_screen` · `partners_screen` | | |
-| `reports_screen` + ٣ ملفات تبويبات | `/reports` | **٦ تبويبات** · الودجتات المشتركة في `report_widgets.dart` |
+| `reports_screen` + ٤ ملفات تبويبات | `/reports` | **٧ تبويبات** (آخرها «الرواتب») · الودجتات المشتركة في `report_widgets.dart` |
 | `excel_import_screen` | `/reports/excel-import` | يُنتج مسودة لا سندات |
 | `fiscal_screen` + جزء + `purge_period_dialog` | `/fiscal` | إقفال · إعادة فتح · حذف · محو قسري · قُسِّم بـ `part`: `fiscal_period_card` |
 | `payroll_periods_screen` | `/payroll` | شبكة الأشهر الاثني عشر — غير المستورَد يظهر «لم يُستورَد بعد» |
 | `payroll_sheet_screen` + جزء | `/payroll/:id` | جدول التحرير والتسديد · قُسِّم بـ`part`: `payroll_sheet_widgets` |
-| `payroll_import_screen` | `/payroll/import` | معالج أربع خطوات · **مسار `import` قبل `:id` في الموجّه** |
+| `payroll_import_screen` + جزء `payroll_import_widgets.dart` | `/payroll/import` | معالج أربع خطوات · **مسار `import` قبل `:id` في الموجّه** · يُنبّه على **الموظف المصروف سلفاً** ويبدأ مستبعَداً |
+| `payroll_correction_dialogs.dart` | جزء من شاشة الكشف | حوارا **التصحيح بعد التسديد** و**إلغاء التسديد** — سببٌ إلزامي، ومعاينة الفرق قبل وقوعه، وسؤالٌ بلغة المالك: «هل خرج المال فعلاً؟» |
+| `payroll_print_actions.dart` | — | **إجراءات الطباعة المشتركة**: الكشف · الإيصال · تقرير السنة · تقرير الموظف. تُستدعى من شاشة الكشف وبطاقة الموظف وتبويب التقرير. **تمسك أخطاءها وتعرضها** (درس ع-٢٥) |
+| `reports/payroll_report_tab.dart` | تبويب في `/reports` | تقرير رواتب السنة: الأشهر · توزيع الخزائن · **شريط الرواتب خارج الكشوف** |
+| `reports/employee_payroll_report_tab.dart` | تبويب في `/reports` | **تقرير الموظف**: موظف واحد شهراً شهراً بكل بنوده · أو كل موظفي مشروع بمجاميعهم. مدى أشهر · فلتر المشروع يُضيّق القائمة **ويُظهر من موّل كل شهر** |
 | `backup_screen` | `/backup` | معطَّل على الويب |
 | `settings_screen` + ٩ تبويبات | `/settings` | منها `attachments_tab` (مجلد المرفقات) |
 | `audit_screen` | `/audit` | |
@@ -154,11 +163,14 @@ lib/
 + المحو) · `advance_providers` · `auth_provider` · `database_provider` ·
 `repository_providers` · `settings_provider`.
 
+| `providers/provider_read_once.dart` | `ref.readOnce(p, p.future)` — قراءة مزوّد غير متزامن **مرّة واحدة** بأمان. `ref.read(p.future)` وحده يُسقط التطبيق بسباق تخلّص (ع-٣٥)، ويحرس النمطَ `tech_debt_guard_test` |
+
 ### الودجتات المشتركة (`presentation/widgets/common/`)
 
 | الملف | استعمله بدل إعادة الكتابة |
 |---|---|
 | `app_components.dart` | مكوّنات مشتركة (حالات فارغة، بطاقات…) — **افحصه قبل بناء ودجت جديد** |
+| `password_confirm_dialog.dart` | **تأكيد الهويّة** قبل أي عملية تُرجع مالاً خرج (٦ مواضع). الجلسة المفتوحة تُثبت أن أحداً دخل، لا أن **صاحبها** يضغط الآن |
 | `reports/report_widgets.dart` | `ReportDateField` · `ReportSummaryCard` · `ReportPlaceholder` — **لأي تبويب تقرير جديد** |
 | `attachments_panel.dart` | `AttachmentsPanel` — لوحة المرفقات للسلف والسندات معاً |
 | `item_type_selector.dart` | `ItemTypeSelector` شرائح البنود من جدول `item_types` · `ItemTypeFilterDropdown` قائمة فلترة. **استعملهما — لا تكتب قائمة بنود ثابتة في الكود** |
@@ -309,8 +321,10 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **التقارير** | `expense_reports` ← يحرس **قرارات محاسبية** لا كوداً |
 | **المرفقات** | `schema_v6` · `attachment_service` |
 | **الترقية** | `schema_v6_upgrade` · `schema_v7_upgrade` ← **يختبران `onUpgrade` على بيانات مزروعة** |
-| **الرواتب** | `payroll_calculator` (نقيّ · ٤٢) · `payroll_import` (التطبيع والمطابقة) · `payroll_posting` (الحرّاس والذرّية) · `schema_v7` |
-| **الودجت** | `widget/payroll_screens_test` ← **أول اختبار عرض حقيقي**: يمسك التجاوز الأفقي والشاشة الحمراء |
+| **الرواتب** | `payroll_calculator` (نقيّ · ٤٢) · `payroll_import` (التطبيع والمطابقة) · `payroll_posting` (الحرّاس والذرّية) · `payroll_advance_link` · `schema_v7` |
+| **تقرير الرواتب** | `payroll_report` ← يحرس أن مجموع التقرير = `getTotals` لكل كشف · وحارس **ع-٢٨** (لا راتب بلا مقابله بالدينار) |
+| **مستندات الرواتب** | `payroll_pdf` ← الخطوط العربية · الورقة **عرضية** · ٥٠ سطراً تُقسَّم على صفحات |
+| **الودجت** | `widget/payroll_screens_test` ← **أول اختبار عرض حقيقي**: يمسك التجاوز الأفقي والعمودي والشاشة الحمراء · ويغطّي تبويب التقرير **بسنة كاملة** لا بشهر |
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** ← يفحصان **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |

@@ -22,8 +22,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sales_management/core/services/payroll_row_parser.dart';
 import 'package:sales_management/data/database/app_database.dart';
 import 'package:sales_management/data/repositories/payroll_repository.dart';
+import 'package:sales_management/presentation/features/reports/employee_payroll_report_tab.dart';
 import 'package:sales_management/presentation/features/payroll/payroll_periods_screen.dart';
 import 'package:sales_management/presentation/features/payroll/payroll_sheet_screen.dart';
+import 'package:sales_management/presentation/features/reports/payroll_report_tab.dart';
 import 'package:sales_management/presentation/providers/database_provider.dart';
 
 void main() {
@@ -277,6 +279,27 @@ void main() {
       await disposeTree(tester);
     });
 
+    testWidgets('⭐ كل سطر يحمل أيقونة إيصاله والترويسة زرّ طباعة الكشف',
+        (tester) async {
+      // المرحلة ٤: الإيصال متاح للمسدَّد وغير المسدَّد معاً. وعمود «الحالة»
+      // وُسِّع لأجل الأيقونة — واختبار التجاوز أعلاه هو ما يحرس أن التوسيع
+      // كافٍ، تماماً كما أمسك نصف البكسل يوم أُضيفت أيقونة القلم.
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final id = await seedSheet();
+      await tester.pumpWidget(wrap(PayrollSheetScreen(periodId: id)));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('طباعة الكشف'), findsOneWidget);
+      expect(find.byIcon(Icons.receipt_long_outlined), findsNWidgets(2),
+          reason: 'أيقونة إيصال لكل سطر من سطرَي الكشف');
+
+      await disposeTree(tester);
+    });
+
     testWidgets('كشف بلا سطور يعرض حالة فارغة تشرح الخطوة التالية',
         (tester) async {
       await db.fiscalPeriodsDao.insertPeriod(
@@ -303,6 +326,393 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('كشف الرواتب غير موجود'), findsOneWidget);
+
+      await disposeTree(tester);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // تبويب تقرير الرواتب (المرحلة ٤)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('تبويب تقرير الرواتب', () {
+    /// سنة مالية + خزينتان ممولتان + كشوف [months] شهراً بموظفَين لكلٍّ
+    Future<void> seedYear({required int months}) async {
+      final fiscalId = await db.fiscalPeriodsDao.insertPeriod(
+        FiscalPeriodsCompanion.insert(
+          name: '$year',
+          startDate: DateTime(year, 1, 1),
+          endDate: DateTime(year, 12, 31, 23, 59, 59),
+        ),
+      );
+      final main = await db.treasuriesDao.insertTreasury(
+        TreasuriesCompanion.insert(name: 'الرئيسية', kind: const Value('main')),
+      );
+      final basra = await db.treasuriesDao.insertTreasury(
+        TreasuriesCompanion.insert(
+            name: 'خزنة البصرة', kind: const Value('project')),
+      );
+      for (final t in [main, basra]) {
+        final n = await db.fiscalPeriodsDao.getNextVoucherNumber(
+          fiscalPeriodId: fiscalId,
+          voucherType: 'kabd',
+        );
+        await db.vouchersDao.insertVoucher(
+          VouchersCompanion.insert(
+            voucherNumber: n,
+            voucherType: 'kabd',
+            treasuryId: t,
+            fiscalPeriodId: fiscalId,
+            amount: 500000000,
+            voucherDate: DateTime(year, 1, 2),
+          ),
+        );
+      }
+
+      final emp1 = await db.employeesDao.insertEmployee(
+        EmployeesCompanion.insert(
+            fullName: 'أحمد علي', treasuryId: Value(main)),
+      );
+      final emp2 = await db.employeesDao.insertEmployee(
+        EmployeesCompanion.insert(
+            fullName: 'سارة حسن', treasuryId: Value(basra)),
+      );
+
+      for (var m = 1; m <= months; m++) {
+        final pid = await repo.createOrGetPeriod(year: year, month: m);
+        await repo.importRows(
+          periodId: pid,
+          rows: [
+            ResolvedPayrollRow(
+              employeeId: emp1,
+              row: ParsedPayrollRow(
+                rowNumber: 1,
+                rowLabel: 'صف 1',
+                employeeName: 'أحمد علي',
+                basicSalary: 600000,
+              ),
+            ),
+            ResolvedPayrollRow(
+              employeeId: emp2,
+              row: ParsedPayrollRow(
+                rowNumber: 2,
+                rowLabel: 'صف 2',
+                employeeName: 'سارة حسن',
+                basicSalary: 500000,
+              ),
+            ),
+          ],
+        );
+
+        // الشهر الأول يُسدَّد من خزينتين مختلفتين ليظهر التوزيع
+        if (m == 1) {
+          final entries = await db.payrollDao.getEntries(pid);
+          await repo.payEntries(
+            periodId: pid,
+            entryIds: [entries.first.id],
+            treasuryId: main,
+            paymentDate: DateTime(year, 2, 1),
+          );
+          await repo.payEntries(
+            periodId: pid,
+            entryIds: [entries.last.id],
+            treasuryId: basra,
+            paymentDate: DateTime(year, 2, 2),
+          );
+        }
+      }
+    }
+
+    testWidgets('لا كشوف ⇒ رسالة تشرح الخطوة التالية بدل شاشة فارغة',
+        (tester) async {
+      await tester.pumpWidget(wrap(const PayrollReportTab()));
+      await settle(tester);
+
+      expect(find.textContaining('لا توجد كشوف رواتب بعد'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await disposeTree(tester);
+    });
+
+    testWidgets('⭐ يعرض أشهر السنة وإجماليها وتوزيع الخزائن',
+        (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await seedYear(months: 2);
+      await tester.pumpWidget(wrap(const PayrollReportTab()));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('كانون الثاني'), findsOneWidget);
+      expect(find.text('شباط'), findsOneWidget);
+      // شهران × (٦٠٠٬٠٠٠ + ٥٠٠٬٠٠٠) = ٢٬٢٠٠٬٠٠٠
+      expect(find.text('2,200,000 د.ع'), findsOneWidget);
+      // الشهر الأول سُدِّد من خزينتين
+      expect(find.text('الرئيسية'), findsOneWidget);
+      expect(find.text('خزنة البصرة'), findsOneWidget);
+
+      await disposeTree(tester);
+    });
+
+    testWidgets('⭐⭐ سنة كاملة باثني عشر شهراً تُعرض وتُمرَّر بلا تجاوز',
+        (tester) async {
+      // **حجم البيانات في الاختبار جزءٌ من الاختبار** (ع-٢٧): تبويبٌ
+      // يُختبَر بشهرٍ واحد لا يمرّ بمسار التمرير إطلاقاً، والمالك يفتحه
+      // على سنة كاملة.
+      tester.view.physicalSize = const Size(1400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await seedYear(months: 12);
+      await tester.pumpWidget(wrap(const PayrollReportTab()));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ListView), findsWidgets,
+          reason: 'المحتوى في قائمة قابلة للتمرير لا في عمود ثابت');
+
+      // النزول يُظهر آخر الأشهر وتوزيع الخزائن أسفله
+      await tester.drag(find.byType(ListView).first, const Offset(0, -900));
+      await settle(tester);
+      expect(tester.takeException(), isNull);
+
+      await disposeTree(tester);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // تبويب تقرير الموظف (طلب المالك 2026-08-26)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('تبويب تقرير الموظف', () {
+    /// موظف واحد بـ[months] شهراً في السنة الجارية، مسدَّدة كلها
+    Future<void> seedEmployee({required int months}) async {
+      final fiscalId = await db.fiscalPeriodsDao.insertPeriod(
+        FiscalPeriodsCompanion.insert(
+          name: '$year',
+          startDate: DateTime(year, 1, 1),
+          endDate: DateTime(year, 12, 31, 23, 59, 59),
+        ),
+      );
+      final main = await db.treasuriesDao.insertTreasury(
+        TreasuriesCompanion.insert(name: 'الرئيسية', kind: const Value('main')),
+      );
+      final n = await db.fiscalPeriodsDao.getNextVoucherNumber(
+        fiscalPeriodId: fiscalId,
+        voucherType: 'kabd',
+      );
+      await db.vouchersDao.insertVoucher(
+        VouchersCompanion.insert(
+          voucherNumber: n,
+          voucherType: 'kabd',
+          treasuryId: main,
+          fiscalPeriodId: fiscalId,
+          amount: 500000000,
+          voucherDate: DateTime(year, 1, 2),
+        ),
+      );
+
+      final emp = await db.employeesDao.insertEmployee(
+        EmployeesCompanion.insert(
+          fullName: 'أحمد علي',
+          position: const Value('سائق'),
+          treasuryId: Value(main),
+        ),
+      );
+
+      for (var m = 1; m <= months; m++) {
+        final pid = await repo.createOrGetPeriod(year: year, month: m);
+        await repo.importRows(
+          periodId: pid,
+          rows: [
+            ResolvedPayrollRow(
+              employeeId: emp,
+              row: const ParsedPayrollRow(
+                rowNumber: 1,
+                rowLabel: 'صف 1',
+                employeeName: 'أحمد علي',
+                basicSalary: 600000,
+                bonus: 50000,
+              ),
+            ),
+          ],
+        );
+        final entries = await db.payrollDao.getEntries(pid);
+        await repo.payEntries(
+          periodId: pid,
+          entryIds: [entries.single.id],
+          treasuryId: main,
+          paymentDate: DateTime(year, m, 28),
+        );
+      }
+    }
+
+    testWidgets('بلا رواتب ⇒ رسالة تشرح بدل شاشة فارغة', (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(wrap(const EmployeePayrollReportTab()));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('لا رواتب في'), findsOneWidget);
+
+      await disposeTree(tester);
+    });
+
+    testWidgets('⭐ وضع المجموعة يعرض الموظفين بمجاميعهم', (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      // الافتراضي: من كانون الثاني إلى الشهر السابق
+      await seedEmployee(months: 2);
+      await tester.pumpWidget(wrap(const EmployeePayrollReportTab()));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('أحمد علي'), findsOneWidget);
+
+      await disposeTree(tester);
+    });
+
+    testWidgets('⭐⭐ تفصيل سنة كاملة يُعرض ويُمرَّر بلا تجاوز', (tester) async {
+      // **حجم البيانات جزءٌ من الاختبار** (ع-٢٧): تفصيلٌ بشهر واحد لا يمرّ
+      // بمسار التمرير، والمالك يفتحه على سنة كاملة بأربعة عشر عموداً.
+      tester.view.physicalSize = const Size(1400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await seedEmployee(months: 11);
+      await tester.pumpWidget(wrap(const EmployeePayrollReportTab()));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull,
+          reason: 'تجاوزٌ عمودي أو أفقي يرمي هنا قبل أن يصل إلى المالك');
+
+      await disposeTree(tester);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // التصحيح بعد التسديد (المرحلة ٦ — بلاغ المالك 2026-08-26)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('شاشة الكشف — الفرق وإجراءات السطر المسدَّد', () {
+    /// سيناريو المالك حرفياً: راتب ١٬٧٥٠٬٠٠٠ صُرف كاملاً (٣٠ يوماً)، والملف
+    /// يحسب ٢٦ يوماً — فرقُ ٢٣٣٬٣٣٣
+    Future<int> seedOverpaidMonth() async {
+      final fiscalId = await db.fiscalPeriodsDao.insertPeriod(
+        FiscalPeriodsCompanion.insert(
+          name: '$year',
+          startDate: DateTime(year, 1, 1),
+          endDate: DateTime(year, 12, 31, 23, 59, 59),
+        ),
+      );
+      final t = await db.treasuriesDao.insertTreasury(
+        TreasuriesCompanion.insert(name: 'الرئيسية', kind: const Value('main')),
+      );
+      final n = await db.fiscalPeriodsDao.getNextVoucherNumber(
+        fiscalPeriodId: fiscalId,
+        voucherType: 'kabd',
+      );
+      await db.vouchersDao.insertVoucher(
+        VouchersCompanion.insert(
+          voucherNumber: n,
+          voucherType: 'kabd',
+          treasuryId: t,
+          fiscalPeriodId: fiscalId,
+          amount: 50000000,
+          voucherDate: DateTime(year, 1, 2),
+        ),
+      );
+      final emp = await db.employeesDao.insertEmployee(
+        EmployeesCompanion.insert(
+          fullName: 'حسن محمد',
+          basicSalary: const Value(1750000),
+          treasuryId: Value(t),
+        ),
+      );
+
+      // صُرف كاملاً مباشرةً من بطاقة الموظف
+      final paid = await repo.paySingleEmployee(
+        employeeId: emp,
+        year: year,
+        month: 5,
+        treasuryId: t,
+        basicSalary: 1750000,
+        paymentDate: DateTime(year, 6, 1),
+      );
+
+      // ثم وصل ملف الشهر: أربعة أيام غياب · ومجموعه ما يحسبه لهذا الموظف
+      await repo.importRows(
+        periodId: paid.periodId,
+        rows: [
+          ResolvedPayrollRow(
+            employeeId: emp,
+            row: const ParsedPayrollRow(
+              rowNumber: 1,
+              rowLabel: 'صف 1',
+              employeeName: 'حسن محمد',
+              basicSalary: 1750000,
+              absenceDays: 4,
+            ),
+          ),
+        ],
+      );
+      await db.payrollDao.updatePeriod(
+        paid.periodId,
+        const PayrollPeriodsCompanion(fileTotal: Value(1516667)),
+      );
+      return paid.periodId;
+    }
+
+    testWidgets('⭐⭐ لافتة الفرق تقول **سببه باسم صاحبه** لا رقماً يتيماً',
+        (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final periodId = await seedOverpaidMonth();
+      await tester.pumpWidget(wrap(PayrollSheetScreen(periodId: periodId)));
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.textContaining('حسن محمد: صُرف'),
+        findsOneWidget,
+        reason: 'رقمٌ بلا سببه يُدرّب العين على تخطّي ما حوله — '
+            'والبرنامج يعرف السبب: صُرف ٣٠ يوماً والملف يحسب ٢٦',
+      );
+      expect(find.textContaining('زيادة'), findsWidgets);
+
+      await disposeTree(tester);
+    });
+
+    testWidgets('⭐ الضغط على سطر مسدَّد يفتح التصحيح وإلغاء التسديد',
+        (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final periodId = await seedOverpaidMonth();
+      await tester.pumpWidget(wrap(PayrollSheetScreen(periodId: periodId)));
+      await settle(tester);
+
+      await tester.tap(find.text('حسن محمد').first);
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      // بلا مستخدم مصادَق تظهر رسالة الصلاحية — وهي **الحارس نفسه** الذي
+      // يمنع العملية لا مجرّد إخفاء زرّ
+      expect(
+        find.textContaining('للمدير وحده'),
+        findsOneWidget,
+        reason: 'تصحيح مبلغٍ خرج من الخزينة بخطورة الصرف نفسه',
+      );
 
       await disposeTree(tester);
     });

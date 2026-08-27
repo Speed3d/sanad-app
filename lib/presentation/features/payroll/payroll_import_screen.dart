@@ -31,10 +31,14 @@ import '../../../core/theme/app_theme_extension.dart';
 import '../../../core/utils/excel_sheet_reader.dart';
 import '../../../core/utils/sheet_value_parser.dart';
 import '../../../data/database/app_database.dart';
+import '../../../data/database/daos/payroll_dao.dart';
 import '../../../data/repositories/payroll_repository.dart';
 import '../../providers/payroll_providers.dart';
+import '../../providers/provider_read_once.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/treasury_providers.dart';
+
+part 'payroll_import_widgets.dart';
 
 // ── أسماء الحقول القابلة للتعيين ────────────────────────────────────────────
 
@@ -85,11 +89,33 @@ class _RowState {
   _RowDecision decision;
   int? linkedEmployeeId;
 
+  /// المتبقّي من سلف هذا الموظف — صفرٌ حين لا سلفة عليه
+  ///
+  /// 🔑 **بلاغ المالك 2026-08-27**: استورد كشفاً لموظف عليه سلفة ٥٠٠ ألف
+  ///   فلم يُنبَّه إلى خصمها — والبرنامج يعرفها. تنبيهٌ هنا أرخص من اكتشاف
+  ///   بعد التسديد أن السلفة بقيت كاملةً.
+  double pendingAdvance = 0;
+
+  /// مقارنة المصروف سلفاً بما يحسبه الملف — `null` حين لا مقارنة
+  ///
+  /// 🔑 **بلاغ المالك 2026-08-26**: صرف راتباً كاملاً (٣٠ يوماً) لموظف له
+  ///   أربعة أيام غياب، فظهر فرقُ الكشف **بلا سبب**. والبرنامج يعرف السبب:
+  ///   الرقمان كلاهما في يده هنا.
+  PaidVsFileComparison? comparison;
+
+  /// راتب هذا الموظف **مصروف سلفاً** عن الشهر نفسه — `null` إن لم يُصرف
+  ///
+  /// 🔑 يُملأ في خطوة المراجعة (طلب المالك 2026-08-26): يصرف راتباً مباشرةً
+  ///   من بطاقة الموظف ثم يستورد ملف الشهر وقد نسي. السطر يبدأ **مستبعَداً**
+  ///   ويُعرَض بتاريخ صرفه ورقم سنده ليقرّر.
+  PaidEmployeeInMonth? alreadyPaid;
+
   _RowState({
     required this.row,
     required this.match,
     required this.decision,
     this.linkedEmployeeId,
+    this.alreadyPaid,
   });
 
   bool get isResolved =>
@@ -229,7 +255,8 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
     setState(() => _busy = true);
     try {
       final candidates =
-          await ref.read(payrollMatchCandidatesProvider.future);
+          await ref.readOnce(payrollMatchCandidatesProvider,
+              payrollMatchCandidatesProvider.future);
 
       final parsed = <ParsedPayrollRow>[];
       final errors = <String>[];
@@ -262,23 +289,39 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
         (s, r) => s + (r.fileNetAmount ?? 0),
       );
 
+      // من سُدِّد راتبه فعلاً عن هذا الشهر (صرفٌ مباشر سابق مثلاً)
+      final paidBefore = await ref.readOnce(
+        payrollPaidEmployeesForMonthProvider(_year, _month),
+        payrollPaidEmployeesForMonthProvider(_year, _month).future,
+      );
+      final paidByEmployee = {for (final e in paidBefore) e.employeeId: e};
+
       final states = parsed.map((r) {
         final match = PayrollNameMatcher.match(
           fileName: r.employeeName,
           fileHireDate: r.hireDate,
           employees: candidates,
         );
+        final employeeId = match.employee?.employeeId;
+        final paid = employeeId == null ? null : paidByEmployee[employeeId];
+
         return _RowState(
           row: r,
           match: match,
+          alreadyPaid: paid,
           decision: switch (match.kind) {
+            // ⚠️ **المصروف سلفاً يبدأ مستبعَداً** — نفس مبدأ الغامض:
+            //   القرار الافتراضي الآمن ألّا يدخل شيء حتى يبتّ المالك.
+            //   ولو دخل فلن يُصرف مرّتين (الاستيراد لا يمسّ سطراً مسدَّداً)،
+            //   لكن رؤيته مستبعَداً تجعل الكشف يطابق ما في ذهنه.
+            _ when paid != null => _RowDecision.skip,
             PayrollMatchKind.matched => _RowDecision.link,
             PayrollMatchKind.isNew => _RowDecision.create,
             // الغامض يبدأ **مستبعَداً** لا مربوطاً: القرار الافتراضي الآمن
             // هو ألّا يدخل شيء حتى يبتّ المالك فيه
             PayrollMatchKind.ambiguous => _RowDecision.skip,
           },
-          linkedEmployeeId: match.employee?.employeeId,
+          linkedEmployeeId: employeeId,
         );
       }).toList();
 
@@ -288,6 +331,42 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
         if (r.exchangeRate != null && r.exchangeRate! > 0) {
           rateFromFile = r.exchangeRate;
           break;
+        }
+      }
+
+      // ── تفسير الفرق باسم صاحبه ───────────────────────────────────────
+      // تمرّ بالمستودع لا بحسابٍ هنا: الرقم الذي يُعرَض يجب أن يكون الرقم
+      // الذي سيُخزَّن، وحسابان منفصلان يفترقان عند أول تغيير.
+      if (paidByEmployee.isNotEmpty) {
+        final comparisons =
+            await ref.read(payrollRepositoryProvider).comparePaidWithFile(
+                  year: _year,
+                  month: _month,
+                  rows: [
+                    for (final st in states)
+                      if (st.alreadyPaid != null && st.linkedEmployeeId != null)
+                        (employeeId: st.linkedEmployeeId!, row: st.row),
+                  ],
+                );
+        final byEmployee = {for (final c in comparisons) c.employeeId: c};
+        for (final st in states) {
+          st.comparison = byEmployee[st.linkedEmployeeId];
+        }
+      }
+
+      // ── المتبقّي من سلف الموظفين — استعلام واحد لكل الكشف ─────────────
+      final linkedIds = states
+          .map((st) => st.linkedEmployeeId)
+          .whereType<int>()
+          .toSet()
+          .toList();
+      if (linkedIds.isNotEmpty) {
+        final pending = await ref.readOnce(
+          pendingAdvancesForEmployeesProvider(linkedIds),
+          pendingAdvancesForEmployeesProvider(linkedIds).future,
+        );
+        for (final st in states) {
+          st.pendingAdvance = pending[st.linkedEmployeeId] ?? 0;
         }
       }
 
@@ -728,6 +807,27 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
     );
   }
 
+  /// جملة تشرح مجموع الفرق بين ما صُرف سلفاً وما يحسبه الملف
+  ///
+  /// تُعيد نصّاً فارغاً حين لا فرق — **لا تُضاف جملة لتقول «لا شيء»**.
+  String _paidGapSummary() {
+    final money = NumberFormat('#,##0');
+    final gaps = _rows
+        .map((r) => r.comparison)
+        .whereType<PaidVsFileComparison>()
+        .where((c) => c.hasGap)
+        .toList();
+    if (gaps.isEmpty) return '';
+
+    final total = gaps.fold<double>(0, (s, c) => s + c.difference);
+    final names = gaps.take(3).map((c) => c.employeeName).join(' · ');
+    return '\n\n⚠️ فرقٌ مقداره ${money.format(total.abs())} د.ع '
+        '${total > 0 ? 'صُرف زائداً' : 'صُرف ناقصاً'} '
+        'عمّا يحسبه الملف — سببه: $names'
+        '${gaps.length > 3 ? ' و${gaps.length - 3} غيرهم' : ''}. '
+        'التفصيل في سطر كل موظف أدناه.';
+  }
+
   // ── الخطوة ٤ ───────────────────────────────────────────────────────────
 
   Widget _buildReviewStep() {
@@ -743,6 +843,7 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
         _rows.where((r) => r.decision != _RowDecision.skip).length;
     final creating =
         _rows.where((r) => r.decision == _RowDecision.create).length;
+    final paidBefore = _rows.where((r) => r.alreadyPaid != null).length;
 
     return Column(
       children: [
@@ -757,6 +858,18 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
                   text: '${_errors.length} صفاً مرفوضاً لن يدخل الكشف:\n'
                       '${_errors.take(6).join('\n')}'
                       '${_errors.length > 6 ? '\n… و${_errors.length - 6} غيرها' : ''}',
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (paidBefore > 0) ...[
+                _Banner(
+                  color: Colors.purple,
+                  icon: Icons.event_available_outlined,
+                  text: '$paidBefore موظفاً رواتبهم عن '
+                      '${PayrollCalculator.periodLabel(_year, _month)} '
+                      'مصروفةٌ سلفاً — استُبعدوا من الكشف تلقائياً، '
+                      'وتاريخ صرف كلٍّ منهم مذكور في سطره.'
+                      '${_paidGapSummary()}',
                 ),
                 const SizedBox(height: 16),
               ],
@@ -841,306 +954,6 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ودجتات مساعدة
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _StepBar extends StatelessWidget {
-  final int step;
-  const _StepBar({required this.step});
-
-  static const _labels = ['الملف', 'الوجهة', 'الأعمدة', 'المراجعة'];
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < _labels.length; i++) ...[
-            CircleAvatar(
-              radius: 12,
-              backgroundColor: i <= step ? colors.gold : colors.surface2,
-              child: Text(
-                '${i + 1}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: i <= step ? colors.onGold : colors.subtext,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              _labels[i],
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: i == step ? FontWeight.w800 : FontWeight.w500,
-                color: i <= step ? colors.text : colors.subtext,
-              ),
-            ),
-            if (i < _labels.length - 1)
-              Expanded(
-                child: Container(
-                  height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 10),
-                  color: colors.border,
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// شارة حالة السنة المالية للشهر المختار
-///
-/// تظهر في خطوتَي الوجهة والمراجعة معاً: الأولى لتوفير العمل، والثانية
-/// لأن المالك قد يعود ويغيّر الشهر بعد التحليل.
-class _FiscalCheckBanner extends ConsumerWidget {
-  final int year;
-  final int month;
-
-  const _FiscalCheckBanner({required this.year, required this.month});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.colors;
-    final check = ref.watch(payrollMonthFiscalCheckProvider(year, month));
-
-    return check.when(
-      loading: () => const SizedBox(height: 4, child: LinearProgressIndicator()),
-      error: (e, _) => _Banner(
-        color: colors.danger,
-        icon: Icons.error_outline_rounded,
-        text: 'تعذّر فحص السنة المالية: $e',
-      ),
-      data: (result) {
-        final problem = result.problem;
-        if (problem == null) {
-          return _Banner(
-            color: Colors.green,
-            icon: Icons.check_circle_outline_rounded,
-            text: 'السنة المالية «${result.fiscalName}» مفتوحة وتغطّي '
-                '${PayrollCalculator.periodLabel(year, month)} — '
-                'الكشف قابل للبناء.',
-          );
-        }
-        return _Banner(
-          color: colors.danger,
-          icon: Icons.event_busy_rounded,
-          text: problem,
-        );
-      },
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String text;
-
-  const _Banner({
-    required this.color,
-    required this.icon,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 12.5)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _Chip({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: TextStyle(fontSize: 11, color: colors.subtext)),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w800, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// بطاقة سطر في المراجعة — تعرض حالة المطابقة وتتيح البتّ فيها
-class _RowCard extends StatelessWidget {
-  final _RowState state;
-  final void Function(_RowDecision, int?) onDecision;
-
-  const _RowCard({required this.state, required this.onDecision});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final money = NumberFormat('#,##0.##');
-    final r = state.row;
-
-    final (Color badgeColor, String badgeText) = switch (state.decision) {
-      _RowDecision.link => (Colors.green, 'موظف مسجَّل'),
-      _RowDecision.create => (Colors.blue, 'جديد — سيُنشأ'),
-      _RowDecision.skip => (colors.subtext, 'مستبعَد'),
-    };
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border.all(
-          color: state.match.isAmbiguous &&
-                  state.decision == _RowDecision.skip
-              ? colors.gold
-              : colors.border,
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  r.employeeName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: colors.text,
-                  ),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: badgeColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${r.rowLabel} · ${money.format(r.basicSalary)} '
-            '${r.currency == PayrollCurrency.usd ? 'دولار' : 'د.ع'}'
-            '${r.position.isNotEmpty ? ' · ${r.position}' : ''}'
-            '${r.hireDate != null ? ' · تعيين ${DateFormat('yyyy/MM/dd').format(r.hireDate!)}' : ''}',
-            style: TextStyle(fontSize: 12, color: colors.subtext),
-          ),
-          if (state.match.reason != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              state.match.reason!,
-              style: TextStyle(fontSize: 12, color: colors.gold),
-            ),
-          ],
-          if (state.match.candidates.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                for (final c in state.match.candidates)
-                  OutlinedButton(
-                    onPressed: () => onDecision(_RowDecision.link, c.employeeId),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: state.linkedEmployeeId == c.employeeId &&
-                              state.decision == _RowDecision.link
-                          ? colors.gold.withValues(alpha: 0.15)
-                          : null,
-                    ),
-                    child: Text(
-                      c.hireDate == null
-                          ? c.fullName
-                          : '${c.fullName} — ${DateFormat('yyyy/MM/dd').format(c.hireDate!)}',
-                      style: const TextStyle(fontSize: 11.5),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () => onDecision(_RowDecision.create, null),
-                child: const Text('إنشاء موظف جديد',
-                    style: TextStyle(fontSize: 12)),
-              ),
-              TextButton(
-                onPressed: () => onDecision(_RowDecision.skip, null),
-                child: Text('استبعاد',
-                    style: TextStyle(fontSize: 12, color: colors.subtext)),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

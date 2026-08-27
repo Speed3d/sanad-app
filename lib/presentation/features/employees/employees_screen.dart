@@ -16,10 +16,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/services/payroll_calculator.dart';
 import '../../../domain/models/employee_model.dart';
 import '../../../domain/models/treasury_model.dart';
 import '../../providers/employee_providers.dart';
+import '../../providers/payroll_providers.dart';
+import '../../widgets/common/password_confirm_dialog.dart';
+import '../../providers/provider_read_once.dart';
 import '../../providers/treasury_providers.dart';
+import '../payroll/payroll_print_actions.dart';
 
 // ── أجزاء المكتبة (المرحلة د) ───────────────────────────────────────
 // قُسِّم الملف بـ part لا بملفات مستقلة كي تبقى الأصناف خاصة.

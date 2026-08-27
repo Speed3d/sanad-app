@@ -665,6 +665,592 @@ class _PayrollTotalsProviderElement
   int get periodId => (origin as PayrollTotalsProvider).periodId;
 }
 
+String _$payrollPaidEmployeesForMonthHash() =>
+    r'c4b82ec7c6f2639cbfc284dec7278840fb4c82db';
+
+/// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+///
+/// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+///   ممكناً بضغطة، لا بعد أن يخرج المال.
+///
+/// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+///
+/// Copied from [payrollPaidEmployeesForMonth].
+@ProviderFor(payrollPaidEmployeesForMonth)
+const payrollPaidEmployeesForMonthProvider =
+    PayrollPaidEmployeesForMonthFamily();
+
+/// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+///
+/// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+///   ممكناً بضغطة، لا بعد أن يخرج المال.
+///
+/// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+///
+/// Copied from [payrollPaidEmployeesForMonth].
+class PayrollPaidEmployeesForMonthFamily
+    extends Family<AsyncValue<List<PaidEmployeeInMonth>>> {
+  /// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+  ///
+  /// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+  ///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+  ///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+  ///   ممكناً بضغطة، لا بعد أن يخرج المال.
+  ///
+  /// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+  ///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+  ///
+  /// Copied from [payrollPaidEmployeesForMonth].
+  const PayrollPaidEmployeesForMonthFamily();
+
+  /// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+  ///
+  /// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+  ///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+  ///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+  ///   ممكناً بضغطة، لا بعد أن يخرج المال.
+  ///
+  /// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+  ///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+  ///
+  /// Copied from [payrollPaidEmployeesForMonth].
+  PayrollPaidEmployeesForMonthProvider call(
+    int year,
+    int month,
+  ) {
+    return PayrollPaidEmployeesForMonthProvider(
+      year,
+      month,
+    );
+  }
+
+  @override
+  PayrollPaidEmployeesForMonthProvider getProviderOverride(
+    covariant PayrollPaidEmployeesForMonthProvider provider,
+  ) {
+    return call(
+      provider.year,
+      provider.month,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'payrollPaidEmployeesForMonthProvider';
+}
+
+/// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+///
+/// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+///   ممكناً بضغطة، لا بعد أن يخرج المال.
+///
+/// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+///
+/// Copied from [payrollPaidEmployeesForMonth].
+class PayrollPaidEmployeesForMonthProvider
+    extends AutoDisposeFutureProvider<List<PaidEmployeeInMonth>> {
+  /// موظفو شهرٍ الذين سُدِّدت رواتبهم فعلاً — تنبيه معالج الاستيراد
+  ///
+  /// 🔑 **سبب وجوده** (طلب المالك 2026-08-26): قد يكون صرف راتب موظف مباشرةً من
+  ///   بطاقته عن شهر ٨، ثم يستورد ملف الشهر نفسه وقد نسي. فيجب أن يراه **باسمه
+  ///   وتاريخ صرفه ورقم سنده** في خطوة المراجعة — حين يكون استبعاده ما زال
+  ///   ممكناً بضغطة، لا بعد أن يخرج المال.
+  ///
+  /// 📌 والحماية الحقيقية قائمة تحته: الاستيراد لا يمسّ سطراً مسدَّداً، والتسديد
+  ///   لا يدفع إلا `unpaid`. فهذا **إخبارٌ ليقرّر** لا حاجزٌ وحيد.
+  ///
+  /// Copied from [payrollPaidEmployeesForMonth].
+  PayrollPaidEmployeesForMonthProvider(
+    int year,
+    int month,
+  ) : this._internal(
+          (ref) => payrollPaidEmployeesForMonth(
+            ref as PayrollPaidEmployeesForMonthRef,
+            year,
+            month,
+          ),
+          from: payrollPaidEmployeesForMonthProvider,
+          name: r'payrollPaidEmployeesForMonthProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$payrollPaidEmployeesForMonthHash,
+          dependencies: PayrollPaidEmployeesForMonthFamily._dependencies,
+          allTransitiveDependencies:
+              PayrollPaidEmployeesForMonthFamily._allTransitiveDependencies,
+          year: year,
+          month: month,
+        );
+
+  PayrollPaidEmployeesForMonthProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.year,
+    required this.month,
+  }) : super.internal();
+
+  final int year;
+  final int month;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<PaidEmployeeInMonth>> Function(
+            PayrollPaidEmployeesForMonthRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PayrollPaidEmployeesForMonthProvider._internal(
+        (ref) => create(ref as PayrollPaidEmployeesForMonthRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        year: year,
+        month: month,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<PaidEmployeeInMonth>> createElement() {
+    return _PayrollPaidEmployeesForMonthProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PayrollPaidEmployeesForMonthProvider &&
+        other.year == year &&
+        other.month == month;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, year.hashCode);
+    hash = _SystemHash.combine(hash, month.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PayrollPaidEmployeesForMonthRef
+    on AutoDisposeFutureProviderRef<List<PaidEmployeeInMonth>> {
+  /// The parameter `year` of this provider.
+  int get year;
+
+  /// The parameter `month` of this provider.
+  int get month;
+}
+
+class _PayrollPaidEmployeesForMonthProviderElement
+    extends AutoDisposeFutureProviderElement<List<PaidEmployeeInMonth>>
+    with PayrollPaidEmployeesForMonthRef {
+  _PayrollPaidEmployeesForMonthProviderElement(super.provider);
+
+  @override
+  int get year => (origin as PayrollPaidEmployeesForMonthProvider).year;
+  @override
+  int get month => (origin as PayrollPaidEmployeesForMonthProvider).month;
+}
+
+String _$stalePaidPayrollsHash() => r'2df198aa12e9041dada15b2a2440adcc77a64e7c';
+
+/// كشوف فيها رواتب «مسدَّدة» بسندٍ محذوف — الكاشف المرآة (ع-٤٠)
+///
+/// Copied from [stalePaidPayrolls].
+@ProviderFor(stalePaidPayrolls)
+final stalePaidPayrollsProvider =
+    AutoDisposeFutureProvider<List<StalePaidPayroll>>.internal(
+  stalePaidPayrolls,
+  name: r'stalePaidPayrollsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$stalePaidPayrollsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StalePaidPayrollsRef
+    = AutoDisposeFutureProviderRef<List<StalePaidPayroll>>;
+String _$payrollYearReportHash() => r'dfe23cc2afe6c18b7964d22b86d2ab849282fc93';
+
+/// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+///
+/// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+///   بالضبط ما انفرط في المشروع المرجعي DMS.
+///
+/// Copied from [payrollYearReport].
+@ProviderFor(payrollYearReport)
+const payrollYearReportProvider = PayrollYearReportFamily();
+
+/// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+///
+/// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+///   بالضبط ما انفرط في المشروع المرجعي DMS.
+///
+/// Copied from [payrollYearReport].
+class PayrollYearReportFamily
+    extends Family<AsyncValue<PayrollYearReportData>> {
+  /// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+  ///
+  /// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+  ///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+  ///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+  ///   بالضبط ما انفرط في المشروع المرجعي DMS.
+  ///
+  /// Copied from [payrollYearReport].
+  const PayrollYearReportFamily();
+
+  /// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+  ///
+  /// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+  ///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+  ///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+  ///   بالضبط ما انفرط في المشروع المرجعي DMS.
+  ///
+  /// Copied from [payrollYearReport].
+  PayrollYearReportProvider call(
+    int year,
+  ) {
+    return PayrollYearReportProvider(
+      year,
+    );
+  }
+
+  @override
+  PayrollYearReportProvider getProviderOverride(
+    covariant PayrollYearReportProvider provider,
+  ) {
+    return call(
+      provider.year,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'payrollYearReportProvider';
+}
+
+/// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+///
+/// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+///   بالضبط ما انفرط في المشروع المرجعي DMS.
+///
+/// Copied from [payrollYearReport].
+class PayrollYearReportProvider
+    extends AutoDisposeFutureProvider<PayrollYearReportData> {
+  /// تقرير رواتب سنة — الأشهر وتوزيع المسدَّد على الخزائن (المرحلة ٤)
+  ///
+  /// 📌 **يجمع أرقاماً حسبها الـ DAO لا يحسبها بنفسه**، ويقرأ العمود نفسه
+  ///   (`net_amount_iqd`) بالشروط نفسها التي تقرأها [payrollTotals]. يحرس
+  ///   تطابقَ الرقمين اختبارٌ مخصّص — «استعلامان يُفترَض أنهما متطابقان» هو
+  ///   بالضبط ما انفرط في المشروع المرجعي DMS.
+  ///
+  /// Copied from [payrollYearReport].
+  PayrollYearReportProvider(
+    int year,
+  ) : this._internal(
+          (ref) => payrollYearReport(
+            ref as PayrollYearReportRef,
+            year,
+          ),
+          from: payrollYearReportProvider,
+          name: r'payrollYearReportProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$payrollYearReportHash,
+          dependencies: PayrollYearReportFamily._dependencies,
+          allTransitiveDependencies:
+              PayrollYearReportFamily._allTransitiveDependencies,
+          year: year,
+        );
+
+  PayrollYearReportProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.year,
+  }) : super.internal();
+
+  final int year;
+
+  @override
+  Override overrideWith(
+    FutureOr<PayrollYearReportData> Function(PayrollYearReportRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PayrollYearReportProvider._internal(
+        (ref) => create(ref as PayrollYearReportRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        year: year,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<PayrollYearReportData> createElement() {
+    return _PayrollYearReportProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PayrollYearReportProvider && other.year == year;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, year.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PayrollYearReportRef
+    on AutoDisposeFutureProviderRef<PayrollYearReportData> {
+  /// The parameter `year` of this provider.
+  int get year;
+}
+
+class _PayrollYearReportProviderElement
+    extends AutoDisposeFutureProviderElement<PayrollYearReportData>
+    with PayrollYearReportRef {
+  _PayrollYearReportProviderElement(super.provider);
+
+  @override
+  int get year => (origin as PayrollYearReportProvider).year;
+}
+
+String _$payrollOutOfSheetHash() => r'6b7d601264c48206d8154a60278b5f425bffd9b2';
+
+/// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+///
+/// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+///   الصنف نفسه من العطل الذي ضرب DMS.
+///
+/// Copied from [payrollOutOfSheet].
+@ProviderFor(payrollOutOfSheet)
+const payrollOutOfSheetProvider = PayrollOutOfSheetFamily();
+
+/// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+///
+/// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+///   الصنف نفسه من العطل الذي ضرب DMS.
+///
+/// Copied from [payrollOutOfSheet].
+class PayrollOutOfSheetFamily
+    extends Family<AsyncValue<({int count, double totalIqd})>> {
+  /// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+  ///
+  /// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+  ///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+  ///   الصنف نفسه من العطل الذي ضرب DMS.
+  ///
+  /// Copied from [payrollOutOfSheet].
+  const PayrollOutOfSheetFamily();
+
+  /// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+  ///
+  /// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+  ///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+  ///   الصنف نفسه من العطل الذي ضرب DMS.
+  ///
+  /// Copied from [payrollOutOfSheet].
+  PayrollOutOfSheetProvider call(
+    int year,
+  ) {
+    return PayrollOutOfSheetProvider(
+      year,
+    );
+  }
+
+  @override
+  PayrollOutOfSheetProvider getProviderOverride(
+    covariant PayrollOutOfSheetProvider provider,
+  ) {
+    return call(
+      provider.year,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'payrollOutOfSheetProvider';
+}
+
+/// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+///
+/// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+///   الصنف نفسه من العطل الذي ضرب DMS.
+///
+/// Copied from [payrollOutOfSheet].
+class PayrollOutOfSheetProvider
+    extends AutoDisposeFutureProvider<({int count, double totalIqd})> {
+  /// رواتب صُرفت في السنة **خارج أي كشف** — عددها ومجموعها
+  ///
+  /// 🔑 يعرضها التقرير في شريط منفصل. مسار «صرف راتب» من بطاقة الموظف يكتب
+  ///   سطراً بلا كشف، فتقريرٌ يقتصر على الكشوف يُخفي مالاً خرج فعلاً — وهو
+  ///   الصنف نفسه من العطل الذي ضرب DMS.
+  ///
+  /// Copied from [payrollOutOfSheet].
+  PayrollOutOfSheetProvider(
+    int year,
+  ) : this._internal(
+          (ref) => payrollOutOfSheet(
+            ref as PayrollOutOfSheetRef,
+            year,
+          ),
+          from: payrollOutOfSheetProvider,
+          name: r'payrollOutOfSheetProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$payrollOutOfSheetHash,
+          dependencies: PayrollOutOfSheetFamily._dependencies,
+          allTransitiveDependencies:
+              PayrollOutOfSheetFamily._allTransitiveDependencies,
+          year: year,
+        );
+
+  PayrollOutOfSheetProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.year,
+  }) : super.internal();
+
+  final int year;
+
+  @override
+  Override overrideWith(
+    FutureOr<({int count, double totalIqd})> Function(
+            PayrollOutOfSheetRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PayrollOutOfSheetProvider._internal(
+        (ref) => create(ref as PayrollOutOfSheetRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        year: year,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<({int count, double totalIqd})>
+      createElement() {
+    return _PayrollOutOfSheetProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PayrollOutOfSheetProvider && other.year == year;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, year.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PayrollOutOfSheetRef
+    on AutoDisposeFutureProviderRef<({int count, double totalIqd})> {
+  /// The parameter `year` of this provider.
+  int get year;
+}
+
+class _PayrollOutOfSheetProviderElement
+    extends AutoDisposeFutureProviderElement<({int count, double totalIqd})>
+    with PayrollOutOfSheetRef {
+  _PayrollOutOfSheetProviderElement(super.provider);
+
+  @override
+  int get year => (origin as PayrollOutOfSheetProvider).year;
+}
+
 String _$payrollMatchCandidatesHash() =>
     r'049ddef1b722c592efe2d6767b74b8b8e1a19f5b';
 
@@ -687,6 +1273,192 @@ final payrollMatchCandidatesProvider =
 // ignore: unused_element
 typedef PayrollMatchCandidatesRef
     = AutoDisposeFutureProviderRef<List<PayrollMatchCandidate>>;
+String _$pendingAdvancesForEmployeesHash() =>
+    r'6779d82ce4c55624ad782a5929739a250a3971a7';
+
+/// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+///
+/// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+///
+/// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+///
+/// Copied from [pendingAdvancesForEmployees].
+@ProviderFor(pendingAdvancesForEmployees)
+const pendingAdvancesForEmployeesProvider = PendingAdvancesForEmployeesFamily();
+
+/// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+///
+/// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+///
+/// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+///
+/// Copied from [pendingAdvancesForEmployees].
+class PendingAdvancesForEmployeesFamily
+    extends Family<AsyncValue<Map<int, double>>> {
+  /// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+  ///
+  /// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+  ///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+  ///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+  ///
+  /// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+  ///
+  /// Copied from [pendingAdvancesForEmployees].
+  const PendingAdvancesForEmployeesFamily();
+
+  /// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+  ///
+  /// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+  ///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+  ///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+  ///
+  /// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+  ///
+  /// Copied from [pendingAdvancesForEmployees].
+  PendingAdvancesForEmployeesProvider call(
+    List<int> employeeIds,
+  ) {
+    return PendingAdvancesForEmployeesProvider(
+      employeeIds,
+    );
+  }
+
+  @override
+  PendingAdvancesForEmployeesProvider getProviderOverride(
+    covariant PendingAdvancesForEmployeesProvider provider,
+  ) {
+    return call(
+      provider.employeeIds,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'pendingAdvancesForEmployeesProvider';
+}
+
+/// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+///
+/// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+///
+/// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+///
+/// Copied from [pendingAdvancesForEmployees].
+class PendingAdvancesForEmployeesProvider
+    extends AutoDisposeFutureProvider<Map<int, double>> {
+  /// المتبقّي من سلف مجموعة موظفين — **استعلام واحد** (طلب المالك 2026-08-27)
+  ///
+  /// 🔑 يُستعمل في معالج الاستيراد وفي كشف الشهر: «هذا الموظف عليه سلفة
+  ///   متبقّية ٥٠٠٬٠٠٠». وبدونه كان المالك يستورد الكشف ويسدّده وقد نسي
+  ///   الخصم — فتبقى السلفة كاملةً على الموظف بلا سبب.
+  ///
+  /// 📌 والخريطة **لا تحوي مفتاحاً لمن لا سلفة عليه** — فالغياب نفسه جواب.
+  ///
+  /// Copied from [pendingAdvancesForEmployees].
+  PendingAdvancesForEmployeesProvider(
+    List<int> employeeIds,
+  ) : this._internal(
+          (ref) => pendingAdvancesForEmployees(
+            ref as PendingAdvancesForEmployeesRef,
+            employeeIds,
+          ),
+          from: pendingAdvancesForEmployeesProvider,
+          name: r'pendingAdvancesForEmployeesProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$pendingAdvancesForEmployeesHash,
+          dependencies: PendingAdvancesForEmployeesFamily._dependencies,
+          allTransitiveDependencies:
+              PendingAdvancesForEmployeesFamily._allTransitiveDependencies,
+          employeeIds: employeeIds,
+        );
+
+  PendingAdvancesForEmployeesProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.employeeIds,
+  }) : super.internal();
+
+  final List<int> employeeIds;
+
+  @override
+  Override overrideWith(
+    FutureOr<Map<int, double>> Function(PendingAdvancesForEmployeesRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PendingAdvancesForEmployeesProvider._internal(
+        (ref) => create(ref as PendingAdvancesForEmployeesRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        employeeIds: employeeIds,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Map<int, double>> createElement() {
+    return _PendingAdvancesForEmployeesProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PendingAdvancesForEmployeesProvider &&
+        other.employeeIds == employeeIds;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, employeeIds.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PendingAdvancesForEmployeesRef
+    on AutoDisposeFutureProviderRef<Map<int, double>> {
+  /// The parameter `employeeIds` of this provider.
+  List<int> get employeeIds;
+}
+
+class _PendingAdvancesForEmployeesProviderElement
+    extends AutoDisposeFutureProviderElement<Map<int, double>>
+    with PendingAdvancesForEmployeesRef {
+  _PendingAdvancesForEmployeesProviderElement(super.provider);
+
+  @override
+  List<int> get employeeIds =>
+      (origin as PendingAdvancesForEmployeesProvider).employeeIds;
+}
+
 String _$employeePendingAdvancesHash() =>
     r'beee4812aaa3b0e07e149b219e3c5ee89211306c';
 
@@ -1038,7 +1810,204 @@ class _PayrollMonthFiscalCheckProviderElement
   int get month => (origin as PayrollMonthFiscalCheckProvider).month;
 }
 
-String _$payrollNotifierHash() => r'321e7d61c7abdd944ceaddca2ee0179db0065586';
+String _$employeePayrollReportHash() =>
+    r'9e6e0086b85ace638e2a6796346adf35ec9c2c7d';
+
+/// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+///
+/// Copied from [employeePayrollReport].
+@ProviderFor(employeePayrollReport)
+const employeePayrollReportProvider = EmployeePayrollReportFamily();
+
+/// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+///
+/// Copied from [employeePayrollReport].
+class EmployeePayrollReportFamily
+    extends Family<AsyncValue<EmployeePayrollReportData>> {
+  /// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+  ///
+  /// Copied from [employeePayrollReport].
+  const EmployeePayrollReportFamily();
+
+  /// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+  ///
+  /// Copied from [employeePayrollReport].
+  EmployeePayrollReportProvider call(
+    EmployeeReportQuery query,
+  ) {
+    return EmployeePayrollReportProvider(
+      query,
+    );
+  }
+
+  @override
+  EmployeePayrollReportProvider getProviderOverride(
+    covariant EmployeePayrollReportProvider provider,
+  ) {
+    return call(
+      provider.query,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'employeePayrollReportProvider';
+}
+
+/// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+///
+/// Copied from [employeePayrollReport].
+class EmployeePayrollReportProvider
+    extends AutoDisposeFutureProvider<EmployeePayrollReportData> {
+  /// تقرير رواتب موظف أو مجموعة خلال مدى أشهر (طلب المالك 2026-08-26)
+  ///
+  /// Copied from [employeePayrollReport].
+  EmployeePayrollReportProvider(
+    EmployeeReportQuery query,
+  ) : this._internal(
+          (ref) => employeePayrollReport(
+            ref as EmployeePayrollReportRef,
+            query,
+          ),
+          from: employeePayrollReportProvider,
+          name: r'employeePayrollReportProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$employeePayrollReportHash,
+          dependencies: EmployeePayrollReportFamily._dependencies,
+          allTransitiveDependencies:
+              EmployeePayrollReportFamily._allTransitiveDependencies,
+          query: query,
+        );
+
+  EmployeePayrollReportProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.query,
+  }) : super.internal();
+
+  final EmployeeReportQuery query;
+
+  @override
+  Override overrideWith(
+    FutureOr<EmployeePayrollReportData> Function(
+            EmployeePayrollReportRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: EmployeePayrollReportProvider._internal(
+        (ref) => create(ref as EmployeePayrollReportRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        query: query,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<EmployeePayrollReportData> createElement() {
+    return _EmployeePayrollReportProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EmployeePayrollReportProvider && other.query == query;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, query.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin EmployeePayrollReportRef
+    on AutoDisposeFutureProviderRef<EmployeePayrollReportData> {
+  /// The parameter `query` of this provider.
+  EmployeeReportQuery get query;
+}
+
+class _EmployeePayrollReportProviderElement
+    extends AutoDisposeFutureProviderElement<EmployeePayrollReportData>
+    with EmployeePayrollReportRef {
+  _EmployeePayrollReportProviderElement(super.provider);
+
+  @override
+  EmployeeReportQuery get query =>
+      (origin as EmployeePayrollReportProvider).query;
+}
+
+String _$payrollReportEmployeesHash() =>
+    r'd9f6240139d34be940b4402b8a16224cf8de13a7';
+
+/// كل الموظفين لقائمة اختيار التقرير — الاسم والصفة وخزينته
+///
+/// Copied from [payrollReportEmployees].
+@ProviderFor(payrollReportEmployees)
+final payrollReportEmployeesProvider =
+    AutoDisposeFutureProvider<List<Employee>>.internal(
+  payrollReportEmployees,
+  name: r'payrollReportEmployeesProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$payrollReportEmployeesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PayrollReportEmployeesRef
+    = AutoDisposeFutureProviderRef<List<Employee>>;
+String _$orphanPayrollVouchersHash() =>
+    r'2bd35951d500cb9893c7d13de0d45679e49f6ab9';
+
+/// سندات رواتب لا يقابلها سطرٌ حيّ — **مالٌ خرج بلا سجل** (ع-٣٣)
+///
+/// 🔑 شبكة أمان تكشف **العَرَض** لا السبب: هذه الحالة وُلدت من بابٍ لم
+///   نتوقّعه (حذف الكشف)، وأيّ باب آخر لم يُشخَّص بعدُ سيُنتجها ثانيةً.
+///
+/// Copied from [orphanPayrollVouchers].
+@ProviderFor(orphanPayrollVouchers)
+final orphanPayrollVouchersProvider =
+    AutoDisposeFutureProvider<List<OrphanPayrollVoucher>>.internal(
+  orphanPayrollVouchers,
+  name: r'orphanPayrollVouchersProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$orphanPayrollVouchersHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef OrphanPayrollVouchersRef
+    = AutoDisposeFutureProviderRef<List<OrphanPayrollVoucher>>;
+String _$payrollNotifierHash() => r'9cc5e0b1f5b246b5a0c7bd3fc61ccf809a9f7b9c';
 
 /// Notifier عمليات كشوف الرواتب
 ///
