@@ -103,20 +103,9 @@ class AuthService {
     return raw == null ? null : int.tryParse(raw);
   }
 
-  /// قراءة اسم المستخدم من الجلسة المحفوظة
-  Future<String?> getStoredUsername() async {
-    return _storage.read(key: _kStorageKeyUsername);
-  }
-
   /// مسح الجلسة المحفوظة (تسجيل الخروج)
   Future<void> clearSession() async {
     await _storage.delete(key: _kStorageKeyUserId);
     await _storage.delete(key: _kStorageKeyUsername);
-  }
-
-  /// التحقق من وجود جلسة محفوظة
-  Future<bool> hasStoredSession() async {
-    final userId = await getStoredUserId();
-    return userId != null;
   }
 }

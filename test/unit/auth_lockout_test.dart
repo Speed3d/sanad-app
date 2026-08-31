@@ -18,6 +18,7 @@
 //   4. ذرية الزيادة (لا تضيع محاولة عند التزامن)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sales_management/data/database/app_database.dart';
@@ -147,6 +148,108 @@ void main() {
         equals(maxAttempts),
         reason: 'كل المحاولات الخمس يجب أن تُحتسَب رغم التزامن',
       );
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ع-٤٣ — انقضاء القفل يجب أن يُعيد المحاولات الخمس
+  // ══════════════════════════════════════════════════════════════════════
+
+  group('ع-٤٣ — القفل عقوبة مؤقّتة لا دائمة', () {
+    /// يُرجع وقت انتهاء القفل إلى الماضي — محاكاةُ انقضاء الدقائق الخمس عشرة
+    /// بلا انتظارها فعلياً في الاختبار.
+    Future<void> expireLock() async {
+      await (db.update(db.users)..where((u) => u.id.equals(userId))).write(
+        UsersCompanion(
+          lockedUntil: Value(DateTime.now().subtract(const Duration(minutes: 1))),
+        ),
+      );
+    }
+
+    test('⭐⭐ بعد انقضاء القفل، خطأٌ واحد لا يُعيد القفل', () async {
+      // ١) استنفاد المحاولات حتى القفل
+      for (var i = 0; i < maxAttempts; i++) {
+        await db.usersDao.registerFailedLogin(
+          userId,
+          maxAttempts: maxAttempts,
+          lockDuration: lockDuration,
+        );
+      }
+      final locked = await db.usersDao.getUserById(userId);
+      expect(locked!.lockedUntil, isNotNull, reason: 'الشرط المسبق: قُفل فعلاً');
+
+      // ٢) انقضاء المدّة
+      await expireLock();
+
+      // ٣) خطأ واحد بعد الانقضاء
+      final result = await db.usersDao.registerFailedLogin(
+        userId,
+        maxAttempts: maxAttempts,
+        lockDuration: lockDuration,
+      );
+
+      // 🔴 قبل إصلاح ع-٤٣ كان العدّاد يبقى ٥ فيصير ٦ ≥ ٥ ⇒ قفلٌ فوريّ.
+      //   فيخسر المستخدم محاولاته الخمس إلى الأبد ويصير له محاولة واحدة
+      //   كل ربع ساعة — وهي عقوبة دائمة لا مؤقّتة.
+      expect(result.lockedUntil, isNull,
+          reason: 'انقضاء المدّة يجب أن يُعيد الحال — لا قفل من خطأ واحد');
+      expect(result.attempts, 1,
+          reason: 'العدّاد يبدأ من جديد بعد انقضاء العقوبة');
+    });
+
+    test('⭐ القفل المُنقضي يُرفع فلا يبقى أثره في الصفّ', () async {
+      for (var i = 0; i < maxAttempts; i++) {
+        await db.usersDao.registerFailedLogin(
+          userId,
+          maxAttempts: maxAttempts,
+          lockDuration: lockDuration,
+        );
+      }
+      await expireLock();
+      await db.usersDao.registerFailedLogin(
+        userId,
+        maxAttempts: maxAttempts,
+        lockDuration: lockDuration,
+      );
+
+      final after = await db.usersDao.getUserById(userId);
+      expect(after!.lockedUntil, isNull);
+      expect(after.failedLoginAttempts, 1);
+    });
+
+    test('⭐⭐ القفل الساري لا يُمَسّ — العدّاد يواصل التراكم', () async {
+      // الحارس المعاكس: لو صفّرنا بلا شرط انقضاء لصار القفل بلا معنى،
+      // إذ تكفي محاولةٌ أخرى لمحوه. الشرط `locked_until <= now` هو ما يفرّق.
+      for (var i = 0; i < maxAttempts; i++) {
+        await db.usersDao.registerFailedLogin(
+          userId,
+          maxAttempts: maxAttempts,
+          lockDuration: lockDuration,
+        );
+      }
+
+      final result = await db.usersDao.registerFailedLogin(
+        userId,
+        maxAttempts: maxAttempts,
+        lockDuration: lockDuration,
+      );
+
+      expect(result.attempts, maxAttempts + 1,
+          reason: 'القفل ما زال ساريًا فلا تصفير');
+      expect(result.lockedUntil, isNotNull, reason: 'ويبقى مقفولاً');
+    });
+
+    test('⭐ من لم يُقفَل قط تتراكم محاولاته كالمعتاد', () async {
+      // شرط `lockedUntil.isNotNull()` يمنع مساس من لا قفل له —
+      // وإلا لصُفِّر العدّاد في كل محاولة فلم يبلغ الحدّ أبداً.
+      for (var i = 1; i <= 3; i++) {
+        final r = await db.usersDao.registerFailedLogin(
+          userId,
+          maxAttempts: maxAttempts,
+          lockDuration: lockDuration,
+        );
+        expect(r.attempts, i, reason: 'المحاولة رقم $i تُحتسَب');
+      }
     });
   });
 }

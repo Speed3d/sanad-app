@@ -34,90 +34,20 @@ class ExchangeRatesDao extends DatabaseAccessor<AppDatabase>
   /// [to]   — العملة الهدف  (مثال: 'IQD')
   ///
   /// يُعيد null إذا لم يُدخَّل أي سعر بعد
-  Future<ExchangeRate?> getLatestRate(String from, String to) {
-    return (select(exchangeRates)
-          ..where(
-            (r) =>
-                r.fromCurrency.equals(from) & r.toCurrency.equals(to),
-          )
-          ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)])
-          ..limit(1))
-        .getSingleOrNull();
-  }
-
-  /// Reactive Stream لآخر سعر صرف — يتحدث فور تغييره
+    /// Reactive Stream لآخر سعر صرف — يتحدث فور تغييره
   ///
   /// يُستخدَم في شاشة الإعدادات لعرض السعر الحالي
-  Stream<ExchangeRate?> watchLatestRate(String from, String to) {
-    return (select(exchangeRates)
-          ..where(
-            (r) =>
-                r.fromCurrency.equals(from) & r.toCurrency.equals(to),
-          )
-          ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)])
-          ..limit(1))
-        .watchSingleOrNull();
-  }
-
-  /// قيمة سعر الصرف الحالي كـ double — مختصر للاستخدام المتكرر
+    /// قيمة سعر الصرف الحالي كـ double — مختصر للاستخدام المتكرر
   ///
   /// يُعيد [defaultRate] إذا لم يوجد سعر مسجَّل
-  Future<double> getLatestRateValue(
-    String from,
-    String to, {
-    double defaultRate = 1310.0,
-  }) async {
-    final row = await getLatestRate(from, to);
-    return row?.rate ?? defaultRate;
-  }
-
-  /// سعر الصرف لتاريخ محدد — للتقارير التاريخية
+    /// سعر الصرف لتاريخ محدد — للتقارير التاريخية
   ///
   /// يجلب آخر سعر مسجَّل قبل أو في [date]
-  Future<ExchangeRate?> getRateForDate(
-    String from,
-    String to,
-    DateTime date,
-  ) {
-    return (select(exchangeRates)
-          ..where(
-            (r) =>
-                r.fromCurrency.equals(from) &
-                r.toCurrency.equals(to) &
-                r.effectiveDate.isSmallerOrEqualValue(date),
-          )
-          ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)])
-          ..limit(1))
-        .getSingleOrNull();
-  }
-
-  /// سجل أسعار الصرف كاملاً — للاستعلام وعرض التاريخ
+    /// سجل أسعار الصرف كاملاً — للاستعلام وعرض التاريخ
   ///
   /// مرتب من الأحدث للأقدم
-  Future<List<ExchangeRate>> getRateHistory(
-    String from,
-    String to, {
-    int limit = 100,
-  }) {
-    return (select(exchangeRates)
-          ..where(
-            (r) =>
-                r.fromCurrency.equals(from) & r.toCurrency.equals(to),
-          )
-          ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)])
-          ..limit(limit))
-        .get();
-  }
-
-  /// جميع أسعار الصرف المسجَّلة بغض النظر عن العملة — للمراجعة الكاملة
-  Future<List<ExchangeRate>> getAllRates({int limit = 200}) {
-    return (select(exchangeRates)
-          ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)])
-          ..limit(limit))
-        .get();
-  }
-
-  // ── عمليات الكتابة ────────────────────────────────────────────────────────
+    /// جميع أسعار الصرف المسجَّلة بغض النظر عن العملة — للمراجعة الكاملة
+    // ── عمليات الكتابة ────────────────────────────────────────────────────────
 
   /// تسجيل سعر صرف جديد — يُعيد الـ ID المُولَّد
   ///
@@ -146,7 +76,4 @@ class ExchangeRatesDao extends DatabaseAccessor<AppDatabase>
   /// حذف سجل سعر صرف (للتصحيح فقط — Super Admin)
   ///
   /// تحذير: لا تحذف سجلاً إذا كانت توجد سندات تعتمد عليه
-  Future<void> deleteRate(int id) async {
-    await (delete(exchangeRates)..where((r) => r.id.equals(id))).go();
   }
-}

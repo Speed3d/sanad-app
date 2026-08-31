@@ -36,7 +36,13 @@ abstract class IVoucherRepository {
   });
 
   /// ملخص الصرف والقبض ليوم محدد (للـ Dashboard)
-  Future<({double totalSarf, double totalKabd})> getDailySummary(DateTime date);
+  Future<
+      ({
+        double totalSarf,
+        double totalKabd,
+        double totalSarfUsd,
+        double totalKabdUsd,
+      })> getDailySummary(DateTime date);
 
   // ── الكتابة ────────────────────────────────────────────────────────────────
 

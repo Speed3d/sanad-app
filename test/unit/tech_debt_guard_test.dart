@@ -176,6 +176,91 @@ void main() {
             '${offenders.join('\n')}');
   });
 
+  test('⭐⭐ لا قراءة متزامنة لمزوّد غير مُراقَب — تُعيد null بصمت (ع-٤١ · ع-٤٢)',
+      () {
+    // 🔴 **عطلان كُشفا في 2026-08-30، وكلاهما صامت تماماً:**
+    //
+    //   ع-٤١: النسخة الاحتياطية الشاملة كانت تقرأ `attachmentsRootProvider`
+    //         بـ`ref.read(...).valueOrNull` وهي لا تراقبه ⇒ الجذر `''` دائماً
+    //         ⇒ **صفر مرفق يُنسَخ**، والرسالة تقول «تمّت النسخة الشاملة».
+    //   ع-٤٢: زرّ طباعة السند كان يقرأ `pdfCompanyHeaderProvider` كذلك ⇒
+    //         **كل سند يُطبع بلا شعار ولا اسم شركة**، وميزة المرحلة ب-٣
+    //         معطَّلة كلياً بلا أن يشتكي أحد.
+    //
+    // **السبب الواحد:** المزوّدات المولَّدة بـ`@riverpod` كلها `autoDispose`.
+    //   فحين لا يراقبها أحد، `ref.read` يُنشئ المزوّد ويُطلق استعلامه ويُعيد
+    //   `AsyncLoading` **في اللحظة نفسها** ⇒ `valueOrNull == null` دائماً، ثم
+    //   يُتلَف المزوّد فتكرّر الضغطةُ التاليةُ الشيءَ نفسه إلى الأبد.
+    //
+    // ⚠️ **ولماذا هذا أخطر من ع-٣٥؟** ذاك كان يُسقط التطبيق فيُبلَّغ عنه،
+    //   وهذا يُعيد `null` بصمت فيعيش شهوراً. القراءةُ الصامتة الخاطئة أسوأ
+    //   من الانهيار الصريح.
+    //
+    // **القاعدة المفروضة هنا:** القراءة المتزامنة مسموحة **فقط** إن كان
+    //   المزوّد نفسه مُراقَباً بـ`ref.watch` في **المكتبة نفسها** (الملف مع
+    //   أجزائه) — عندئذٍ يكون محمَّلاً فعلاً ويكون `read` قراءةً للقيمة
+    //   الحاضرة لا إنشاءً لمزوّد جديد. وإلا فاستعمل `ref.readOnce` أو اقرأ
+    //   من الـDAO مباشرةً.
+    final offenders = <String>[];
+
+    // `ref.read(xProvider).valueOrNull` / `.value` / `.requireValue`
+    final pattern = RegExp(
+        r'ref\s*\.\s*read\s*\(\s*([a-zA-Z0-9_]+Provider)[^)]*\)\s*\.\s*'
+        r'(valueOrNull|value|requireValue)\b');
+
+    // ── جمع مصادر كل مكتبة: الملف + أجزاؤه ──────────────────────────────
+    // البحث في الملف وحده يكذب: `vouchers_list_widgets.dart` جزءٌ من
+    // `vouchers_list_screen.dart`، والمراقبة قد تقع في أيّهما.
+    final files = _sourceFiles().where((f) => f.path.contains('presentation'));
+    final libraryOf = <String, List<String>>{};
+    for (final f in files) {
+      final src = _read(f.path);
+      final partOf = RegExp(r"""part\s+of\s+['"]([^'"]+)['"]""").firstMatch(src);
+      final root = partOf == null
+          ? f.path
+          : '${f.parent.path}${Platform.pathSeparator}${partOf.group(1)}';
+      libraryOf.putIfAbsent(root, () => []).add(f.path);
+      if (partOf != null) libraryOf[root]!.add(root);
+    }
+    String librarySource(String path) {
+      for (final entry in libraryOf.entries) {
+        if (entry.value.contains(path)) {
+          return entry.value.toSet().map((p) {
+            final file = File(p);
+            return file.existsSync() ? _read(p) : '';
+          }).join('\n');
+        }
+      }
+      return _read(path);
+    }
+
+    for (final f in files) {
+      final lines = _read(f.path).split('\n');
+      String? libSrc;
+      for (final line in lines) {
+        if (line.trimLeft().startsWith('//')) continue; // التعليقات تشرح لا تُنتج
+        final m = pattern.firstMatch(line);
+        if (m == null) continue;
+        final provider = m.group(1)!;
+        libSrc ??= librarySource(f.path);
+        // نصوص خام مضمومة لا نصّاً مُستوفياً: `'...\s...$provider'` يبتلع
+        // الشرطات المائلة فيصير النمط `refs*.s*watch` ولا يطابق شيئاً.
+        final watched = RegExp(r'ref\s*\.\s*watch\s*\(\s*' + provider + r'\b')
+            .hasMatch(libSrc);
+        if (!watched) {
+          offenders.add('${f.path}: $provider — يُقرأ ولا يُراقَب\n'
+              '    ${line.trim()}');
+        }
+      }
+    }
+
+    expect(offenders, isEmpty,
+        reason: 'قراءة متزامنة لمزوّد autoDispose غير مُراقَب تُعيد null '
+            'دائماً — وبصمت.\n'
+            'استعمل `ref.readOnce(p, p.future)` أو اقرأ من الـDAO مباشرةً:\n'
+            '${offenders.join('\n')}');
+  });
+
   test('⭐ لا ملف مصدر يتجاوز ١٢٠٠ سطر', () {
     // employees_screen كان ٢٤٨٩ سطراً — أكبر ملف بفارق كبير — فقُسِّم
     // بـ part إلى ثلاثة. الحدّ يمنع عودة ملف عملاق آخر بصمت.

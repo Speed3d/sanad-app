@@ -88,13 +88,63 @@ class _EmployeeDetailSheetState
   // ── تأكيد الحذف ──────────────────────────────────────────────────────────
 
   Future<void> _confirmDelete() async {
+    // 🔑 الأثر المالي يُقرأ **قبل** الحوار، فيقول للمالك ما يمنع الحذف بدل
+    //   أن يضغط «حذف» ثم يُصفَع برسالة رفض. والحارس المُلزِم في الـDAO.
+    final footprint = await ref.read(appDatabaseProvider).employeesDao
+        .getEmployeeFinancialFootprint(emp.id);
+    final blocked =
+        footprint.unpaidAdvances > 0 || footprint.salaryRows > 0;
+    if (!mounted) return;
+
+    if (blocked) {
+      final reasons = <String>[
+        if (footprint.unpaidAdvances > 0)
+          '• عليه ${footprint.unpaidAdvances} سلفة غير مسدَّدة '
+              '(متبقٍّ ${footprint.advanceBalance.toStringAsFixed(0)})',
+        if (footprint.salaryRows > 0)
+          '• له ${footprint.salaryRows} سطر راتب في كشوف سابقة',
+      ].join('\n');
+
+      final disable = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('لا يمكن حذف هذا الموظف'),
+          content: Text(
+            '«${emp.fullName}» له أثر مالي:\n\n$reasons\n\n'
+            'حذفه يجعل التقارير تقرأ أرقاماً لصاحبٍ لا وجود له.\n\n'
+            'البديل: **تعطيله** — يبقى سجلّه وتقاريره كما هي، ولا يظهر في '
+            'كشوف الرواتب الجديدة.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('تراجع'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(ctx, true),
+              icon: const Icon(Icons.block_outlined, size: 16),
+              label: const Text('عطّل الموظف'),
+            ),
+          ],
+        ),
+      );
+
+      if (disable == true && mounted) {
+        final ok = await ref
+            .read(employeeNotifierProvider.notifier)
+            .setEmployeeActive(emp.id, isActive: false);
+        if (ok && mounted) Navigator.of(context).pop();
+      }
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('حذف الموظف'),
         content: Text(
           'هل أنت متأكد من حذف "${emp.fullName}"؟\n'
-          'سيُحفَظ سجل رواتبه وسلفه.',
+          'لا أثر مالي له — لا سلف ولا رواتب سابقة.',
         ),
         actions: [
           TextButton(
@@ -584,7 +634,11 @@ class _AdvanceCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
-      child: Padding(
+      child: InkWell(
+        // الضغط يفتح **كيف سُدّدت** — دفعةً دفعة بمصدر كل واحدة
+        onTap: () => _showRepaymentDetails(context, ref, advance),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,7 +752,28 @@ class _AdvanceCard extends ConsumerWidget {
             ),
           ],
         ),
+        ),
       ),
+    );
+  }
+
+  /// **كيف سُدّدت هذه السلفة؟** — دفعةً دفعة بمصدر كل واحدة
+  ///
+  /// 🔑 بلاغ المالك 2026-08-30: «سلفة مليون سُدّدت على دفعتين: ٥٠٠ ألف
+  ///   نقداً و٥٠٠ ألف خصماً من الراتب. أريد عند الضغط عليها أن أرى كيف
+  ///   سُدّدت — بأي سند وبرواتب أي شهر.»
+  ///
+  ///   البيانات كانت كلها في `cash_advance_repayments` منذ البداية؛ ما كان
+  ///   ينقص هو **العرض** — نمط ع-٠٦ نفسه بصورة أخفّ.
+  Future<void> _showRepaymentDetails(
+    BuildContext context,
+    WidgetRef ref,
+    CashAdvanceModel advance,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _RepaymentDetailsSheet(advance: advance),
     );
   }
 

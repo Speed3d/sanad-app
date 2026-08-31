@@ -662,8 +662,8 @@ class _FiscalScreenState extends ConsumerState<FiscalScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '• الفترات المالية اللاحقة المُقفَلة ستُحدَّد بـ "تحتاج إعادة احتساب"\n'
-                        '• يجب إعادة الاحتساب (تنظيف وإقفال) بعد الانتهاء من التعديلات\n'
+                        '• الفترات المالية اللاحقة المُقفَلة ستُحدَّد بـ "تحتاج مراجعة"\n'
+                        '• أعد إقفالها بعد الانتهاء من التعديلات ومراجعة أرقامها\n'
                         '• هذه العملية للمدير الأعلى فقط',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer,

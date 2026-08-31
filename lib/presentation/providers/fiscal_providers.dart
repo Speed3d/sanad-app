@@ -34,6 +34,7 @@ import '../../core/constants/app_settings_keys.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/auth_state.dart';
+import '../../domain/models/user_model.dart';
 import 'auth_provider.dart';
 import 'database_provider.dart';
 
@@ -91,16 +92,45 @@ class FiscalNotifier extends _$FiscalNotifier {
 
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
-  /// معرّف المستخدم الحالي — null إذا لم يكن مسجَّلاً
-  int? get _currentUserId {
-    final authState = ref.read(authNotifierProvider);
-    return authState is AuthAuthenticated ? authState.user.id : null;
-  }
-
   /// اسم المستخدم الحالي — 'system' إذا لم يكن مسجَّلاً
   String get _currentUsername {
     final authState = ref.read(authNotifierProvider);
     return authState is AuthAuthenticated ? authState.user.username : 'system';
+  }
+
+  /// المستخدم الحالي كنموذج — للتحقّق من صلاحياته
+  UserModel? get _currentUser {
+    final authState = ref.read(authNotifierProvider);
+    return authState is AuthAuthenticated ? authState.user : null;
+  }
+
+  /// حارس الصلاحية المشترك لعمليات الفترة المالية
+  ///
+  /// 🔴 **لماذا أُضيف (المرحلة ١٦ — 2026-08-30):**
+  ///   كانت `closePeriod` و`reopenPeriod` و`recomputeOpeningBalances` و
+  ///   `deletePeriod` **لا تفحص أي صلاحية إطلاقاً** — تكتفي بأن أحداً
+  ///   مسجَّل الدخول، و`reopenPeriod` لا تفحص حتى ذلك.
+  ///
+  ///   والحماية الوحيدة كانت **إخفاء الأزرار** في `fiscal_period_card.dart`
+  ///   بـ`isAdmin`/`isSuperAdmin`. وهذا خرقٌ صريح للقانون ٤: «الحارس في
+  ///   أعمق طبقة ممكنة — لا في الواجهة». فأي مستدعٍ آخر (شاشة جديدة ·
+  ///   اختصار · إعادة استعمال) يتجاوزه بلا أن يشتكي أحد.
+  ///
+  ///   والصلاحيات الأربع كانت **موجودة ومكتوبة في `permissions.dart` وبصفر
+  ///   مستدعٍ** — أي أن مصدر الحقيقة للصلاحيات كان يَعِد بحمايةٍ لا تقع.
+  ///
+  /// يُعيد المستخدم عند النجاح، و`null` بعد ضبط `state` برسالة عربية.
+  UserModel? _requirePermission(AppPermission permission, String actionLabel) {
+    final user = _currentUser;
+    if (user == null) {
+      state = const AsyncError('يجب تسجيل الدخول أولاً', StackTrace.empty);
+      return null;
+    }
+    if (!user.can(permission)) {
+      state = AsyncError('$actionLabel غير متاح لصلاحيتك.', StackTrace.empty);
+      return null;
+    }
+    return user;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -292,11 +322,10 @@ class FiscalNotifier extends _$FiscalNotifier {
   ///
   /// يُعيد: true عند النجاح
   Future<bool> deletePeriod(int periodId) async {
-    final userId = _currentUserId;
-    if (userId == null) {
-      state = const AsyncError('يجب تسجيل الدخول أولاً', StackTrace.empty);
-      return false;
-    }
+    final user =
+        _requirePermission(AppPermission.deleteFiscalPeriod, 'حذف فترة مالية');
+    if (user == null) return false;
+    final userId = user.id;
 
     state = const AsyncLoading();
     try {
@@ -335,11 +364,10 @@ class FiscalNotifier extends _$FiscalNotifier {
   ///
   /// يُعيد: true عند النجاح
   Future<bool> closePeriod(int periodId, {String notes = ''}) async {
-    final userId = _currentUserId;
-    if (userId == null) {
-      state = const AsyncError('يجب تسجيل الدخول أولاً', StackTrace.empty);
-      return false;
-    }
+    final user = _requirePermission(
+        AppPermission.closeFiscalPeriod, 'إقفال السنة المالية');
+    if (user == null) return false;
+    final userId = user.id;
 
     state = const AsyncLoading();
     try {
@@ -374,6 +402,12 @@ class FiscalNotifier extends _$FiscalNotifier {
   ///   جميع الفترات المُقفَلة التي تبدأ بعد نهاية هذه الفترة
   ///   تُحدَّد بـ frozen_pending_recompute
   Future<bool> reopenPeriod(int periodId) async {
+    // كانت هذه الدالة **بلا أي فحص** — ولا حتى أن أحداً مسجَّل الدخول،
+    // فتكتب `_currentUserId ?? 0` في سجل التدقيق.
+    final user = _requirePermission(
+        AppPermission.reopenFiscalPeriod, 'إعادة فتح السنة المالية');
+    if (user == null) return false;
+
     state = const AsyncLoading();
     try {
       final db = _db;
@@ -401,7 +435,7 @@ class FiscalNotifier extends _$FiscalNotifier {
 
       // توثيق إعادة الفتح في سجل التدقيق (عملية مالية حساسة جداً)
       await ref.read(auditLoggerProvider).logFiscalReopen(
-            userId: _currentUserId ?? 0,
+            userId: user.id,
             username: _currentUsername,
             fiscalPeriodId: periodId,
             periodName: reopenedPeriod.name,
@@ -450,11 +484,10 @@ class FiscalNotifier extends _$FiscalNotifier {
   ///
   /// يُعيد: true عند النجاح
   Future<bool> recomputeOpeningBalances(int pendingPeriodId) async {
-    final userId = _currentUserId;
-    if (userId == null) {
-      state = const AsyncError('يجب تسجيل الدخول أولاً', StackTrace.empty);
-      return false;
-    }
+    final user = _requirePermission(
+        AppPermission.recomputeBalances, 'إعادة احتساب الأرصدة');
+    if (user == null) return false;
+    final userId = user.id;
 
     state = const AsyncLoading();
     try {

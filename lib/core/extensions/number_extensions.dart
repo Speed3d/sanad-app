@@ -64,11 +64,6 @@ extension DoubleExtensions on double {
     return '\$$formatted';
   }
 
-  /// تنسيق الدولار بدون رمز العملة
-  ///
-  /// مثال: 1250.75 → '1,250.75'
-  String toFormattedUSD() => _usdFormatter.format(this);
-
   // ── تنسيق مخصص ───────────────────────────────────────────────────────────
 
   /// تنسيق العملة مع رمز مخصص

@@ -74,18 +74,6 @@ extension UserModelX on UserModel {
   /// هل المستخدم مدير؟ (admin أو super_admin)
   bool get isAdmin => role == 'admin' || role == 'super_admin';
 
-  /// هل الحساب مقفول حالياً؟
-  bool get isLocked {
-    if (lockedUntil == null) return false;
-    return DateTime.now().isBefore(lockedUntil!);
-  }
-
-  /// الوقت المتبقي على رفع القفل بالدقائق
-  int get minutesUntilUnlock {
-    if (!isLocked) return 0;
-    return lockedUntil!.difference(DateTime.now()).inMinutes + 1;
-  }
-
   /// وصف الدور بالعربية
   String get roleDisplayName {
     switch (role) {

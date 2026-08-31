@@ -17,6 +17,10 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/models/advance_model.dart';
 import '../../providers/advance_providers.dart';
+import '../../../core/extensions/string_extensions.dart';
+import 'report_print_actions.dart';
+import 'report_table_builders.dart';
+import 'report_widgets.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // TAB 4 — تقارير السلف والمشاريع
@@ -33,6 +37,15 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
   final _searchCtrl = TextEditingController();
   String _query = '';
   String? _statusFilter;
+
+  /// بيان الطباعة — من القائمة المفلترة المعروضة نفسها
+  ReportTableData _table(List<AdvanceModel> list) => buildAdvancesListTable(
+        statusLabel: _statusFilter == null
+            ? 'الكل'
+            : _statusFilter!.toArabicAdvanceStatus(),
+        query: _query,
+        advances: list,
+      );
 
   @override
   void dispose() {
@@ -132,10 +145,27 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: list.length,
-                itemBuilder: (_, i) => _AdvanceReportCard(advance: list[i]),
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: list.length,
+                      itemBuilder: (_, i) =>
+                          _AdvanceReportCard(advance: list[i]),
+                    ),
+                  ),
+                  // الطباعة والتصدير — من القائمة **المفلترة** المعروضة
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ReportActionsBar(
+                      onPrint: () => ReportPrintActions.print(
+                          context, ref, _table(list)),
+                      onExport: () =>
+                          ReportPrintActions.exportExcel(context, ref, _table(list)),
+                    ),
+                  ),
+                ],
               );
             },
           ),

@@ -28,8 +28,10 @@ import '../../domain/models/voucher_model.dart';
 import '../extensions/number_extensions.dart';
 import '../extensions/string_extensions.dart';
 import 'payroll_print_data.dart';
+import 'report_print_data.dart';
 
 part 'pdf_payroll_documents.dart';
+part 'pdf_report_documents.dart';
 
 /// هوية الشركة على مستندات PDF — الاسم والشعار
 ///
@@ -55,6 +57,38 @@ class PdfCompanyHeader {
   /// هل تستحق العرض؟ (لا اسم ولا شعار = لا ترويسة)
   bool get hasContent => companyName.trim().isNotEmpty || logoBytes != null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// عكس أعمدة الجداول — يخدم كل مستندات المكتبة
+//
+// 🔴 **العلّة (بلاغ المالك 2026-08-30):** «عند فتح كشف الرواتب تبدأ الأسماء
+//   من جهة اليسار، وهي يجب أن تبدأ من اليمين لأن اللغة عربية».
+//
+//   والسبب أن `pw.Table` في حزمة `pdf` **لا تعرف الاتجاه إطلاقاً** — صفر
+//   إشارة إلى `Directionality` أو `TextDirection` في مصدرها (تحقّقتُ من
+//   الإصدار المثبَّت 3.12.0). فهي ترتّب الأعمدة من اليسار دائماً مهما كان
+//   اتّجاه الصفحة، و`textDirection: rtl` على `MultiPage` يضبط النصّ داخل
+//   الخليّة لا **ترتيب الأعمدة**.
+//
+//   ولهذا يخرج جدولٌ عربي معكوساً: التسلسل والاسم في أقصى اليسار، والحالة
+//   والتوقيع في أقصى اليمين — عكس ما يقرؤه الإنسان تماماً.
+//
+// **الحلّ:** نعكس الأعمدة بأنفسنا قبل التسليم — الصفوف والعناوين وخرائط
+//   العروض والمحاذاة معاً. وأي جدول جديد يمرّ بهذه الدوال وإلا خرج معكوساً.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// يعكس صفّاً واحداً — العمود الأول يصير الأخير
+List<T> rtlRow<T>(List<T> row) => row.reversed.toList();
+
+/// يعكس كل صفوف الجدول
+List<List<T>> rtlRows<T>(List<List<T>> rows) =>
+    [for (final r in rows) r.reversed.toList()];
+
+/// يعكس خريطة مفهرسة بالعمود (العروض · المحاذاة)
+///
+/// [count] عدد الأعمدة — المفتاح `i` يصير `count - 1 - i`.
+Map<int, T> rtlColumnMap<T>(Map<int, T> map, int count) =>
+    {for (final e in map.entries) count - 1 - e.key: e.value};
 
 /// خدمة إنشاء ملفات PDF
 class PdfService {
@@ -258,106 +292,6 @@ class PdfService {
               ),
             ),
           );
-        },
-      ),
-    );
-
-    return pdf.save();
-  }
-
-  /// إنشاء كشف حساب خزينة PDF
-  Future<Uint8List> generateVaultStatement(
-    String vaultName,
-    List<VoucherModel> vouchers,
-    double openingBalance,
-    String periodText,
-  ) async {
-    final fonts = await _loadFonts();
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        theme: _themeWith(fonts),
-        build: (pw.Context context) {
-          return [
-            pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('كشف حساب خزينة: $vaultName',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('الفترة: $periodText', style: const pw.TextStyle(fontSize: 12)),
-                  pw.SizedBox(height: 12),
-                  pw.TableHelper.fromTextArray(
-                    headers: ['الرقم', 'التاريخ', 'النوع', 'البيان', 'المبلغ'],
-                    data: vouchers.map((v) {
-                      return [
-                        '#${v.voucherNumber}',
-                        intl.DateFormat('dd/MM/yyyy').format(v.voucherDate),
-                        v.voucherType.toArabicVoucherType(),
-                        v.reason.orDefault('—'),
-                        v.amount.toIQD(),
-                      ];
-                    }).toList(),
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                    headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
-                    rowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
-                  ),
-                ],
-              ),
-            ),
-          ];
-        },
-      ),
-    );
-
-    return pdf.save();
-  }
-
-  /// إنشاء تقرير سلفة مجمعة PDF
-  Future<Uint8List> generateAdvanceReport(
-    String advanceNumber,
-    List<VoucherModel> vouchers,
-    double totalAmount,
-  ) async {
-    final fonts = await _loadFonts();
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        theme: _themeWith(fonts),
-        build: (pw.Context context) {
-          return [
-            pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('تقرير سلفة رقم: $advanceNumber',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('المبلغ الإجمالي: ${totalAmount.toIQD()}',
-                      style: pw.TextStyle(fontSize: 14, color: PdfColors.green800, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 12),
-                  pw.TableHelper.fromTextArray(
-                    headers: ['رقم السند', 'اسم المشروع', 'صرف من قبل', 'المبلغ'],
-                    data: vouchers.map((v) {
-                      return [
-                        '#${v.voucherNumber}',
-                        v.projectName ?? '—',
-                        v.spentBy ?? '—',
-                        v.amount.toIQD(),
-                      ];
-                    }).toList(),
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                    headerDecoration: const pw.BoxDecoration(color: PdfColors.teal800),
-                  ),
-                ],
-              ),
-            ),
-          ];
         },
       ),
     );

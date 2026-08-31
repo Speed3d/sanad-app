@@ -20,6 +20,7 @@ import '../../../data/database/app_database.dart';
 import '../../providers/audit_providers.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../../core/utils/audit_labels.dart';
 
 // ── ثوابت ألوان العمليات ─────────────────────────────────────────────────────
 
@@ -77,14 +78,12 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
   String _query = '';
   String? _actionFilter; // null = الكل
 
-  static const _actionTypes = [
-    'INSERT',
-    'UPDATE',
-    'DELETE',
-    'LOGIN',
-    'LOGOUT',
-    'FISCAL_CLOSE',
-  ];
+  /// أنواع العمليات — **السبعة عشر كلها** من `AuditLabels.allActions`
+  ///
+  /// كانت ستّة مكتوبة هنا بيد، بينما `AuditActions` يعرّف سبعة عشر — فأحد
+  /// عشر نوعاً (اعتماد سلفة · إلغاؤها · النسخ · الاستيراد · التحويل …) لا
+  /// تصل إليها شريحة فلترة إطلاقاً. والقائمة صارت في مكان واحد فلا تتفرّع.
+  static const _actionTypes = AuditLabels.allActions;
 
   @override
   void dispose() {
@@ -153,7 +152,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: FilterChip(
-                              label: Text(a),
+                              label: Text(AuditLabels.action(a)),
                               avatar: Icon(_actionIcon(a), size: 14),
                               selected: _actionFilter == a,
                               selectedColor:
@@ -241,6 +240,9 @@ class _AuditLogList extends ConsumerWidget {
           final matchQuery = query.isEmpty ||
               log.username.toLowerCase().contains(query.toLowerCase()) ||
               log.affectedTable.toLowerCase().contains(query.toLowerCase()) ||
+              // البحث بالعربية أيضاً: المالك يكتب «رواتب» لا `salary_payments`
+              AuditLabels.table(log.affectedTable).contains(query) ||
+              AuditLabels.action(log.action).contains(query) ||
               log.action.toLowerCase().contains(query.toLowerCase());
           return matchAction && matchQuery;
         }).toList();
@@ -330,10 +332,10 @@ class _AuditLogCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // اسم الجدول
+          // اسم الجدول — معرَّباً
           Expanded(
             child: Text(
-              log.affectedTable,
+              AuditLabels.table(log.affectedTable),
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -443,7 +445,8 @@ class _AuditDetailSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${log.action} — ${log.affectedTable}',
+                        '${AuditLabels.action(log.action)} — '
+                        '${AuditLabels.table(log.affectedTable)}',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -470,10 +473,14 @@ class _AuditDetailSheet extends StatelessWidget {
                 _DetailRow(label: 'المستخدم', value: log.username),
                 if (log.userId != null)
                   _DetailRow(label: 'معرّف المستخدم', value: '${log.userId}'),
-                _DetailRow(label: 'الجدول', value: log.affectedTable),
+                _DetailRow(
+                    label: 'الجدول',
+                    value: AuditLabels.table(log.affectedTable)),
                 if (log.recordId != null)
                   _DetailRow(label: 'معرّف السجل', value: '#${log.recordId}'),
-                _DetailRow(label: 'نوع العملية', value: log.action),
+                _DetailRow(
+                    label: 'نوع العملية',
+                    value: AuditLabels.action(log.action)),
                 if (log.ipAddress.isNotEmpty && log.ipAddress != '0.0.0.0')
                   _DetailRow(label: 'عنوان IP', value: log.ipAddress),
                 if (log.metaJson.isNotEmpty && log.metaJson != '{}') ...[

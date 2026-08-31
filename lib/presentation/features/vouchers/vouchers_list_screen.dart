@@ -22,8 +22,10 @@ import '../../../domain/models/voucher_model.dart';
 import '../../providers/treasury_providers.dart';
 import '../../../core/services/pdf_service.dart' show PdfCompanyHeader;
 import '../../providers/settings_provider.dart';
+import '../../providers/provider_read_once.dart';
 import '../../providers/voucher_providers.dart';
 import '../../widgets/common/item_type_selector.dart';
+import '../../widgets/common/password_confirm_dialog.dart';
 
 // ── أجزاء المكتبة ───────────────────────────────────────────────────
 part 'vouchers_list_widgets.dart';
@@ -528,6 +530,22 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
   /// تأكيد حذف سند تحويل — يوضّح أن الطرفين سيُحذفان
   Future<void> _confirmDeleteVoucher(VoucherModel v) async {
     Navigator.of(context).pop(); // إغلاق ورقة التفاصيل أولاً
+
+    // 🔐 تأكيد الهويّة قبل الحذف (بلاغ المالك 2026-08-30)
+    //
+    //   حذف السند **يُرجع مالاً خرج من الخزينة** — وهو بالضبط معيار القاعدة
+    //   المعتمدة منذ المرحلة ١٠: «كل ما يُرجع مالاً خرج يُثبِت صاحبه هويّته».
+    //   وكانت ستّة مواضع أقلّ خطراً محروسة بها بينما حذفُ السند — أشيعها —
+    //   بلا حارس. والجلسة المفتوحة تُثبت أن أحداً دخل، لا أن **صاحبها**
+    //   يضغط الآن.
+    final identityOk = await confirmWithPassword(
+      context,
+      ref,
+      action: 'حذف التحويل (الطرفان معاً)',
+      impact: 'سيرتدّ المبلغ إلى الخزينة المُرسِلة ويُخصم من المُستقبِلة.',
+    );
+    if (!identityOk || !mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

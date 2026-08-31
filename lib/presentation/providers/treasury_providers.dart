@@ -48,13 +48,6 @@ Future<({double totalIqd, double totalUsd})> totalTreasuryBalance(Ref ref) {
   return repo.getTotalBalance();
 }
 
-/// خزائن حسب النوع — للـ Dropdown في شاشة السندات
-@riverpod
-Future<List<TreasuryModel>> treasuriesByKind(Ref ref, String kind) {
-  final repo = ref.watch(treasuryRepositoryProvider);
-  return repo.getTreasuriesByKind(kind);
-}
-
 /// جميع الخزائن النشطة (Future — للـ Dropdowns)
 @riverpod
 Future<List<TreasuryModel>> allTreasuries(Ref ref) {
@@ -86,7 +79,6 @@ class TreasuryNotifier extends _$TreasuryNotifier {
   /// (سندات، رواتب، سلف، تقارير) إلا بعد إعادة تشغيل التطبيق. تدقيق 2026-08-06.
   void _invalidateTreasuryLists() {
     ref.invalidate(allTreasuriesProvider);
-    ref.invalidate(treasuriesByKindProvider);
     ref.invalidate(totalTreasuryBalanceProvider);
   }
 

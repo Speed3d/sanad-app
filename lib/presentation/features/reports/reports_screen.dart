@@ -25,6 +25,8 @@ import 'employee_payroll_report_tab.dart';
 import 'expenses_by_item_tab.dart';
 import 'payroll_report_tab.dart';
 import 'report_widgets.dart';
+import 'report_print_actions.dart';
+import 'report_table_builders.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ReportsScreen — الشاشة الرئيسية
@@ -223,6 +225,18 @@ class _AccountStatementResults extends ConsumerWidget {
   final DateTime startDate;
   final DateTime endDate;
 
+  /// بيان الطباعة — من الصفوف المعروضة نفسها
+  ReportTableData _table(
+    List<AccountStatementModel> rows,
+    String treasuryName,
+  ) =>
+      buildAccountStatementTable(
+        treasuryName: treasuryName,
+        from: startDate,
+        to: endDate,
+        rows: rows,
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -235,6 +249,14 @@ class _AccountStatementResults extends ConsumerWidget {
     );
     final fmt = NumberFormat('#,##0');
     final dateFmt = DateFormat('yyyy/MM/dd');
+
+    // اسم الخزينة لترويسة المطبوعة — المزوّد **مُراقَب** هنا فالقراءة آمنة.
+    // (`ref.read(p).valueOrNull` على مزوّد غير مُراقَب يُعيد null دائماً — ع-٤٢)
+    final treasuryName = (ref.watch(allTreasuriesProvider).valueOrNull ?? [])
+            .where((t) => t.id == treasuryId)
+            .map((t) => t.name)
+            .firstOrNull ??
+        'الخزينة';
 
     return statAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -357,6 +379,17 @@ class _AccountStatementResults extends ConsumerWidget {
                 },
               ),
             ),
+
+            // الطباعة والتصدير — البيان من **نفس** الصفوف المعروضة
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ReportActionsBar(
+                onPrint: () =>
+                    ReportPrintActions.print(context, ref, _table(rows, treasuryName)),
+                onExport: () =>
+                    ReportPrintActions.exportExcel(context, ref, _table(rows, treasuryName)),
+              ),
+            ),
           ],
         );
       },
@@ -438,6 +471,13 @@ class _DailySummaryResults extends ConsumerWidget {
       error: (e, _) => Center(child: Text('خطأ: $e')),
       data: (summary) {
         final net = summary.totalKabd - summary.totalSarf;
+        // 🔴 قبل المرحلة ١٦ كان استعلام الـDAO يشترط `currency = 'IQD'`
+        //   فتختفي سندات الدولار كلّياً — والشاشة تكتب «د.ع» بلا تحفّظ.
+        //   يومٌ صُرف فيه ٥٠٠ دولار وحدها كان يقول «إجمالي الصرف: 0».
+        final hasUsd =
+            summary.totalKabdUsd.abs() > 0.001 ||
+                summary.totalSarfUsd.abs() > 0.001;
+        final netUsd = summary.totalKabdUsd - summary.totalSarfUsd;
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -505,6 +545,78 @@ class _DailySummaryResults extends ConsumerWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+
+              // ── الدولار — متجاوراً لا مجموعاً ─────────────────────
+              // القاعدة المحروسة في `expense_reports_test`: العملتان
+              // تُعرَضان متجاورتين ولا تُجمعان في رقم واحد أبداً.
+              if (hasUsd) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _BigSummaryCard(
+                        label: 'القبض بالدولار',
+                        value: NumberFormat('#,##0.00')
+                            .format(summary.totalKabdUsd),
+                        suffix: '\$',
+                        icon: Icons.arrow_downward_rounded,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _BigSummaryCard(
+                        label: 'الصرف بالدولار',
+                        value: NumberFormat('#,##0.00')
+                            .format(summary.totalSarfUsd),
+                        suffix: '\$',
+                        icon: Icons.arrow_upward_rounded,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'صافي الدولار: '
+                    '${netUsd >= 0 ? '+' : ''}'
+                    '${NumberFormat('#,##0.00').format(netUsd)} \$',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: netUsd >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                    ),
+                  ),
+                ),
+              ],
+
+              // الطباعة والتصدير
+              ReportActionsBar(
+                onPrint: () => ReportPrintActions.print(
+                  context,
+                  ref,
+                  buildDailySummaryTable(
+                    day: date,
+                    totalKabd: summary.totalKabd,
+                    totalSarf: summary.totalSarf,
+                    totalKabdUsd: summary.totalKabdUsd,
+                    totalSarfUsd: summary.totalSarfUsd,
+                  ),
+                ),
+                onExport: () => ReportPrintActions.exportExcel(
+                  context,
+                  ref,
+                  buildDailySummaryTable(
+                    day: date,
+                    totalKabd: summary.totalKabd,
+                    totalSarf: summary.totalSarf,
+                    totalKabdUsd: summary.totalKabdUsd,
+                    totalSarfUsd: summary.totalSarfUsd,
                   ),
                 ),
               ),
@@ -689,6 +801,22 @@ class _PeriodReportResults extends ConsumerWidget {
   final int? treasuryId;
   final String? voucherType;
 
+  /// بيان الطباعة — من السندات المعروضة نفسها
+  ReportTableData _table(List<VoucherModel> vouchers) => buildPeriodReportTable(
+        from: startDate,
+        to: endDate,
+        scopeLabel: [
+          treasuryId == null ? 'كل الخزائن' : 'خزينة محدَّدة',
+          if (voucherType == 'sarf')
+            'الصرف فقط'
+          else if (voucherType == 'kabd')
+            'القبض فقط'
+          else
+            'كل الأنواع',
+        ].join(' · '),
+        vouchers: vouchers,
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -846,6 +974,17 @@ class _PeriodReportResults extends ConsumerWidget {
                     ),
                   );
                 },
+              ),
+            ),
+
+            // الطباعة والتصدير — البيان من **نفس** الصفوف المعروضة
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ReportActionsBar(
+                onPrint: () =>
+                    ReportPrintActions.print(context, ref, _table(vouchers)),
+                onExport: () =>
+                    ReportPrintActions.exportExcel(context, ref, _table(vouchers)),
               ),
             ),
           ],

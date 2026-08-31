@@ -26,6 +26,7 @@ import '../../../core/services/attachment_service.dart';
 import '../../../data/database/daos/attachments_dao.dart';
 import '../../widgets/common/item_type_selector.dart';
 import '../../widgets/common/attachments_panel.dart';
+import '../../widgets/common/password_confirm_dialog.dart';
 
 // ملاحظة (ب-١ — 2026-08-23): حُذفت من هنا قائمتان ثابتتان بأنواع الإيرادات.
 // كانتا تعرضان ٧ بنود مكتوبة في الكود بينما جدول `item_types` يديره المالك
@@ -212,7 +213,23 @@ class _VoucherKabdScreenState extends ConsumerState<VoucherKabdScreen> {
   Future<void> _confirmDelete() async {
     final id = widget.editId;
     if (id == null) return;
-    final confirmed = await showDialog<bool>(
+
+    // 🔐 تأكيد الهويّة قبل الحذف (بلاغ المالك 2026-08-30)
+    //
+    //   حذف السند **يُرجع مالاً خرج من الخزينة** — وهو بالضبط معيار القاعدة
+    //   المعتمدة منذ المرحلة ١٠: «كل ما يُرجع مالاً خرج يُثبِت صاحبه هويّته».
+    //   وكانت ستّة مواضع أقلّ خطراً محروسة بها بينما حذفُ السند — أشيعها —
+    //   بلا حارس. والجلسة المفتوحة تُثبت أن أحداً دخل، لا أن **صاحبها**
+    //   يضغط الآن.
+    final identityOk = await confirmWithPassword(
+      context,
+      ref,
+      action: 'حذف سند القبض',
+      impact: 'سيُخصم المبلغ من الخزينة وتتغيّر أرصدة التقارير.',
+    );
+    if (!identityOk || !mounted) return;
+
+final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('حذف السند'),

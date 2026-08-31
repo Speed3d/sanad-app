@@ -643,38 +643,143 @@ class AppDatabase extends _$AppDatabase {
   Future<({int vouchers, int periods, int advances, int payrolls})>
       resetFinancialData() async {
     return transaction(() async {
+      // القراءة قبل المسح — بعده تختفي الأرقام فلا يبقى ما يُوثَّق
+      final counts = await _countMovement();
+      await _wipeMovementTables();
+      return counts;
+    });
+  }
+
+  /// عدّاد صفوف جدول واحد — مساعد مشترك بين التصفيرين
+  Future<int> _countRows(String table) async {
+    final row =
+        await customSelect('SELECT COUNT(*) AS c FROM $table').getSingle();
+    return row.data['c'] as int? ?? 0;
+  }
+
+  /// عدّادات الحركة المالية قبل مسحها
+  Future<({int vouchers, int periods, int advances, int payrolls})>
+      _countMovement() async {
+    return (
+      vouchers: await _countRows('vouchers'),
+      periods: await _countRows('fiscal_periods'),
+      advances: await _countRows('advances'),
+      payrolls: await _countRows('payroll_periods'),
+    );
+  }
+
+  /// مسح **جداول الحركة** بالترتيب الآمن — الابن قبل الأب
+  ///
+  /// 🔑 **لماذا دالة مستقلّة ولماذا يمرّ بها التصفيران معاً؟**
+  ///   هذا الترتيب هو نفسه سببُ العطل ع-٠٩، وقد صُحّح مرّة واحدة بعناية.
+  ///   نسخُه في `factoryReset` كان سيعني أن أي جدول جديد يُضاف مستقبلاً
+  ///   يُذكَر في نسخة ويُنسى في الأخرى — وهي **حرفياً** عائلة الأعطال التي
+  ///   ضربت هذا المشروع ستّ مرّات (ع-٢٨ · ع-٣١ · ع-٣٣ · ع-٣٦ · ع-٣٨ · ع-٤٠):
+  ///   «كل بابٍ يعرف جدولاً ويجهل الباقي». فالمسار واحد لا مساران.
+  ///
+  /// ⚠️ تُستدعى **داخل معاملة** دائماً — لا تستدعها مباشرةً.
+  Future<void> _wipeMovementTables() async {
+    // المرفقات أولاً: صفوفها تشير إلى سلف وسندات على وشك الحذف
+    await delete(attachments).go();
+    await delete(advanceLines).go();
+    await delete(advances).go();
+    await delete(cashAdvanceRepayments).go();
+    await delete(cashAdvances).go();
+    await delete(salaryPayments).go();
+    // كشوف الرواتب بعد سطورها وقبل الفترة المالية — راجع تعليق resetFinancialData
+    await delete(payrollPeriods).go();
+    await delete(vouchers).go();
+    // بدون هذا السطر يستأنف ترقيم السندات من آخر رقم قبل التصفير
+    await delete(voucherSequences).go();
+    await delete(fiscalPeriods).go();
+  }
+
+  // ── تصفير المصنع ──────────────────────────────────────────────────────────
+
+  /// 🔥 **تصفير المصنع** — يُعيد القاعدة إلى حالة أول تشغيل تماماً
+  ///
+  /// أُضيفت بطلب صريح من المالك (2026-08-30): مرحلة التطوير والاختبار تتطلّب
+  /// البدء من تطبيق نظيف بلا أي بيانات — لا مستخدم ولا خزينة ولا موظف ولا
+  /// شعار — لا مجرّد مسح الحركة.
+  ///
+  /// **الفرق عن [resetFinancialData]:**
+  ///   `resetFinancialData` يمحو **الحركة** ويُبقي **الهيكل** (موظفون ·
+  ///   خزائن · مستخدمون · إعدادات · سجل تدقيق) — وهو الصحيح لتصفير سنة
+  ///   تجريبية مع الاحتفاظ بمن أنشأها.
+  ///   `factoryReset` يمحو **الاثنين معاً** ثم يُعيد بذر الإعدادات
+  ///   الافتراضية وأنواع البنود، فيعود التطبيق إلى **شاشة الإعداد الأول**.
+  ///
+  /// ⚠️ **سجل التدقيق يُمحى أيضاً** — بخلاف التصفير العادي الذي يصونه عمداً.
+  ///   هذا ليس سهواً: «تطبيق نظيف بلا أي بيانات» يشمله. ولهذا يكتب المستدعي
+  ///   سطر التدقيق **قبل** الاستدعاء لا بعده — فيبقى شاهداً إن فشل المسح
+  ///   في منتصفه، ويُمحى مع الباقي إن نجح.
+  ///
+  /// **ترتيب المسح إلزامي** — جداول الحركة أولاً عبر [_wipeMovementTables]
+  /// (فهي أبناء الخزائن والفترات)، ثم الهيكل من الابن إلى الأب:
+  ///   employees · contractors · partners → **treasuries**
+  /// فالثلاثة تشير إلى `treasuries.id` بمفاتيح خارجية، وحذف الخزائن قبلهم
+  /// يرمي `FOREIGN KEY constraint failed` — وهو العطل ع-٠٩ نفسه بثوب جديد.
+  ///
+  /// **ما يُعاد بذره بعد المسح:** الإعدادات الثمانية الافتراضية (ومنها
+  /// `first_run_complete = false` وهو ما يُعيد التطبيق لشاشة الإعداد) وأنواع
+  /// البنود الاثنان والعشرون. بدونه تبدأ القاعدة **فارغة تماماً** فلا يجد
+  /// التطبيق حتى العملة الأساسية.
+  ///
+  /// 📌 `user_version` في SQLite لا يُمَسّ — القاعدة تبقى على Schema v7 فلا
+  ///   يُعاد تشغيل أي ترحيل.
+  ///
+  /// يُعيد عدّادات ما مُحي، ليعرضها المستدعي على المالك.
+  Future<
+      ({
+        int vouchers,
+        int periods,
+        int advances,
+        int payrolls,
+        int users,
+        int treasuries,
+        int employees,
+        int attachments,
+      })> factoryReset() async {
+    return transaction(() async {
       // ── القراءة قبل المسح ────────────────────────────────────────────
-      Future<int> countOf(String table) async {
-        final row = await customSelect('SELECT COUNT(*) AS c FROM $table')
-            .getSingle();
-        return row.data['c'] as int? ?? 0;
-      }
+      final movement = await _countMovement();
+      final userCount = await _countRows('users');
+      final treasuryCount = await _countRows('treasuries');
+      final employeeCount = await _countRows('employees');
+      final attachmentCount = await _countRows('attachments');
 
-      final voucherCount = await countOf('vouchers');
-      final periodCount = await countOf('fiscal_periods');
-      final advanceCount = await countOf('advances');
-      final payrollCount = await countOf('payroll_periods');
+      // ── ١) الحركة — نفس المسار المحروس لا نسخة منه ───────────────────
+      await _wipeMovementTables();
 
-      // ── المسح بالترتيب الآمن (الابن قبل الأب) ────────────────────────
-      // المرفقات أولاً: صفوفها تشير إلى سلف وسندات على وشك الحذف
-      await delete(attachments).go();
-      await delete(advanceLines).go();
-      await delete(advances).go();
-      await delete(cashAdvanceRepayments).go();
-      await delete(cashAdvances).go();
-      await delete(salaryPayments).go();
-      // كشوف الرواتب بعد سطورها وقبل الفترة المالية — راجع تعليق الدالة
-      await delete(payrollPeriods).go();
-      await delete(vouchers).go();
-      // بدون هذا السطر يستأنف ترقيم السندات من آخر رقم قبل التصفير
-      await delete(voucherSequences).go();
-      await delete(fiscalPeriods).go();
+      // ── ٢) الهيكل — الابن قبل الأب ───────────────────────────────────
+      // الثلاثة أبناء `treasuries` عبر مفاتيح خارجية
+      await delete(employees).go();
+      await delete(contractors).go();
+      await delete(partners).go();
+      await delete(treasuries).go();
+
+      // ── ٣) ما لا يرتبط بشيء ──────────────────────────────────────────
+      await delete(itemTypes).go();
+      await delete(exchangeRates).go();
+      await delete(auditLog).go();
+      await delete(users).go();
+      // الشعار يعيش هنا — «وصور» في طلب المالك
+      await delete(appBlobs).go();
+      await delete(appSettings).go();
+
+      // ── ٤) إعادة البذر — وإلا بدأ التطبيق بلا عملة ولا بنود ──────────
+      await _seedInitialData();
+      await _seedItemTypes();
 
       return (
-        vouchers: voucherCount,
-        periods: periodCount,
-        advances: advanceCount,
-        payrolls: payrollCount,
+        vouchers: movement.vouchers,
+        periods: movement.periods,
+        advances: movement.advances,
+        payrolls: movement.payrolls,
+        users: userCount,
+        treasuries: treasuryCount,
+        employees: employeeCount,
+        attachments: attachmentCount,
       );
     });
   }

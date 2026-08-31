@@ -8,7 +8,6 @@
 // نمط الوصول:
 //   - getString(key)  / setString(key, value) — للإعدادات النصية
 //   - getBool(key)    / setBool(key, value)   — للقيم المنطقية
-//   - getInt(key)     / setInt(key, value)    — للأرقام الصحيحة
 //   - getDouble(key)  / setDouble(key, value) — للأرقام العشرية
 //   - getBlob(key)    / setBlob(...)          — للصور والبيانات الثنائية
 //   - watchSetting(key) — Reactive Stream لإعداد واحد
@@ -81,17 +80,8 @@ class AppSettingsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// قراءة قيمة صحيحة
-  Future<int> getInt(String key, {int defaultValue = 0}) async {
-    final val = await getString(key);
-    return int.tryParse(val ?? '') ?? defaultValue;
-  }
-
-  /// حفظ قيمة صحيحة
-  Future<void> setInt(String key, int value) {
-    return setString(key, value.toString());
-  }
-
-  /// قراءة قيمة عشرية
+    /// حفظ قيمة صحيحة
+    /// قراءة قيمة عشرية
   Future<double> getDouble(String key, {double defaultValue = 0.0}) async {
     final val = await getString(key);
     return double.tryParse(val ?? '') ?? defaultValue;

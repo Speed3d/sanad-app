@@ -69,33 +69,21 @@ abstract final class AppRoutes {
   static const String treasury = '/treasury';
 
   /// تفاصيل خزينة — :id = معرّف الخزينة
-  static const String treasuryDetail = '/treasury/:id';
-
-  /// الموظفون
+    /// الموظفون
   static const String employees = '/employees';
 
   /// تفاصيل موظف — :id = معرّف الموظف
-  static const String employeeDetail = '/employees/:id';
-
-  /// سلف الموظفين
-  static const String loans = '/employees/loans';
-
-  /// الرواتب
-  static const String salaries = '/employees/salaries';
-
-  /// المقاولون
+    /// سلف الموظفين
+    /// الرواتب
+    /// المقاولون
   static const String contractors = '/contractors';
 
   /// تفاصيل مقاول — :id = معرّف المقاول
-  static const String contractorDetail = '/contractors/:id';
-
-  /// الشركاء
+    /// الشركاء
   static const String partners = '/partners';
 
   /// تفاصيل شريك — :id = معرّف الشريك
-  static const String partnerDetail = '/partners/:id';
-
-  /// التقارير وكشوف الحساب
+    /// التقارير وكشوف الحساب
   /// كشوف الرواتب الشهرية (Schema v7)
   static const String payroll = '/payroll';
 
@@ -126,9 +114,7 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
 
   /// إدارة المستخدمين والصلاحيات
-  static const String users = '/settings/users';
-
-  /// سجل المراجعة
+    /// سجل المراجعة
   static const String audit = '/audit';
 
   /// صفحة 403 — ليس لديك صلاحية

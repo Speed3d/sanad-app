@@ -22,6 +22,8 @@ import '../../../data/database/daos/vouchers_dao.dart';
 import '../../providers/treasury_providers.dart';
 import '../../providers/voucher_providers.dart';
 import 'report_widgets.dart';
+import 'report_print_actions.dart';
+import 'report_table_builders.dart';
 
 /// تبويب المصروفات حسب البند
 class ExpensesByItemTab extends ConsumerStatefulWidget {
@@ -201,6 +203,17 @@ class _Results extends ConsumerWidget {
   final int? treasuryId;
   final String? project;
 
+  /// بيان الطباعة من الصفوف المعروضة نفسها
+  ReportTableData _table(List<ItemTypeExpenseRow> rows) =>
+      buildExpensesByItemTable(
+        from: startDate,
+        to: endDate,
+        scopeLabel: project == null || project!.isEmpty
+            ? 'كل المشاريع'
+            : 'المشروع: $project',
+        rows: rows,
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -301,6 +314,18 @@ class _Results extends ConsumerWidget {
                   maxValue: maxValue,
                   rank: i + 1,
                 ),
+              ),
+            ),
+
+            // البيان يُبنى من **نفس** الصفوف المعروضة، فلا تختلف الورقة
+            // عن الشاشة ولو تغيّر الفلتر بينهما.
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ReportActionsBar(
+                onPrint: () =>
+                    ReportPrintActions.print(context, ref, _table(rows)),
+                onExport: () =>
+                    ReportPrintActions.exportExcel(context, ref, _table(rows)),
               ),
             ),
           ],

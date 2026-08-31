@@ -160,12 +160,7 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// سند واحد بالمعرّف — Reactive Stream (للشاشة التفصيلية)
-  Stream<Voucher?> watchVoucherById(int id) {
-    return (select(vouchers)..where((v) => v.id.equals(id)))
-        .watchSingleOrNull();
-  }
-
-  /// جلب جميع السندات غير المحذوفة (Future)
+    /// جلب جميع السندات غير المحذوفة (Future)
   Future<List<Voucher>> getAllVouchers() {
     return (select(vouchers)..where((v) => v.isDeleted.equals(false))).get();
   }
@@ -471,37 +466,52 @@ class VouchersDao extends DatabaseAccessor<AppDatabase>
   // ── إحصائيات للـ Dashboard ────────────────────────────────────────────────
 
   /// إجمالي الصرف والقبض ليوم محدد
-  Future<({double totalSarf, double totalKabd})> getDailySummary(
-    DateTime date,
-  ) async {
+  /// ملخّص يوم واحد — **العملتان منفصلتان**
+  ///
+  /// 🔴 **ما كان معطوباً (إصلاح المرحلة ١٦ — 2026-08-30):**
+  ///   كان الاستعلامان يشترطان `currency = 'IQD'` حرفياً، فسندات الدولار
+  ///   **تختفي كلّياً** من الملخّص اليومي: لا تُحوَّل، ولا تُعرَض، ولا
+  ///   يُنبَّه المستخدم. والشاشة تكتب «د.ع» بلا أي تحفّظ.
+  ///
+  ///   فيومٌ صُرف فيه ٥٠٠ دولار وحدها كان يُعرَض «إجمالي الصرف: 0 د.ع».
+  ///   وهو أخطر من رقم خاطئ: رقمٌ **مطمئِن** وخاطئ.
+  ///
+  /// **ولماذا لا تُجمَع العملتان في رقم واحد؟** لأنها قاعدة المشروع
+  ///   المحروسة في `expense_reports_test.dart`: العملتان تُعرَضان متجاورتين
+  ///   ولا تُجمعان أبداً. والتحويل هنا يحتاج سعر صرف اليوم — بينما سعر صرف
+  ///   **السند** هو الصحيح محاسبياً، وهو ما يفعله تقرير الفترة.
+  Future<
+      ({
+        double totalSarf,
+        double totalKabd,
+        double totalSarfUsd,
+        double totalKabdUsd,
+      })> getDailySummary(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
-    final sarfResult = await customSelect(
-      "SELECT COALESCE(SUM(amount), 0) as total FROM vouchers "
-      "WHERE voucher_type = 'sarf' AND currency = 'IQD' "
-      "AND is_deleted = 0 AND voucher_date BETWEEN ? AND ?",
-      variables: [
-        Variable.withDateTime(startOfDay),
-        Variable.withDateTime(endOfDay),
-      ],
-      readsFrom: {vouchers},
-    ).getSingle();
-
-    final kabdResult = await customSelect(
-      "SELECT COALESCE(SUM(amount), 0) as total FROM vouchers "
-      "WHERE voucher_type = 'kabd' AND currency = 'IQD' "
-      "AND is_deleted = 0 AND voucher_date BETWEEN ? AND ?",
-      variables: [
-        Variable.withDateTime(startOfDay),
-        Variable.withDateTime(endOfDay),
-      ],
-      readsFrom: {vouchers},
-    ).getSingle();
+    /// مجموع نوع سند بعملة محدَّدة في يوم واحد
+    Future<double> sumOf(String voucherType, String currency) async {
+      final row = await customSelect(
+        'SELECT COALESCE(SUM(amount), 0) AS total FROM vouchers '
+        'WHERE voucher_type = ? AND currency = ? '
+        'AND is_deleted = 0 AND voucher_date BETWEEN ? AND ?',
+        variables: [
+          Variable.withString(voucherType),
+          Variable.withString(currency),
+          Variable.withDateTime(startOfDay),
+          Variable.withDateTime(endOfDay),
+        ],
+        readsFrom: {vouchers},
+      ).getSingle();
+      return (row.data['total'] as num).toDouble();
+    }
 
     return (
-      totalSarf: (sarfResult.data['total'] as num).toDouble(),
-      totalKabd: (kabdResult.data['total'] as num).toDouble(),
+      totalSarf: await sumOf('sarf', 'IQD'),
+      totalKabd: await sumOf('kabd', 'IQD'),
+      totalSarfUsd: await sumOf('sarf', 'USD'),
+      totalKabdUsd: await sumOf('kabd', 'USD'),
     );
   }
 

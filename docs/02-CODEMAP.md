@@ -32,19 +32,25 @@ lib/
 |---|---|---|
 | `services/auth_service.dart` | bcrypt في isolate: `hashPassword` · `verifyPassword` | أي تحقّق من كلمة مرور أو رمز سرّي |
 | `services/balance_guard.dart` | `checkSufficientBalance` (إنشاء) · `checkEditImpact` (تعديل) | **إلزامي** في أي مسار يُخرج مالاً |
+| `services/treasury_state_guard.dart` | **حارس الخزينة المعطَّلة/المحذوفة** — `ensureActive` · `ensureTransferAllowed` | **إلزامي** قبل أي حركة مالية جديدة على خزينة |
 | `services/fiscal_period_guard.dart` | `ensureActive` — يرمي إن كانت الفترة مُقفَلة | **إلزامي** قبل أي كتابة محاسبية |
 | `services/payroll_name_matcher.dart` | **مطابقة أسماء الموظفين** — تطبيع عربي + مفتاح (الاسم، تاريخ التعيين) | أي مطابقة اسم موظف. **لا تقارن أسماء عربية حرفياً** |
 | `services/payroll_row_parser.dart` | تحليل صف ملف الرواتب + مقارنة الصافي بالمذكور | استيراد الرواتب |
 | `utils/sheet_value_parser.dart` | **تحليل قيم خلايا الإكسل** — تاريخ · مبلغ · عدد · كشف العملة الأجنبية · أرقام عربية | أي استيراد. **مشترك بين مستوردَي السلف والرواتب** |
 | `utils/excel_sheet_reader.dart` | قراءة ملف `.xlsx` إلى شبكة نصوص مسوّاة + بصمته | أي استيراد — **لا تقرأ خلايا إكسل يدوياً** |
 | `services/payroll_calculator.dart` | **حساب الرواتب** — نقيّ بلا قاعدة بيانات: الأيام المستحقّة · خصم الغياب · الصافي · المقابل بالدينار · حرّاس التسديد | أي حساب راتب. **لا تحسب صافياً يدوياً في شاشة أو DAO** |
+| `services/report_print_data.dart` + `pdf_report_documents.dart` | **مستند التقرير الجدوليّ العام** — نموذج نقيّ بصفوف منسَّقة مسبقاً، ومولّد واحد يخدم التقارير الستّة | أي طباعة تقرير. **لا تكتب مولّد PDF سابعاً** |
+| `services/excel_export_service.dart` | تصدير **xlsx مُنسَّق**: ترويسة · حدود · عرض أعمدة · **RTL** · والأرقام أرقاماً لا نصّاً | أي تصدير. CSV لا يحمل تنسيقاً بنيوياً فاستُبدل |
+| `services/backup_service.dart` | **النسخة الشاملة**: `exportFull` · `inspect` · `restoreFull` — القاعدة مشفَّرة + المرفقات + بيان JSON | أي عمل على النسخ الاحتياطي. **لا تكتب منطق نسخ في الودجت** — هناك عاش ع-٤١ |
+| `services/factory_reset_service.dart` | **تصفير المصنع** — ثلاث طبقات حراسة (صلاحية · كلمة مرور · رمز محو) ثم `db.factoryReset()` ثم حذف ملفات المرفقات | الزرّ الوحيد الذي يمحو التطبيق كلّه. **لا تكتب حارساً رابعاً في الشاشة** — الحُرّاس هنا وحدها تمرّ باختبار |
 | `services/backup_crypto_service.dart` | AES-256-GCM + PBKDF2 · صيغة SMBAK2 | النسخ الاحتياطي المشفَّر |
 | `services/cloud_backup_service.dart` | نسخة محلية إضافية (**ليست سحابة** — التسمية صادقة) | نسخة ثانية على الجهاز |
-| `services/attachment_service.dart` | نسخ المرفقات · بصمة SHA-256 · تنقية المسارات · الفتح عبر `explorer` | أي تعامل مع ملفات المرفقات — **لا تلمس نظام الملفات مباشرةً** |
+| `services/attachment_service.dart` | نسخ المرفقات · بصمة SHA-256 · تنقية المسارات · الفتح عبر `explorer` · و`deleteAllInStore` لتصفير المصنع (يمحو **المفهرَس** لا المجلد) | أي تعامل مع ملفات المرفقات — **لا تلمس نظام الملفات مباشرةً** |
 | `services/smart_alert_service.dart` | تنبيهات: رصيد منخفض · سلف معلّقة قديمة | شريط التنبيهات في لوحة التحكم |
-| `services/pdf_service.dart` + جزء `pdf_payroll_documents.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم). **مستندات الرواتب الثلاثة في `part` لا خدمة ثانية** — مسار الخطوط العربية واحد | طباعة السندات والرواتب. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء** |
+| `services/pdf_service.dart` + جزآن `pdf_payroll_documents.dart` و`pdf_report_documents.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم). **مستندات الرواتب الثلاثة في `part` لا خدمة ثانية** — مسار الخطوط العربية واحد | طباعة السندات والرواتب. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء** |
 | `services/payroll_print_data.dart` | نماذج مستندات الرواتب **النقيّة** (كشف · إيصال · تقرير سنة · **تقرير موظف**) — بلا Drift، فتبقى `PdfService` جاهلةً بقاعدة البيانات | أي طباعة رواتب. **الإجماليات حقولٌ تُمرَّر لا تُحسَب في المستند** |
 | `auth/permissions.dart` | **مصدر الحقيقة الوحيد للصلاحيات** — `AppPermission` + `user.can()` | أي فحص صلاحية. **لا تكتب `role == 'admin'` يدوياً أبداً** |
+| `utils/audit_labels.dart` | **تعريب سجل التدقيق** — أسماء العمليات السبعة عشر والجداول | أي عرض لسجل التدقيق. **لا تكتب ترجمة في الشاشة** |
 | `utils/audit_logger.dart` | ١٩ دالة تسجيل جاهزة | **إلزامي** بعد أي عملية حساسة |
 | `constants/app_routes.dart` | مسارات go_router | أي تنقّل |
 | `constants/app_settings_keys.dart` | مفاتيح الإعدادات | **لا تكتب مفتاح إعداد كنصّ حرفي** |
@@ -66,7 +72,8 @@ lib/
 |---|---|---|
 | ~~`errors/app_exception.dart`~~ | — | ✅ **حُذف** (المرحلة د) — كان يكرّر نمط `StateError` القائم. المشروع يرمي `StateError` برسالة عربية كاملة تعرضها الواجهة |
 | ~~`utils/input_validators.dart`~~ | — | ✅ **أُحيي ووُصِّل** (المرحلة د) — استعمله في أي تحقّق جديد بدل كتابة مدقّق يدوي |
-| `l10n/` كله (`app_ar.arb` · `app_en.arb` · `generated/`) | — | مولَّد بالكامل و**صفر استخدام**. كل النصوص عربية مكتوبة يدوياً في الكود. مبدّل اللغة مقفل بصدق. **خارج النطاق** بقرار المنصة |
+| `l10n/` كله (`app_ar.arb` · `app_en.arb` · `generated/`) | — | مولَّد بالكامل و**صفر استخدام**. كل النصوص عربية مكتوبة يدوياً في الكود. **خارج النطاق** بقرار المنصة |
+| ~~الجرد القديم~~ | — | ✅ **كُنِس بالكامل** (المرحلة ١٦د — 2026-08-30): ملفان + `FiscalPeriodModel` + ٣ مزوّدات + ~٢٥ دالة + ٧ مسارات. وما بقي مستثنىً عمداً: دوال ربط المقاولين/الشركاء بالخزائن — بانتظار قرار المالك |
 
 > 📌 **القاعدة:** إن احتجت تحقّقاً من مدخلات أو صنف استثناء — **افحص الملفات
 > الميتة أعلاه أولاً**. إمّا تستعملها فتحييها، أو تقرّر حذفها. لا تكتب بديلاً
@@ -218,7 +225,7 @@ color: isDark ? textDark : textLight // ❌ كان ١٦٤ مرة قبل المر
 
 | المكتبة | الأجزاء |
 |---|---|
-| `employees_screen.dart` | `employee_detail_sheet.dart` · `employee_dialogs.dart` |
+| `employees_screen.dart` | `employee_detail_sheet.dart` · `employee_dialogs.dart` · `employee_repayment_sheet.dart` |
 | `treasuries_screen.dart` | `treasury_card.dart` |
 | `fiscal_screen.dart` | `fiscal_period_card.dart` |
 | `vouchers_list_screen.dart` | `vouchers_list_widgets.dart` |
@@ -307,7 +314,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
-## ٦. الاختبارات (`test/`) — ٣١ ملفاً · ٢٥٨ اختباراً
+## ٦. الاختبارات (`test/`) — ٥٧ ملفاً · ٧٥٤ اختباراً
 
 | المجموعة | الملفات |
 |---|---|
@@ -326,6 +333,8 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **مستندات الرواتب** | `payroll_pdf` ← الخطوط العربية · الورقة **عرضية** · ٥٠ سطراً تُقسَّم على صفحات |
 | **الودجت** | `widget/payroll_screens_test` ← **أول اختبار عرض حقيقي**: يمسك التجاوز الأفقي والعمودي والشاشة الحمراء · ويغطّي تبويب التقرير **بسنة كاملة** لا بشهر |
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
+| **النسخ الاحتياطي** | `backup_service` ← **الدورة الكاملة على قرص حقيقي**: صدّر ⇒ صفّر ⇒ استعد ⇒ الصفوف والملفات عادت. وقاعدته **ملفّية** لا في الذاكرة، وإلا لم تُختبَر الاستعادة أصلاً |
+| **تصفير المصنع** | `factory_reset` ← يمرّ على **العشرين جدولاً** فيمسك أي جدول ينساه المحو، ويحرس ترتيب الحذف والحُرّاس الثلاثة |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** ← يفحصان **المصدر** لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |
 

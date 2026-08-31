@@ -99,7 +99,13 @@ Future<List<AccountStatementModel>> accountStatement(
 
 /// ملخص الصرف والقبض ليوم محدد — للـ Dashboard
 @riverpod
-Future<({double totalSarf, double totalKabd})> dailySummary(
+Future<
+    ({
+      double totalSarf,
+      double totalKabd,
+      double totalSarfUsd,
+      double totalKabdUsd,
+    })> dailySummary(
   Ref ref,
   DateTime date,
 ) {

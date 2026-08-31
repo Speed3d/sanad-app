@@ -15,6 +15,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/auth/permissions.dart';
+import '../../../../core/constants/app_settings_keys.dart';
+import '../../../../core/services/factory_reset_service.dart';
 import '../../../../core/utils/audit_logger.dart';
 import '../../../../domain/models/auth_state.dart';
 import '../../../../domain/models/user_model.dart';
@@ -206,15 +208,39 @@ class SystemInfoTab extends ConsumerWidget {
 
           const SizedBox(height: 12),
 
-          // ── تصفير الحسابات (للتطوير) ───────────────────────────────────────
+          // ── تصفير الحركة وحدها (للتطوير) ───────────────────────────────────
           // عملية كارثية — super_admin فقط عبر نظام الصلاحيات المركزي.
           // (كان الفحص `role == 'admin'` مقلوباً: يمنع super_admin ويسمح لـ admin)
+          //
+          // 📌 التسمية تقول ما تفعله بالضبط: هذا الزرّ يمحو **الحركة** ويُبقي
+          //    المستخدمين والخزائن والموظفين. كان اسمه «تصفير الحسابات» وهو
+          //    اسمٌ يوحي بأكثر مما يفعل — والزرّ الذي يفعل الأكثر تحته.
           if (currentUser != null &&
               currentUser.can(AppPermission.resetFinancialData)) ...[
-            FilledButton.icon(
+            OutlinedButton.icon(
               onPressed: () => _confirmResetData(context, ref),
-              icon: const Icon(Icons.delete_forever_outlined),
-              label: const Text('تصفير الحسابات (للتطوير)'),
+              icon: const Icon(Icons.cleaning_services_outlined),
+              label: const Text('تصفير الحركة فقط (للتطوير)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+                side: BorderSide(
+                  color: theme.colorScheme.error.withValues(alpha: 0.5),
+                ),
+                minimumSize: const Size(double.infinity, 48),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // ── 🔥 تصفير المصنع (للتطوير) ──────────────────────────────────────
+          // أخطر زرّ في التطبيق: يمحو البرنامج كلّه ويعود لشاشة الإعداد الأول.
+          // صلاحية مستقلّة عن سابقه عمداً — راجع AppPermission.factoryReset.
+          if (currentUser != null &&
+              currentUser.can(AppPermission.factoryReset)) ...[
+            FilledButton.icon(
+              onPressed: () => _confirmFactoryReset(context, ref),
+              icon: const Icon(Icons.local_fire_department_outlined),
+              label: const Text('تصفير المصنع — محو كل شيء (للتطوير)'),
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.error,
                 foregroundColor: theme.colorScheme.onError,
@@ -303,6 +329,117 @@ class SystemInfoTab extends ConsumerWidget {
             SnackBar(content: Text('حدث خطأ: $e')),
           );
         }
+      }
+    }
+  }
+
+  // ── 🔥 تصفير المصنع ────────────────────────────────────────────────────────
+
+  /// تأكيد وتنفيذ تصفير المصنع — كلمة المرور ورمز المحو ثم محو كل شيء
+  ///
+  /// الواجهة تجمع المدخلين فقط؛ **التحقّق المُلزِم في `FactoryResetService`**
+  /// لا هنا — فحارسٌ في طبقة العرض يتجاوزه أي مستدعٍ آخر ولا يمرّ به اختبار
+  /// (القانون ٤).
+  Future<void> _confirmFactoryReset(BuildContext context, WidgetRef ref) async {
+    final input = await showDialog<_FactoryResetInput>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _FactoryResetDialog(),
+    );
+    if (input == null) return;
+
+    // هوية المنفِّذ تُقرأ **قبل** العملية — بعدها لا يبقى مستخدم في القاعدة
+    final auth = ref.read(authNotifierProvider);
+    final user = auth is AuthAuthenticated ? auth.user : null;
+    if (user == null) return;
+
+    final db = ref.read(appDatabaseProvider);
+    final authService = ref.read(authServiceProvider);
+
+    // قراءة مباشرة من الـDAO لا من مزوّد عائلي: استعلام لمرّة واحدة لا يحتاج
+    // مزوّداً، و`ref.read(p.future)` على مزوّد autoDispose يُسقط التطبيق (ع-٣٥)
+    final root =
+        await db.appSettingsDao.getString(AppSettingsKeys.attachmentsRoot) ?? '';
+
+    try {
+      final report = await FactoryResetService.run(
+        db: db,
+        auth: authService,
+        user: user,
+        password: input.password,
+        purgeCode: input.purgeCode,
+        attachmentsRoot: root,
+        audit: ref.read(auditLoggerProvider),
+      );
+
+      // ── الجلسة ──────────────────────────────────────────────────────
+      // جلسةٌ محفوظة تشير إلى مستخدم لم يعد موجوداً؛ إبقاؤها يعني أن التطبيق
+      // يحاول استعادتها عند الإقلاع التالي ويفشل بلا تفسير.
+      //
+      // ⚠️ في `try` خاصّ به عمداً: القاعدة **مُحيت بنجاح** قبل هذا السطر،
+      //    فلو رمى التخزين الآمن (قناة منصّة قد تفشل) لعرضنا «تعذّر التصفير»
+      //    على عملية وقعت فعلاً — وهو أسوأ من الصمت: يدفع المالك لإعادة
+      //    المحاولة على قاعدة نظيفة أصلاً.
+      try {
+        await authService.clearSession();
+      } catch (_) {
+        // الجلسة ستفشل استعادتها عند الإقلاع التالي فتُمسح تلقائياً
+        // (الخطوة ٣ في AuthNotifier._initialize) — لا شيء يضيع.
+      }
+
+      if (!context.mounted) return;
+
+      // ── الحصيلة في حوارٍ لا في شريط ────────────────────────────────
+      // الشريط يختفي مع الشاشة لحظة تحويل الموجّه إلى «الإعداد الأول»، فلا
+      // يقرأه المالك أصلاً. والحوار يُوقف الانتقال حتى يراه — وهو أقلّ ما
+      // تستحقه عملية بلا تراجع.
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('✓ تم تصفير المصنع'),
+          content: SizedBox(
+            width: 420,
+            child: Text(
+              'مُحي نهائياً:\n'
+              '• ${report.users} مستخدم\n'
+              '• ${report.treasuries} خزينة · ${report.employees} موظف\n'
+              '• ${report.vouchers} سند · ${report.periods} سنة مالية\n'
+              '• ${report.advances} سلفة مشروع · ${report.payrolls} كشف رواتب\n'
+              '• ${report.attachments} مرفق '
+              '(${report.filesDeleted} ملف حُذف من القرص)\n\n'
+              'التطبيق الآن نظيف تماماً. اضغط «ابدأ من جديد» للانتقال إلى '
+              'شاشة الإعداد الأول وإنشاء حساب مدير النظام.',
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('ابدأ من جديد'),
+            ),
+          ],
+        ),
+      );
+
+      // ── العودة لشاشة الإعداد الأول ──────────────────────────────────
+      // `first_run_complete` عاد إلى false مع إعادة البذر، فـ`reinitialize`
+      // تُنتج AuthUnauthenticated(isFirstRun: true) والموجّه يُحوّل تلقائياً.
+      await ref.read(authNotifierProvider.notifier).reinitialize();
+    } on StateError catch (e) {
+      // رسائل الحُرّاس الثلاثة عربية جاهزة للعرض كما هي
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            content: Text(e.message),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذّر تصفير المصنع: $e')),
+        );
       }
     }
   }
@@ -449,4 +586,149 @@ class _InfoRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── 🔥 حوار تصفير المصنع ─────────────────────────────────────────────────────
+//
+// عاملان إلزاميان بترتيب مقصود:
+//   ١. **كلمة المرور** — تمنع من يجد الجهاز مفتوحاً وصاحبه غائب
+//   ٢. **رمز المحو القسري** — عاملٌ ثانٍ لا يُكتب يومياً فلا يُرى ولا يُحفَظ
+//      في مدير كلمات مرور. راجع purge_code_card.dart
+//
+// كلاهما يُتحقَّق في `FactoryResetService.run` لا هنا — الواجهة تجمع المدخلات
+// فقط، والحرس الحقيقي في الطبقة التي لا يتجاوزها أحد بتعديل شاشة (القانون ٤).
+//
+// ⚠️ **بلا `TextEditingController`** — متغيّرات نصّية مع initialValue/onChanged.
+//   المتحكّم المُتخلَّص منه بعد `await showDialog` سبّب شاشة حمراء في خمسة
+//   مواضع (ع-٠٤)، ويحرسه `test/unit/dialog_controller_lifecycle_test.dart`.
+
+/// مدخلا التصفير — يُعيدهما الحوار عند التأكيد
+class _FactoryResetInput {
+  const _FactoryResetInput({required this.password, required this.purgeCode});
+
+  final String password;
+  final String purgeCode;
+}
+
+class _FactoryResetDialog extends StatefulWidget {
+  const _FactoryResetDialog();
+
+  @override
+  State<_FactoryResetDialog> createState() => _FactoryResetDialogState();
+}
+
+class _FactoryResetDialogState extends State<_FactoryResetDialog> {
+  String _password = '';
+  String _code = '';
+
+  bool get _ready => _password.isNotEmpty && _code.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            Icons.local_fire_department_outlined,
+            size: 22,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'تصفير المصنع',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+      scrollable: true,
+      content: SizedBox(
+        width: 460,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.4),
+                ),
+              ),
+              // القائمة صريحة عمداً: «كل شيء» كلمة يقرأها كلٌّ على هواه،
+              // والمالك يستحق أن يعرف ما يفقده قبل الضغط لا بعده.
+              child: Text(
+                'سيُمحى كل شيء في البرنامج نهائياً ولا رجعة:\n\n'
+                '• المستخدمون — بما فيهم حسابك أنت\n'
+                '• الخزائن والمقاولون والشركاء\n'
+                '• الموظفون وسلفهم وكشوف رواتبهم\n'
+                '• السندات والسنوات المالية وسلف المشاريع\n'
+                '• المرفقات وملفاتها على القرص\n'
+                '• شعار الشركة وكل الإعدادات — ومنها رمز المحو نفسه\n'
+                '• سجل التدقيق كاملاً — فلا يبقى أثر لشيء\n\n'
+                'ثم يعود التطبيق إلى شاشة الإعداد الأول كأنه لم يُشغَّل قط.\n'
+                'لا تستعيد شيئاً بعدها إلا نسخة احتياطية أُخذت قبل الآن.',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ── ١. كلمة المرور ────────────────────────────────────────────
+            TextFormField(
+              initialValue: _password,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'كلمة مرورك',
+                border: OutlineInputBorder(),
+                isDense: true,
+                prefixIcon: Icon(Icons.lock_outline, size: 18),
+              ),
+              onChanged: (v) => setState(() => _password = v),
+            ),
+            const SizedBox(height: 12),
+
+            // ── ٢. رمز المحو القسري ──────────────────────────────────────
+            TextFormField(
+              initialValue: _code,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'رمز المحو القسري',
+                helperText: 'الإعدادات ← الأمان ← رمز المحو القسري',
+                border: OutlineInputBorder(),
+                isDense: true,
+                prefixIcon: Icon(Icons.key_outlined, size: 18),
+              ),
+              onChanged: (v) => setState(() => _code = v),
+              onFieldSubmitted: (_) => _ready ? _submit() : null,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('تراجع'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: theme.colorScheme.error,
+            foregroundColor: theme.colorScheme.onError,
+          ),
+          onPressed: _ready ? _submit : null,
+          child: const Text('امحُ كل شيء'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() => Navigator.pop(
+        context,
+        _FactoryResetInput(password: _password, purgeCode: _code),
+      );
 }

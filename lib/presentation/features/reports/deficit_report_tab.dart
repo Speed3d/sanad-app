@@ -25,6 +25,8 @@ import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../providers/voucher_providers.dart';
 import 'report_widgets.dart';
+import 'report_print_actions.dart';
+import 'report_table_builders.dart';
 
 /// تبويب المستحقات — الخزائن بالعجز ومن تدين لهم الشركة
 class DeficitReportTab extends ConsumerWidget {
@@ -175,6 +177,29 @@ class DeficitReportTab extends ConsumerWidget {
                       .toList(),
                 );
               },
+            ),
+
+            // الطباعة والتصدير — القسمان في ورقة واحدة بعمود «النوع»،
+            // لأن فصلهما يُفقد المقارنة بينهما وهي كلّ فائدة التقرير.
+            ReportActionsBar(
+              onPrint: () => ReportPrintActions.print(
+                context,
+                ref,
+                buildDeficitTable(
+                  balances: balances,
+                  creditors:
+                      creditorsAsync.valueOrNull ?? const [],
+                ),
+              ),
+              onExport: () => ReportPrintActions.exportExcel(
+                context,
+                ref,
+                buildDeficitTable(
+                  balances: balances,
+                  creditors:
+                      creditorsAsync.valueOrNull ?? const [],
+                ),
+              ),
             ),
 
             const SizedBox(height: 20),

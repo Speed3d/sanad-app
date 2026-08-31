@@ -50,7 +50,4 @@ extension PartnerModelX on PartnerModel {
   /// النسبة بصيغة نصية للعرض: "25.5%"
   String get shareDisplayText =>
       '${sharePercentage.toStringAsFixed(sharePercentage == sharePercentage.roundToDouble() ? 0 : 1)}%';
-
-  /// هل الشريك صاحب الحصة الأكبر؟ (يحتاج قائمة الشركاء للمقارنة)
-  bool hasLargerShareThan(double otherShare) => sharePercentage > otherShare;
 }

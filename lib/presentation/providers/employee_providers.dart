@@ -19,6 +19,7 @@ import '../../core/auth/permissions.dart';
 import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
+import '../../data/database/daos/employees_dao.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/employee_model.dart';
 import '../../domain/models/user_model.dart';
@@ -89,6 +90,29 @@ Stream<List<CashAdvanceModel>> advancesByEmployee(Ref ref, int employeeId) {
   return db.employeesDao
       .watchAdvancesByEmployee(employeeId)
       .map((list) => list.map(_mapAdvance).toList());
+}
+
+/// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+@riverpod
+Future<({int unpaidAdvances, double advanceBalance, int salaryRows})>
+    employeeFootprint(Ref ref, int employeeId) {
+  return ref
+      .watch(appDatabaseProvider)
+      .employeesDao
+      .getEmployeeFinancialFootprint(employeeId);
+}
+
+/// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+///
+/// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+/// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+@riverpod
+Future<List<AdvanceRepaymentDetail>> advanceRepaymentDetails(
+  Ref ref,
+  int advanceId,
+) {
+  return ref.watch(appDatabaseProvider).employeesDao
+      .getRepaymentDetails(advanceId);
 }
 
 /// Stream تفاعلي لرواتب موظف محدد
@@ -227,11 +251,36 @@ class EmployeeNotifier extends _$EmployeeNotifier {
 
   // ── حذف موظف ───────────────────────────────────────────────────────────
 
+  /// حذف موظف — **محروساً بأثره المالي** (بلاغ المالك 2026-08-30)
+  ///
+  /// يمرّ بـ`deleteEmployeeGuarded` التي ترفض من عليه سلفة غير مسدَّدة أو
+  /// له سطور رواتب سابقة، وتوجّه إلى **التعطيل** بديلاً.
   Future<bool> deleteEmployee(int id) async {
     state = const AsyncLoading();
     try {
-      await _db.employeesDao.softDeleteEmployee(id);
+      await _db.employeesDao.deleteEmployeeGuarded(id);
       state = const AsyncData('تم حذف الموظف ✓');
+      return true;
+    } on StateError catch (e, st) {
+      // رسالة الحارس عربية جاهزة للعرض كما هي
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// تعطيل موظف — البديل المحروس عن الحذف
+  ///
+  /// ⚠️ **المنع بلا بديل يُهجّر الخطر لا يُزيله** (درس ع-٣٢): مالكٌ مُنع من
+  ///   حذف موظفٍ انتهت خدمته سيجد طريقاً آخر — يُعيد تسميته أو يحذف سطوره.
+  ///   فالتعطيل بابٌ مشروع: يبقى السجلّ والتقارير، ولا يظهر في كشوف الرواتب.
+  Future<bool> setEmployeeActive(int id, {required bool isActive}) async {
+    state = const AsyncLoading();
+    try {
+      await _db.employeesDao.setEmployeeActive(id, isActive: isActive);
+      state = AsyncData(isActive ? 'تم تفعيل الموظف ✓' : 'تم تعطيل الموظف ✓');
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);

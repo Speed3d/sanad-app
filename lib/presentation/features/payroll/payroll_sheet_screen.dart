@@ -39,6 +39,7 @@ import '../../providers/treasury_providers.dart';
 import '../../widgets/common/app_components.dart';
 import '../../widgets/common/password_confirm_dialog.dart';
 import 'payroll_print_actions.dart';
+import '../../providers/employee_providers.dart';
 
 part 'payroll_sheet_widgets.dart';
 part 'payroll_correction_dialogs.dart';

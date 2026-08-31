@@ -69,7 +69,12 @@ enum AppPermission {
   /// إنشاء نسخة احتياطية (تصدير)
   createBackup,
 
-  /// عرض سجل التدقيق
+  /// عرض سجل التدقيق — **مدير النظام وحده**
+  ///
+  /// 🔒 نُقلت من `admin` إلى `super_admin` بطلب المالك (2026-08-30):
+  ///   السجل يكشف **من فعل ماذا ومتى** لكل مستخدم — أسماء الداخلين
+  ///   ومحاولاتهم الفاشلة وما حذفوه وما عدّلوه. وإتاحته لكل مدير تجعل
+  ///   الرقابة مكشوفة لمن يُراقَب.
   viewAudit,
 
   /// إغلاق فترة مالية
@@ -100,8 +105,17 @@ enum AppPermission {
   /// استعادة قاعدة البيانات كاملة من ملف (تمسح كل شيء)
   restoreBackup,
 
-  /// تصفير جميع البيانات المالية
+  /// تصفير جميع البيانات المالية — يمحو **الحركة** ويُبقي **الهيكل**
   resetFinancialData,
+
+  /// **تصفير المصنع** — يمحو الحركة والهيكل معاً ويعود لشاشة الإعداد الأول
+  ///
+  /// ⚠️ صلاحية مستقلّة عن [resetFinancialData] رغم أن كلتيهما لمدير النظام:
+  ///   العمليتان مختلفتان جذرياً (الأولى تُبقي المستخدمين والخزائن، والثانية
+  ///   تمحوهما مع سجل التدقيق نفسه). جمعُهما تحت صلاحية واحدة يجعل سؤال
+  ///   «من يستطيع تصفير التطبيق كلّه؟» يُجاب خطأً — وهذا الملفّ هو
+  ///   **مصدر الحقيقة الوحيد للصلاحيات**، فصدقه شرط.
+  factoryReset,
 
   /// إعادة فتح فترة مالية مُقفَلة
   reopenFiscalPeriod,
@@ -149,7 +163,6 @@ _Level _requiredLevel(AppPermission p) {
     case AppPermission.manageTreasuries:
     case AppPermission.manageExchangeRate:
     case AppPermission.createBackup:
-    case AppPermission.viewAudit:
     case AppPermission.closeFiscalPeriod:
     case AppPermission.manageUsers:
     case AppPermission.managePayroll:
@@ -159,8 +172,10 @@ _Level _requiredLevel(AppPermission p) {
       return _Level.admin;
 
     // super_admin فقط — العمليات الكارثية
+    case AppPermission.viewAudit:
     case AppPermission.restoreBackup:
     case AppPermission.resetFinancialData:
+    case AppPermission.factoryReset:
     case AppPermission.reopenFiscalPeriod:
     case AppPermission.recomputeBalances:
     case AppPermission.purgeAuditLog:

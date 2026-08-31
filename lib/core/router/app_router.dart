@@ -151,9 +151,6 @@ class _RouterNotifier extends ChangeNotifier {
     if (location.startsWith(AppRoutes.audit)) {
       return AppPermission.viewAudit;
     }
-    if (location.startsWith(AppRoutes.users)) {
-      return AppPermission.manageUsers;
-    }
     // ملاحظة: /fiscal غير محمي هنا عمداً — شاشة الفترات المالية تُطبّق
     // صلاحياتها داخلياً بدقة (إغلاق=admin، إعادة فتح/إعادة احتساب=super_admin)،
     // وعرض الفترات مسموح لأي مستخدم. حجب المسار كان سيُنشئ عنصر تنقل معطوباً.

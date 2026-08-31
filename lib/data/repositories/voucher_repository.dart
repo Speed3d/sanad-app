@@ -10,6 +10,7 @@
 import 'package:drift/drift.dart';
 
 import '../../core/services/fiscal_period_guard.dart';
+import '../../core/services/treasury_state_guard.dart';
 import '../../domain/models/voucher_model.dart';
 import '../../domain/repositories/i_voucher_repository.dart';
 import '../database/app_database.dart';
@@ -121,7 +122,13 @@ class VoucherRepository implements IVoucherRepository {
   }
 
   @override
-  Future<({double totalSarf, double totalKabd})> getDailySummary(
+  Future<
+      ({
+        double totalSarf,
+        double totalKabd,
+        double totalSarfUsd,
+        double totalKabdUsd,
+      })> getDailySummary(
     DateTime date,
   ) {
     return _db.vouchersDao.getDailySummary(date);
@@ -134,6 +141,22 @@ class VoucherRepository implements IVoucherRepository {
   Future<void> _ensurePeriodActive(int fiscalPeriodId) {
     return FiscalPeriodGuard.ensureActive(_db, fiscalPeriodId);
   }
+
+  /// حارس الخزينة — يرمي إن كانت معطَّلة أو محذوفة
+  ///
+  /// أُضيف 2026-08-30 (بلاغ المالك): عمود `is_active` كان موجوداً وله مبدّل
+  /// في الواجهة، **ولا يفحصه أي مسار كتابة** — فالمال يدخل خزينةً أوقفها
+  /// المالك بنفسه. نمط ع-٠٦: حقلٌ يُكتَب ولا يُقرأ.
+  Future<void> _ensureTreasuryActive(int treasuryId, String action) {
+    return TreasuryStateGuard.ensureActive(_db, treasuryId, action: action);
+  }
+
+  /// وصف العملية بلغة المالك حسب نوع السند — ليقول المنعُ **ما مُنع**
+  static String _actionOf(String voucherType) => switch (voucherType) {
+        'kabd' => 'القبض في',
+        'sarf' => 'الصرف من',
+        _ => 'إدخال حركة على',
+      };
 
   @override
   Future<int> createVoucher({
@@ -159,6 +182,9 @@ class VoucherRepository implements IVoucherRepository {
   }) async {
     // 0. التأكد أن الفترة نشطة (دفاع في العمق حتى لو مرّر المستدعي فترة مقفلة)
     await _ensurePeriodActive(fiscalPeriodId);
+
+    // 0-ب. والخزينة نشطة — لا حركة جديدة على خزينة أوقفها المالك
+    await _ensureTreasuryActive(treasuryId, _actionOf(voucherType));
 
     // 1. الحصول على رقم السند التالي (ذري)
     final voucherNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
@@ -221,6 +247,14 @@ class VoucherRepository implements IVoucherRepository {
   }) async {
     // التأكد أن الفترة نشطة قبل أي كتابة
     await _ensurePeriodActive(fiscalPeriodId);
+
+    // والخزينتان نشطتان — المصدر أولاً: لو فُحصت الوجهة أولاً لظهرت رسالة
+    // عن خزينةٍ لم يصلها المال أصلاً، والمانع الحقيقي في مصدره.
+    await TreasuryStateGuard.ensureTransferAllowed(
+      _db,
+      fromTreasuryId: fromTreasuryId,
+      toTreasuryId: toTreasuryId,
+    );
 
     // الحصول على رقمَي السند التاليَين
     final outNumber = await _db.fiscalPeriodsDao.getNextVoucherNumber(
@@ -294,6 +328,14 @@ class VoucherRepository implements IVoucherRepository {
     // ── حاجز 2: منع تعديل سند داخل فترة مُقفَلة (يغيّر أرصدة تاريخية) ──
     await _ensurePeriodActive(voucher.fiscalPeriodId);
 
+    // ── حاجز 2-ب: والخزينة المستهدَفة نشطة ─────────────────────────────
+    // التعديل يُغيّر رصيداً كالإنشاء تماماً — ونقلُ سندٍ إلى خزينة معطَّلة
+    // بابٌ خلفيّ لما مُنع في الإنشاء.
+    await _ensureTreasuryActive(
+      voucher.treasuryId,
+      _actionOf(voucher.voucherType),
+    );
+
     // ── حاجز 3: منع نقل السند إلى سنة مالية أخرى (إصلاح ح-٥) ──────────
     //
     // كان updateVoucher يكتب fiscalPeriodId الأصلية دائماً، فنقل تاريخ سند
@@ -356,6 +398,11 @@ class VoucherRepository implements IVoucherRepository {
 
   @override
   Future<void> deleteVoucher(int id, {int? deletedByUserId}) async {
+    // ⚠️ **لا حارس خزينة هنا عمداً:** التعطيل يمنع الحركة **الجديدة** لا
+    //   تصحيح القديمة. ولو مُنع الحذف على خزينة معطَّلة لصار سندٌ أُدخل
+    //   بالخطأ محبوساً إلى الأبد — والمالك يعطّل الخزينة عادةً **بعد** أن
+    //   يكتشف الخطأ لا قبله.
+    //
     // منع حذف سند داخل فترة مُقفَلة
     final voucher = await _db.vouchersDao.getVoucherById(id);
     if (voucher != null) {

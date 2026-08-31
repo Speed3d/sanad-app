@@ -240,8 +240,8 @@ class _PeriodCard extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'الأرصدة الافتتاحية قديمة — تحتاج إعادة احتساب '
-                            'بسبب تعديل في فترة سابقة',
+                            'فترة سابقة أُعيد فتحها — راجع أرقام هذه الفترة '
+                            'ثم أعد إقفالها',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.orange.shade700,
                             ),
@@ -292,7 +292,17 @@ class _PeriodCard extends ConsumerWidget {
                       ),
                     ),
 
-                  // إعادة الاحتساب (super_admin فقط)
+                  // ⚠️ **التسمية صُحّحت (المرحلة ١٦ — 2026-08-30):** كان
+                  //   اسمه «إعادة الاحتساب» وهو يَعِد بما لا يقع.
+                  //
+                  //   الدالة تحذف سندات الرصيد الافتتاحي ثم تُقفل الفترة —
+                  //   وإنشاء تلك السندات **أُوقف نهائياً** بقرار المالك
+                  //   2026-08-15 (كانت تُضاعف الرصيد، ح-٣ وح-٤). فالحذف
+                  //   يُعيد صفراً دائماً في أي قاعدة أُنشئت بعد ذلك التاريخ،
+                  //   ولم يبقَ من العملية إلا **الإقفال**.
+                  //
+                  //   ولا يُحذف الزرّ: هو المخرج الوحيد من حالة
+                  //   `frozen_pending_recompute` إلى `frozen`.
                   if (isPendingRecompute && isSuperAdmin)
                     FilledButton.icon(
                       onPressed: isOperating ? null : onRecompute,
@@ -302,7 +312,7 @@ class _PeriodCard extends ConsumerWidget {
                         visualDensity: VisualDensity.compact,
                       ),
                       icon: const Icon(Icons.calculate_outlined, size: 16),
-                      label: const Text('إعادة الاحتساب'),
+                      label: const Text('راجعتُ وأعد الإقفال'),
                     ),
 
                   // حذف فترة خالية (super_admin فقط)

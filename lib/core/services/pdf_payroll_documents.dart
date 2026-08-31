@@ -172,9 +172,11 @@ extension PdfPayrollDocuments on PdfService {
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
             context: context,
-            headers: headers,
-            data: rows,
-            columnWidths: widths,
+            // ↔️ الأعمدة معكوسة عمداً — `pw.Table` لا تعرف الاتّجاه فترتّبها
+            //    من اليسار دائماً. راجع تعليق `rtlRows` في pdf_service.dart
+            headers: rtlRow(headers),
+            data: rtlRows(rows),
+            columnWidths: rtlColumnMap(widths, headers.length),
             cellPadding:
                 const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 3.5),
             headerStyle: pw.TextStyle(
@@ -189,10 +191,10 @@ extension PdfPayrollDocuments on PdfService {
                 ? pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)
                 : const pw.TextStyle(fontSize: 7.5),
             cellAlignment: pw.Alignment.center,
-            cellAlignments: {
+            cellAlignments: rtlColumnMap(const {
               1: pw.Alignment.centerRight,
               2: pw.Alignment.centerRight,
-            },
+            }, headers.length),
             oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
             border: pw.TableBorder.all(color: PdfColors.grey500, width: 0.4),
           ),
@@ -405,15 +407,16 @@ extension PdfPayrollDocuments on PdfService {
           // ── الأشهر ─────────────────────────────────────────────────────
           pw.TableHelper.fromTextArray(
             context: context,
-            headers: const [
+            // ↔️ معكوسة — راجع `rtlRows` في pdf_service.dart
+            headers: rtlRow(const [
               'الشهر',
               'الموظفون',
               'إجمالي الكشف',
               'المسدَّد',
               'المتبقّي',
               'الحالة',
-            ],
-            data: [
+            ]),
+            data: rtlRows([
               for (final m in data.months)
                 [
                   PayrollPrintLabels.arabicMonth(m.month),
@@ -435,7 +438,7 @@ extension PdfPayrollDocuments on PdfService {
                     : _payrollIqdFormat.format(data.unpaidIqd),
                 '',
               ],
-            ],
+            ]),
             headerStyle: pw.TextStyle(
                 fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
@@ -447,7 +450,8 @@ extension PdfPayrollDocuments on PdfService {
                     ? pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)
                     : const pw.TextStyle(fontSize: 9),
             cellAlignment: pw.Alignment.center,
-            cellAlignments: {0: pw.Alignment.centerRight},
+            // العمود الأول («الشهر») صار الأخير بعد العكس
+            cellAlignments: const {5: pw.Alignment.centerRight},
             oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
             border: pw.TableBorder.all(color: PdfColors.grey500, width: 0.4),
           ),
@@ -466,15 +470,19 @@ extension PdfPayrollDocuments on PdfService {
             pw.SizedBox(height: 6),
             pw.TableHelper.fromTextArray(
               context: context,
-              headers: const ['الخزينة / المشروع', 'رواتب مسدَّدة', 'المبلغ'],
-              data: [
+              headers: rtlRow(const [
+                'الخزينة / المشروع',
+                'رواتب مسدَّدة',
+                'المبلغ',
+              ]),
+              data: rtlRows([
                 for (final s in data.treasuryShares)
                   [
                     s.treasuryName,
                     '${s.employeeCount}',
                     _payrollIqdFormat.format(s.totalIqd),
                   ],
-              ],
+              ]),
               headerStyle: pw.TextStyle(
                   fontSize: 9,
                   fontWeight: pw.FontWeight.bold,
@@ -483,7 +491,7 @@ extension PdfPayrollDocuments on PdfService {
                   const pw.BoxDecoration(color: PdfColors.blueGrey700),
               cellStyle: const pw.TextStyle(fontSize: 9),
               cellAlignment: pw.Alignment.center,
-              cellAlignments: {0: pw.Alignment.centerRight},
+              cellAlignments: const {2: pw.Alignment.centerRight},
               border: pw.TableBorder.all(color: PdfColors.grey500, width: 0.4),
             ),
           ],
@@ -615,7 +623,8 @@ pw.Widget _employeeMonthsTable(
 ) {
   return pw.TableHelper.fromTextArray(
     context: context,
-    headers: const [
+    // ↔️ معكوسة — راجع `rtlRows` في pdf_service.dart
+    headers: rtlRow(const [
       'الشهر',
       'العملة',
       'الأساسي',
@@ -630,8 +639,8 @@ pw.Widget _employeeMonthsTable(
       'الحالة',
       'صُرف من',
       'السند',
-    ],
-    data: [
+    ]),
+    data: rtlRows([
       for (final m in data.months)
         [
           '${PayrollPrintLabels.arabicMonth(m.month)} ${m.year}',
@@ -656,7 +665,7 @@ pw.Widget _employeeMonthsTable(
         _payrollIqdFormat.format(data.totalIqd),
         '', '', '',
       ],
-    ],
+    ]),
     headerStyle: pw.TextStyle(
         fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
     headerDecoration: pw.BoxDecoration(color: accent),
@@ -665,7 +674,8 @@ pw.Widget _employeeMonthsTable(
         ? pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)
         : const pw.TextStyle(fontSize: 7.5),
     cellAlignment: pw.Alignment.center,
-    cellAlignments: {0: pw.Alignment.centerRight},
+    // «الشهر» كان العمود ٠ فصار الأخير بعد العكس
+    cellAlignments: const {13: pw.Alignment.centerRight},
     oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
     border: pw.TableBorder.all(color: PdfColors.grey500, width: 0.4),
   );
@@ -679,7 +689,8 @@ pw.Widget _employeeSummaryTable(
 ) {
   return pw.TableHelper.fromTextArray(
     context: context,
-    headers: const [
+    // ↔️ معكوسة — راجع `rtlRows` في pdf_service.dart
+    headers: rtlRow(const [
       'الموظف',
       'الصفة',
       'أشهر',
@@ -688,8 +699,8 @@ pw.Widget _employeeSummaryTable(
       'خصم السلف',
       'المصروف',
       'الإجمالي',
-    ],
-    data: [
+    ]),
+    data: rtlRows([
       for (final e in data.employees)
         [
           e.employeeName,
@@ -711,7 +722,7 @@ pw.Widget _employeeSummaryTable(
         _payrollIqdFormat.format(data.paidIqd),
         _payrollIqdFormat.format(data.totalIqd),
       ],
-    ],
+    ]),
     headerStyle: pw.TextStyle(
         fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
     headerDecoration: pw.BoxDecoration(color: accent),
@@ -720,7 +731,11 @@ pw.Widget _employeeSummaryTable(
         ? pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)
         : const pw.TextStyle(fontSize: 8.5),
     cellAlignment: pw.Alignment.center,
-    cellAlignments: {0: pw.Alignment.centerRight, 1: pw.Alignment.centerRight},
+    // «الموظف» و«الصفة» كانا ٠ و١ فصارا ٧ و٦ بعد العكس
+    cellAlignments: const {
+      7: pw.Alignment.centerRight,
+      6: pw.Alignment.centerRight,
+    },
     oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
     border: pw.TableBorder.all(color: PdfColors.grey500, width: 0.4),
   );

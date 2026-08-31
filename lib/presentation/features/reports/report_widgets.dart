@@ -155,3 +155,45 @@ class ReportPlaceholder extends StatelessWidget {
     );
   }
 }
+
+/// شريط إجراءات التقرير — طباعة PDF وتصدير CSV
+///
+/// **لماذا ودجت مشترك؟** ستّة تبويبات × زرَّين = اثنتا عشرة نسخة من منطق
+/// واحد؛ وتغيير التسمية أو التعطيل في إحداها لا يصل البقيّة. وهي عين العلّة
+/// التي أنتجت ٨٤٠ سطراً مكرّراً بين شاشتَي السند (المرحلة د).
+///
+/// [onPrint] و[onExport] — `null` يُعطّل الزرّ. مرّر `null` حين لا بيانات
+/// بعد، فزرٌّ يعمل على لا شيء يُنتج ورقة فارغة تُوهم بأن التقرير فارغ.
+class ReportActionsBar extends StatelessWidget {
+  const ReportActionsBar({
+    super.key,
+    required this.onPrint,
+    required this.onExport,
+  });
+
+  final VoidCallback? onPrint;
+  final VoidCallback? onExport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FilledButton.icon(
+            onPressed: onPrint,
+            icon: const Icon(Icons.print_outlined, size: 18),
+            label: const Text('طباعة'),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: onExport,
+            icon: const Icon(Icons.table_view_outlined, size: 18),
+            label: const Text('تصدير Excel/CSV'),
+          ),
+        ],
+      ),
+    );
+  }
+}

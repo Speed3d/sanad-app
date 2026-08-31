@@ -71,19 +71,7 @@ class AuditLogDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// سجلات مستخدم معين — لصفحة تفاصيل المستخدم
-  Future<List<AuditLogData>> getLogsByUser(
-    int userId, {
-    int limit = 100,
-    int offset = 0,
-  }) {
-    return (select(auditLog)
-          ..where((l) => l.userId.equals(userId))
-          ..orderBy([(l) => OrderingTerm.desc(l.createdAt)])
-          ..limit(limit, offset: offset))
-        .get();
-  }
-
-  /// سجلات جدول معين — مثال: جميع التغييرات على 'vouchers'
+    /// سجلات جدول معين — مثال: جميع التغييرات على 'vouchers'
   ///
   /// [tableName] — اسم الجدول المتأثر
   /// [recordId]  — معرّف السجل المحدد (null = جميع السجلات في الجدول)
@@ -208,17 +196,7 @@ class AuditLogDao extends DatabaseAccessor<AppDatabase>
   ///
   /// [daysToKeep] — الاحتفاظ بسجلات آخر [daysToKeep] يوماً فقط
   ///   السجلات الأقدم من ذلك تُنقَل للأرشيف (Sprint 12)
-  Future<List<AuditLogData>> getLogsForArchive({
-    int daysToKeep = 365,
-  }) async {
-    final cutoffDate = DateTime.now().subtract(Duration(days: daysToKeep));
-    return (select(auditLog)
-          ..where((l) => l.createdAt.isSmallerThanValue(cutoffDate))
-          ..orderBy([(l) => OrderingTerm.asc(l.createdAt)]))
-        .get();
-  }
-
-  /// حذف السجلات القديمة من الجدول بعد أرشفتها
+    /// حذف السجلات القديمة من الجدول بعد أرشفتها
   ///
   /// يُستدعى فقط بعد التأكد من نجاح عملية الأرشفة
   /// [beforeDate] — تاريخ الحد الفاصل — تُحذَف كل ما قبله
@@ -229,13 +207,4 @@ class AuditLogDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// عدد السجلات الأقدم من [daysToKeep] يوماً — لمؤشر الأرشفة في الـ Dashboard
-  Future<int> countOldLogs({int daysToKeep = 365}) async {
-    final cutoffDate = DateTime.now().subtract(Duration(days: daysToKeep));
-    final result = await customSelect(
-      'SELECT COUNT(*) as cnt FROM audit_log WHERE created_at < ?',
-      variables: [Variable.withDateTime(cutoffDate)],
-      readsFrom: {auditLog},
-    ).getSingle();
-    return result.data['cnt'] as int;
   }
-}

@@ -4,7 +4,6 @@
 // يُدير هذا الـ DAO السنوات المالية وتسلسل أرقام السندات.
 //
 // أهم العمليات:
-//   1. getOrCreateCurrentPeriod()  — الحصول على الفترة الحالية أو إنشائها
 //   2. getFiscalPeriodForDate()    — تحديد الفترة حسب تاريخ السند
 //   3. getNextVoucherNumber()      — رقم السند التالي بطريقة آمنة تمامًا
 //   4. closeFiscalPeriod()         — إقفال السنة المالية
@@ -39,14 +38,7 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
   /// جلب الفترات النشطة فقط (status = 'active')
   ///
   /// عادةً فترة واحدة، لكن خلال فترة الانتقال بين السنوات قد تكون اثنتان
-  Future<List<FiscalPeriod>> getActivePeriods() {
-    return (select(fiscalPeriods)
-          ..where((p) => p.status.equals('active'))
-          ..orderBy([(p) => OrderingTerm.desc(p.startDate)]))
-        .get();
-  }
-
-  /// جلب الفترة المناسبة لتاريخ محدد
+    /// جلب الفترة المناسبة لتاريخ محدد
   ///
   /// يُستخدَم عند إنشاء سند لتحديد السنة المالية حسب تاريخ السند
   /// وليس حسب وقت الإدخال
@@ -174,28 +166,7 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
   /// الحصول على السنة المالية الحالية أو إنشائها إذا لم تكن موجودة
   ///
   /// يُستخدَم عند بدء التطبيق لضمان وجود فترة نشطة
-  Future<FiscalPeriod> getOrCreateCurrentPeriod() async {
-    final now = DateTime.now();
-    final existing = await getFiscalPeriodForDate(now);
-    if (existing != null) return existing;
-
-    // إنشاء فترة للسنة الحالية
-    final startOfYear = DateTime(now.year, 1, 1);
-    final endOfYear = DateTime(now.year, 12, 31, 23, 59, 59);
-
-    final id = await insertPeriod(
-      FiscalPeriodsCompanion.insert(
-        name: now.year.toString(),
-        startDate: startOfYear,
-        endDate: endOfYear,
-        status: const Value('active'),
-      ),
-    );
-
-    return (select(fiscalPeriods)..where((p) => p.id.equals(id))).getSingle();
-  }
-
-  // ── حذف فترة خالية ────────────────────────────────────────────────────────
+    // ── حذف فترة خالية ────────────────────────────────────────────────────────
 
   /// حذف فترة مالية **خالية تماماً** من أي أثر مالي
   ///
@@ -469,13 +440,4 @@ class FiscalPeriodsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// إعادة تعيين تسلسل السند (يُستخدَم فقط عند اختبار قاعدة بيانات جديدة)
-  Future<void> resetSequence(int fiscalPeriodId, String voucherType) async {
-    await (delete(voucherSequences)
-          ..where(
-            (s) =>
-                s.fiscalPeriodId.equals(fiscalPeriodId) &
-                s.voucherType.equals(voucherType),
-          ))
-        .go();
   }
-}

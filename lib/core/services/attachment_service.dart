@@ -341,6 +341,66 @@ abstract final class AttachmentService {
     await Process.run('explorer', [path.replaceAll('/', r'\')]);
   }
 
+  // ── المسح الشامل ──────────────────────────────────────────────────────────
+
+  /// حذف كل ملفات المرفقات المفهرسة من القرص — لتصفير المصنع وحده
+  ///
+  /// [relativePaths] — مسارات الفهرس **كما قُرئت قبل مسح الجدول**. لا نمسح
+  /// المجلد كلّه عمداً: المالك قد يوجّه جذر المرفقات إلى مجلد فيه ملفات
+  /// أخرى ليست من البرنامج، ومحوُ ما لم نكتبه نحن تجاوزٌ لا رجعة فيه.
+  /// **الفهرس هو الحقيقة** — وهو نفس المبدأ الذي تقوم عليه النسخة الشاملة.
+  ///
+  /// ثم تُزال المجلدات التي صارت فارغة (`2026/سلفة-23-البصرة/`)، وإلا بقي
+  /// هيكل مجلدات فارغ يوحي بوجود مرفقات في تطبيق «نظيف».
+  ///
+  /// **يبتلع كل فشل عمداً** — تماماً كـ [deleteFile]: ملفٌ مفتوح في برنامج
+  /// آخر يجب ألا يُفشل تصفيراً نجح في قاعدة البيانات بالفعل. يُعيد عدد ما
+  /// حُذف فعلاً ليقوله المستدعي للمالك بصدق.
+  static Future<int> deleteAllInStore({
+    required String root,
+    required List<String> relativePaths,
+  }) async {
+    if (root.trim().isEmpty) return 0;
+
+    var deleted = 0;
+    for (final relative in relativePaths) {
+      try {
+        final f = File(_join(root, relative));
+        if (await f.exists()) {
+          await f.delete();
+          deleted++;
+        }
+      } catch (_) {
+        // متعمَّد — راجع التوثيق أعلاه
+      }
+    }
+
+    // ── إزالة المجلدات الفارغة، من الأعمق إلى الأضحل ────────────────────
+    // الترتيب مقصود: حذف `2026/` قبل `2026/سلفة-23/` يفشل لأنه غير فارغ بعد.
+    try {
+      final rootDir = Directory(root.trim());
+      if (await rootDir.exists()) {
+        final dirs = await rootDir
+            .list(recursive: true, followLinks: false)
+            .where((e) => e is Directory)
+            .cast<Directory>()
+            .toList();
+        dirs.sort((a, b) => b.path.length.compareTo(a.path.length));
+        for (final d in dirs) {
+          try {
+            if (await d.list().isEmpty) await d.delete();
+          } catch (_) {
+            // متعمَّد
+          }
+        }
+      }
+    } catch (_) {
+      // متعمَّد
+    }
+
+    return deleted;
+  }
+
   /// إظهار المرفق داخل مستكشف الملفات ومحدَّداً
   static Future<void> revealInExplorer({
     required String root,

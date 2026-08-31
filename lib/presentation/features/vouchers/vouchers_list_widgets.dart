@@ -625,17 +625,66 @@ class _VoucherRowCard extends ConsumerWidget {
                 color: context.colors.subtext,
               ),
               tooltip: 'طباعة PDF',
-              // نمرّر ترويسة الشركة إن كانت جاهزة؛ وإن لم تُحمَّل بعد
-              // يُطبَع السند بلا ترويسة بدل تعطيل الزر
-              onPressed: () => PdfPrintHelper.printVoucherReceipt(
-                context,
-                voucher,
-                header: ref.read(pdfCompanyHeaderProvider).valueOrNull ??
-                    PdfCompanyHeader.empty,
-              ),
+              onPressed: () => _printVoucher(context, ref, voucher),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── طباعة السند ─────────────────────────────────────────────────────────────
+
+/// طباعة سند مع ترويسة الشركة — **بانتظار الترويسة لا بقراءتها لحظياً**
+///
+/// 🔴 **العطل ع-٤٢ (2026-08-30):** كان السطر:
+/// ```dart
+/// header: ref.read(pdfCompanyHeaderProvider).valueOrNull ?? PdfCompanyHeader.empty
+/// ```
+/// وفوقه تعليقٌ يقول «نمرّر الترويسة **إن كانت جاهزة**» — وهي **لم تكن جاهزة
+/// قطّ**. فالمزوّدات المولَّدة بـ`@riverpod` كلها `autoDispose`، وهذه المكتبة
+/// **لا تراقب** `pdfCompanyHeaderProvider` في أي موضع. فـ`ref.read` يُنشئه
+/// ويُطلق استعلامه ويُعيد `AsyncLoading` في اللحظة نفسها ⇒ `valueOrNull` تساوي
+/// `null` **دائماً** ⇒ `PdfCompanyHeader.empty` دائماً. ثم لا يبقى مستمع فيُتلَف
+/// المزوّد، فالضغطة التالية تكرّر الشيء نفسه إلى الأبد.
+///
+/// **الأثر:** ميزة المرحلة ب-٣ كلها (الشعار واسم الشركة في الـPDF) كانت معطَّلة
+/// في سندات القبض والصرف — يرفع المالك شعاره ولا يراه على السند أبداً، بينما
+/// يظهر في كل مطبوعات الرواتب. وهو **نفس صنف ع-٠٦** («الشعار يُكتَب ولا يُقرأ»).
+///
+/// **الدرس الأعمّ:** القراءة المتزامنة لمزوّد `autoDispose` غير مُراقَب لا
+/// تنهار كـ ع-٣٥ — بل **تُعيد `null` بصمت**. وهي أخطر، لأن الانهيار يُبلَّغ
+/// عنه والصمت لا. يحرس النمطَ الآن `tech_debt_guard_test`.
+///
+/// 📌 `readOnce` تشترك يدوياً فتُبقي المزوّد حيّاً حتى يصل الجواب — وهي الأداة
+/// نفسها التي يستعملها `PayrollPrintActions._header`، والطباعة **لا تفشل
+/// أبداً** بسبب الترويسة: تعذُّر قراءتها يطبع بلا ترويسة.
+Future<void> _printVoucher(
+  BuildContext context,
+  WidgetRef ref,
+  VoucherModel voucher,
+) async {
+  PdfCompanyHeader header;
+  try {
+    header = await ref.readOnce(
+        pdfCompanyHeaderProvider, pdfCompanyHeaderProvider.future);
+  } catch (_) {
+    header = PdfCompanyHeader.empty;
+  }
+
+  if (!context.mounted) return;
+  try {
+    await PdfPrintHelper.printVoucherReceipt(context, voucher, header: header);
+  } catch (e) {
+    // كان الاستدعاء بلا أي `try/catch`: فشل الطباعة يرمي استثناءً غير مُمسَك
+    // فلا يرى المستخدم شيئاً إطلاقاً — لا نجاحاً ولا سبباً.
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('تعذّرت الطباعة: $e'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        duration: const Duration(seconds: 6),
       ),
     );
   }

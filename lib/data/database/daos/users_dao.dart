@@ -123,6 +123,37 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   }) async {
     // كل الخطوات داخل معاملة واحدة حتى لا تتداخل مع محاولة أخرى
     return transaction(() async {
+      // ── 0. تصفير العدّاد إن كان قفلٌ سابق قد انقضى (إصلاح ع-٤٣) ────────
+      //
+      // 🔴 **ما كان معطوباً:** العدّاد لا يُصفَّر إلا في `recordSuccessfulLogin`
+      //   — أي بعد دخول **ناجح** فقط. فبعد أول قفل يبقى على ٥؛ تنقضي الدقائق
+      //   الخمس عشرة؛ ثم **خطأ واحد** يجعله ٦ ≥ ٥ ⇒ قفلٌ فوريّ ربع ساعة.
+      //   فيخسر المستخدم محاولاته الخمس **إلى الأبد**، ويصير له محاولة واحدة
+      //   كل ربع ساعة ما لم يتذكّر كلمته من أول مرّة.
+      //
+      // مدّة القفل عقوبةٌ **مؤقّتة** — فانقضاؤها يجب أن يُعيد الحال كما كان،
+      // وإلا لم تكن مؤقّتة أصلاً. ولهذا التصفير هنا لا في المستدعي: كل من
+      // يسجّل محاولة فاشلة يمرّ بهذه الدالة، وحارسٌ في الواجهة يتجاوزه غيرها.
+      //
+      // ⚠️ الشرط `lockedUntil.isNotNull()` مقصود: لا نمسّ من لم يُقفَل قط،
+      //   فمحاولاته المتتالية في الجلسة الواحدة يجب أن تتراكم كالمعتاد.
+      //
+      // 📌 بواجهة Drift المُنمَّطة لا بـ`customStatement`: المشروع يُخزّن
+      //   التواريخ **نصّاً** (`store_date_time_values_as_text` في build.yaml)،
+      //   فمقارنتها في SQL خام تتطلّب إعادة إنتاج صيغة Drift حرفياً — وأي
+      //   انحراف يجعل الشرط يكذب صامتاً. الواجهة المُنمَّطة تتولّى التحويل.
+      await (update(users)
+            ..where((u) =>
+                u.id.equals(id) &
+                u.lockedUntil.isNotNull() &
+                u.lockedUntil.isSmallerOrEqualValue(DateTime.now())))
+          .write(
+        const UsersCompanion(
+          failedLoginAttempts: Value(0),
+          lockedUntil: Value(null),
+        ),
+      );
+
       // ── 1. الزيادة الذرية للعدّاد ───────────────────────────────────────
       await customStatement(
         'UPDATE users SET failed_login_attempts = failed_login_attempts + 1 '

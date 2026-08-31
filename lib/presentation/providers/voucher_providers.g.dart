@@ -777,7 +777,7 @@ class _AccountStatementProviderElement
       (origin as AccountStatementProvider).openingBalanceUsd;
 }
 
-String _$dailySummaryHash() => r'a42e4a0abe3d498303a00bb73bd4e75d160aa901';
+String _$dailySummaryHash() => r'39b61a9c6bbef400012d8d213cea08a7389df46e';
 
 /// ملخص الصرف والقبض ليوم محدد — للـ Dashboard
 ///
@@ -788,8 +788,14 @@ const dailySummaryProvider = DailySummaryFamily();
 /// ملخص الصرف والقبض ليوم محدد — للـ Dashboard
 ///
 /// Copied from [dailySummary].
-class DailySummaryFamily
-    extends Family<AsyncValue<({double totalSarf, double totalKabd})>> {
+class DailySummaryFamily extends Family<
+    AsyncValue<
+        ({
+          double totalSarf,
+          double totalKabd,
+          double totalSarfUsd,
+          double totalKabdUsd
+        })>> {
   /// ملخص الصرف والقبض ليوم محدد — للـ Dashboard
   ///
   /// Copied from [dailySummary].
@@ -833,8 +839,13 @@ class DailySummaryFamily
 /// ملخص الصرف والقبض ليوم محدد — للـ Dashboard
 ///
 /// Copied from [dailySummary].
-class DailySummaryProvider
-    extends AutoDisposeFutureProvider<({double totalSarf, double totalKabd})> {
+class DailySummaryProvider extends AutoDisposeFutureProvider<
+    ({
+      double totalSarf,
+      double totalKabd,
+      double totalSarfUsd,
+      double totalKabdUsd
+    })> {
   /// ملخص الصرف والقبض ليوم محدد — للـ Dashboard
   ///
   /// Copied from [dailySummary].
@@ -871,8 +882,14 @@ class DailySummaryProvider
 
   @override
   Override overrideWith(
-    FutureOr<({double totalSarf, double totalKabd})> Function(
-            DailySummaryRef provider)
+    FutureOr<
+                ({
+                  double totalSarf,
+                  double totalKabd,
+                  double totalSarfUsd,
+                  double totalKabdUsd
+                })>
+            Function(DailySummaryRef provider)
         create,
   ) {
     return ProviderOverride(
@@ -890,8 +907,13 @@ class DailySummaryProvider
   }
 
   @override
-  AutoDisposeFutureProviderElement<({double totalSarf, double totalKabd})>
-      createElement() {
+  AutoDisposeFutureProviderElement<
+      ({
+        double totalSarf,
+        double totalKabd,
+        double totalSarfUsd,
+        double totalKabdUsd
+      })> createElement() {
     return _DailySummaryProviderElement(this);
   }
 
@@ -911,14 +933,24 @@ class DailySummaryProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin DailySummaryRef
-    on AutoDisposeFutureProviderRef<({double totalSarf, double totalKabd})> {
+mixin DailySummaryRef on AutoDisposeFutureProviderRef<
+    ({
+      double totalSarf,
+      double totalKabd,
+      double totalSarfUsd,
+      double totalKabdUsd
+    })> {
   /// The parameter `date` of this provider.
   DateTime get date;
 }
 
 class _DailySummaryProviderElement extends AutoDisposeFutureProviderElement<
-    ({double totalSarf, double totalKabd})> with DailySummaryRef {
+    ({
+      double totalSarf,
+      double totalKabd,
+      double totalSarfUsd,
+      double totalKabdUsd
+    })> with DailySummaryRef {
   _DailySummaryProviderElement(super.provider);
 
   @override

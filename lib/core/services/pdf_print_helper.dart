@@ -7,8 +7,7 @@
 //
 // الدوال المتاحة:
 //   1. printVoucherReceipt(context, voucher)         — طباعة سند قبض/صرف فردي
-//   2. printTreasuryStatement(context, title, ...)  — طباعة كشف حساب خزينة
-//   3. printAdvanceReport(context, title, ...)      — طباعة تقرير سلفة
+//   2. printReportTable(context, data, ...)         — أي تقرير جدوليّ
 //   4. printPayrollSheet(context, data, ...)        — طباعة كشف رواتب الشهر
 //   5. printSalarySlip(context, data, ...)          — طباعة إيصال راتب موظف
 //   6. printPayrollYearReport(context, data, ...)   — طباعة تقرير رواتب سنة
@@ -19,6 +18,7 @@ import 'package:printing/printing.dart';
 
 import '../../domain/models/voucher_model.dart';
 import 'payroll_print_data.dart';
+import 'report_print_data.dart';
 import 'pdf_service.dart';
 
 /// مساعد الطباعة المباشرة والمعاينة
@@ -47,53 +47,25 @@ abstract final class PdfPrintHelper {
     }
   }
 
-  /// طباعة أو معاينة كشف حساب خزينة
-  static Future<void> printVaultStatement({
-    required BuildContext context,
-    required String vaultName,
-    required List<VoucherModel> vouchers,
-    required double openingBalance,
-    required String periodText,
+  /// طباعة أو معاينة **تقرير جدوليّ عام** — يخدم تبويبات التقارير الستّة
+  ///
+  /// حلّ محلّ `printVaultStatement` و`printAdvanceReport` اللذين كانا
+  /// **بصفر مستدعٍ** وخارج نمط ترويسة الشركة (نمط ع-٠٦).
+  static Future<void> printReportTable(
+    BuildContext context,
+    ReportTableData data, {
+    PdfCompanyHeader header = PdfCompanyHeader.empty,
   }) async {
     final pdfService = PdfService();
-    final pdfData = await pdfService.generateVaultStatement(
-      vaultName,
-      vouchers,
-      openingBalance,
-      periodText,
-    );
+    final pdfData = await pdfService.generateReportTable(data, header: header);
 
     if (context.mounted) {
       await Printing.layoutPdf(
         onLayout: (format) async => pdfData,
-        name: 'كشف_حساب_$vaultName',
+        name: data.title.replaceAll(RegExp(r'[\/:*?"<>|]'), '-'),
       );
     }
   }
-
-  /// طباعة أو معاينة تقرير السلف
-  static Future<void> printAdvanceReport({
-    required BuildContext context,
-    required String advanceNumber,
-    required List<VoucherModel> vouchers,
-    required double totalAmount,
-  }) async {
-    final pdfService = PdfService();
-    final pdfData = await pdfService.generateAdvanceReport(
-      advanceNumber,
-      vouchers,
-      totalAmount,
-    );
-
-    if (context.mounted) {
-      await Printing.layoutPdf(
-        onLayout: (format) async => pdfData,
-        name: 'تقرير_سلفة_$advanceNumber',
-      );
-    }
-  }
-
-  // ── الرواتب (المرحلة ٤) ───────────────────────────────────────────────
 
   /// طباعة كشف رواتب شهر
   ///

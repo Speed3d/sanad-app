@@ -22,6 +22,7 @@ import '../../../../domain/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/repository_providers.dart';
 import 'settings_shared.dart';
+import '../../../../core/auth/permissions.dart';
 
 // ── أدوار المستخدمين المتاحة للتعيين ──────────────────────────────────────────
 
@@ -65,7 +66,11 @@ class UsersTab extends ConsumerWidget {
     final UserModel? currentUser =
         authState is AuthAuthenticated ? authState.user : null;
 
-    final canManage = currentUser?.isAdmin ?? false;
+    // صلاحية `manageUsers` بدل `isAdmin` المكتوب بيد: كان حاجزها في
+    // الموجّه على مسار `/settings/users` **غير مسجَّل قط** — أي حارسٌ
+    // على باب لا وجود له. ومكانها الصحيح هنا حيث تُدار الشاشة فعلاً.
+    final canManage =
+        currentUser?.can(AppPermission.manageUsers) ?? false;
     final isSuperAdmin = currentUser?.isSuperAdmin ?? false;
 
     final usersAsync = ref.watch(_allUsersProvider);
@@ -208,6 +213,20 @@ class UsersTab extends ConsumerWidget {
 
   Future<void> _showDeleteDialog(
       BuildContext context, WidgetRef ref, UserModel user) async {
+    // الحارس هنا لا في إخفاء عنصر القائمة وحده: صلاحية `deleteUser` كانت
+    // موجودة و**بصفر مستدعٍ**، والحماية الوحيدة `isSuperAdmin` في الواجهة.
+    final authState = ref.read(authNotifierProvider);
+    final actor = authState is AuthAuthenticated ? authState.user : null;
+    if (actor == null || !actor.can(AppPermission.deleteUser)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('حذف المستخدمين متاح لمدير النظام وحده.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

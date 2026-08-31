@@ -57,11 +57,7 @@ abstract final class CurrencyFormatter {
   ///
   /// يُستخدم عند إظهار الرمز في مكان منفصل
   /// يُعيد: '1,500,000.500'
-  static String formatIQDNoSymbol(double amount) {
-    return _iqd.format(amount);
-  }
-
-  /// تنسيق مختصر للأرقام الكبيرة (Dashboard / KPI Cards)
+    /// تنسيق مختصر للأرقام الكبيرة (Dashboard / KPI Cards)
   ///
   /// [amount] — المبلغ
   /// يُعيد:
@@ -92,11 +88,7 @@ abstract final class CurrencyFormatter {
   /// تنسيق الدولار بدون الرمز
   ///
   /// يُعيد: '1,250.75'
-  static String formatUSDNoSymbol(double amount) {
-    return _usd.format(amount);
-  }
-
-  // ── التنسيق الديناميكي حسب العملة ────────────────────────────────────────
+    // ── التنسيق الديناميكي حسب العملة ────────────────────────────────────────
 
   /// تنسيق المبلغ حسب رمز العملة
   ///
@@ -200,21 +192,13 @@ abstract final class CurrencyFormatter {
   /// [amount]   — المبلغ
   /// [currency] — العملة
   /// يُعيد نصاً بدون فواصل آلاف لسهولة القراءة في التقارير المطبوعة
-  static String formatForReport(double amount, {String currency = 'IQD'}) {
-    return format(amount, currency);
-  }
-
-  /// تنسيق مزدوج — يعرض IQD و USD معاً
+    /// تنسيق مزدوج — يعرض IQD و USD معاً
   ///
   /// [iqd] — المبلغ بالدينار
   /// [usd] — المبلغ بالدولار
   ///
   /// مثال: '1,500,000.000 د.ع / $1,145.04'
-  static String formatDual({required double iqd, required double usd}) {
-    return '${formatIQD(iqd)} / ${formatUSD(usd)}';
-  }
-
-  // ── مقارنة الأرقام ────────────────────────────────────────────────────────
+    // ── مقارنة الأرقام ────────────────────────────────────────────────────────
 
   /// مقارنة مبلغين مع هامش تسامح (لتجنب مشاكل الأرقام العشرية)
   ///

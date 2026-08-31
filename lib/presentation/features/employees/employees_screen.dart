@@ -25,11 +25,13 @@ import '../../widgets/common/password_confirm_dialog.dart';
 import '../../providers/provider_read_once.dart';
 import '../../providers/treasury_providers.dart';
 import '../payroll/payroll_print_actions.dart';
+import '../../providers/database_provider.dart';
 
 // ── أجزاء المكتبة (المرحلة د) ───────────────────────────────────────
 // قُسِّم الملف بـ part لا بملفات مستقلة كي تبقى الأصناف خاصة.
 part 'employee_detail_sheet.dart';
 part 'employee_dialogs.dart';
+part 'employee_repayment_sheet.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // الشاشة الرئيسية
@@ -45,6 +47,15 @@ class EmployeesScreen extends ConsumerStatefulWidget {
 class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   final _searchCtrl = TextEditingController();
   String _query = '';
+
+  /// فلتر المشروع — `null` يعني كل المشاريع
+  ///
+  /// 🔑 بلاغ المالك 2026-08-30: «إذا كان لدينا مشروع البصرة وكركوك وبغداد،
+  ///   أريد عند اختيار مشروع أن يظهر موظفوه وحدهم».
+  ///
+  /// ⚠️ الربط عبر `employees.treasury_id` — وهو **رابط المشروع** بقرار
+  ///   المالك: موظفو خزنة البصرة هم موظفو مشروع البصرة. لا حقل مستقلّ.
+  int? _projectTreasuryId;
 
   @override
   void initState() {
@@ -146,6 +157,120 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
     );
   }
 
+  /// **نقل موظفي مشروع إلى آخر دفعةً واحدة** (بلاغ المالك 2026-08-30)
+  ///
+  /// القدرة كانت موجودة (`reassignTreasury` في الـDAO) لكنها **مدفونة داخل
+  /// مسار حذف الخزينة وحده** — تُستدعى حين يحذف المالك خزينةً فيُسأل أين
+  /// ينقل موظفيها. فمن أراد النقل بلا حذف لم يجد إليه سبيلاً.
+  ///
+  /// ⚠️ العدد يُعرَض **قبل** التأكيد: نقلٌ جماعي بلا رقم يجعل المالك يضغط
+  ///   على المجهول — وهو ما تجنّبناه في كل عملية جماعية سابقة.
+  Future<void> _showBulkReassignDialog(BuildContext context) async {
+    final treasuries =
+        ref.read(allTreasuriesProvider).valueOrNull ?? const [];
+    if (treasuries.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يلزم مشروعان على الأقل لنقل الموظفين بينهما.'),
+        ),
+      );
+      return;
+    }
+
+    int? fromId = _projectTreasuryId;
+    int? toId;
+
+    final done = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final employees =
+              ref.read(allEmployeesProvider).valueOrNull ?? const [];
+          final count = fromId == null
+              ? 0
+              : employees.where((e) => e.treasuryId == fromId).length;
+
+          return AlertDialog(
+            title: const Text('نقل موظفي مشروع'),
+            content: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: fromId,
+                    decoration: const InputDecoration(
+                      labelText: 'من مشروع',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final t in treasuries)
+                        DropdownMenuItem(value: t.id, child: Text(t.name)),
+                    ],
+                    onChanged: (v) => setLocal(() {
+                      fromId = v;
+                      if (toId == v) toId = null;
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: toId,
+                    decoration: const InputDecoration(
+                      labelText: 'إلى مشروع',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final t in treasuries)
+                        if (t.id != fromId)
+                          DropdownMenuItem(value: t.id, child: Text(t.name)),
+                    ],
+                    onChanged: (v) => setLocal(() => toId = v),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    fromId == null
+                        ? 'اختر المشروع المصدر.'
+                        : 'سيُنقل $count موظفاً بكل بياناتهم — سلفهم ورواتبهم '
+                            'السابقة تبقى كما هي، ويتغيّر مشروعهم فقط.',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('تراجع'),
+              ),
+              FilledButton(
+                onPressed: (fromId != null && toId != null && count > 0)
+                    ? () => Navigator.pop(ctx, true)
+                    : null,
+                child: Text('انقل $count موظفاً'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (done != true || !mounted) return;
+
+    final moved = await ref
+        .read(employeeNotifierProvider.notifier)
+        .reassignTreasury(fromTreasuryId: fromId!, toTreasuryId: toId);
+
+    // `context` هنا وسيطٌ مرّر من المستدعي لا `State.context` — فالمحلّل
+    // يطلب فحصه هو لا فحص الحالة (قاعدة مرفوعة إلى **خطأ** في هذا المشروع).
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('✓ نُقل $moved موظفاً إلى المشروع الجديد')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _listenNotifiers();
@@ -157,15 +282,15 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
       backgroundColor: context.colors.bg,
       body: employeesAsync.when(
         data: (employees) {
-          final filtered = _query.isEmpty
-              ? employees
-              : employees
-                  .where((e) =>
-                      e.fullName
-                          .toLowerCase()
-                          .contains(_query.toLowerCase()) ||
-                      e.phone.contains(_query))
-                  .toList();
+          // الفلتران يُطبَّقان معاً: البحث النصّي ثم المشروع
+          final filtered = employees.where((e) {
+            final matchesQuery = _query.isEmpty ||
+                e.fullName.toLowerCase().contains(_query.toLowerCase()) ||
+                e.phone.contains(_query);
+            final matchesProject = _projectTreasuryId == null ||
+                e.treasuryId == _projectTreasuryId;
+            return matchesQuery && matchesProject;
+          }).toList();
 
           return Column(
             children: [
@@ -222,6 +347,27 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
               ),
 
               // ── 3. قائمة الموظفين ──────────────────────────────────────────
+              // ── فلتر المشروع (الخزينة) + النقل الجماعي ──────────────
+              Row(
+                children: [
+                  Expanded(
+                    child: _ProjectFilterBar(
+                      selected: _projectTreasuryId,
+                      onChanged: (v) =>
+                          setState(() => _projectTreasuryId = v),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 28, bottom: 8),
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showBulkReassignDialog(context),
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 17),
+                      label: const Text('نقل موظفي مشروع'),
+                    ),
+                  ),
+                ],
+              ),
+
               Expanded(
                 child: filtered.isEmpty
                     ? _EmptyState(
@@ -411,14 +557,27 @@ class _EmployeeCard extends ConsumerWidget {
     final fmtNum = NumberFormat('#,##0');
     final pendingAsync = ref.watch(pendingAdvancesAmountProvider(employee.id));
 
+    // 🟠 **من عليه سلفة يُلوَّن** (بلاغ المالك 2026-08-30)
+    //
+    //   المزوّد **مُراقَب هنا أصلاً** (`ref.watch` أعلاه) لعرض المبلغ، فلا
+    //   استعلام إضافي — التلوين قراءةٌ ثانية لنفس الرقم.
+    //
+    //   ولماذا لونٌ لا شارة؟ لأن السؤال «من عليه سلفة؟» يُطرح على **القائمة
+    //   كلها** لا على بطاقة بعينها، والعين تمسح الألوان أسرع من النصوص.
+    final hasPending = (pendingAsync.valueOrNull ?? 0) > 0;
+
     return Container(
       decoration: BoxDecoration(
-        color: context.colors.surface,
+        color: hasPending
+            ? const Color(0xFFFFF4E0).withValues(alpha: 0.55)
+            : context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: employee.isActive
-              ? (context.colors.border)
-              : Colors.red.withValues(alpha: 0.3),
+          color: !employee.isActive
+              ? Colors.red.withValues(alpha: 0.3)
+              : hasPending
+                  ? Colors.orange.withValues(alpha: 0.45)
+                  : context.colors.border,
         ),
         boxShadow: [
           BoxShadow(
@@ -574,3 +733,50 @@ class _EmployeeCard extends ConsumerWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+
+
+/// شريط اختيار المشروع — يعزل موظفي مشروع بعينه
+///
+/// **لماذا شرائح لا قائمة منسدلة؟** المشاريع قليلة (خزينة لكل مشروع)،
+/// والشريحة تُظهر الخيارات كلها دفعةً واحدة فيُرى ما هو متاح بلا فتح قائمة.
+class _ProjectFilterBar extends ConsumerWidget {
+  const _ProjectFilterBar({required this.selected, required this.onChanged});
+
+  final int? selected;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final treasuries = ref.watch(allTreasuriesProvider).valueOrNull ?? const [];
+    if (treasuries.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
+      child: SizedBox(
+        height: 38,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: FilterChip(
+                label: const Text('كل المشاريع'),
+                selected: selected == null,
+                onSelected: (_) => onChanged(null),
+              ),
+            ),
+            for (final t in treasuries)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: FilterChip(
+                  label: Text(t.name),
+                  selected: selected == t.id,
+                  onSelected: (_) => onChanged(selected == t.id ? null : t.id),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

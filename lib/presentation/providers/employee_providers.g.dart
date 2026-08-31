@@ -195,6 +195,326 @@ class _AdvancesByEmployeeProviderElement
   int get employeeId => (origin as AdvancesByEmployeeProvider).employeeId;
 }
 
+String _$employeeFootprintHash() => r'52463183e046ad9d831a766a0c12f6b147037da0';
+
+/// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+///
+/// Copied from [employeeFootprint].
+@ProviderFor(employeeFootprint)
+const employeeFootprintProvider = EmployeeFootprintFamily();
+
+/// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+///
+/// Copied from [employeeFootprint].
+class EmployeeFootprintFamily extends Family<
+    AsyncValue<({int unpaidAdvances, double advanceBalance, int salaryRows})>> {
+  /// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+  ///
+  /// Copied from [employeeFootprint].
+  const EmployeeFootprintFamily();
+
+  /// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+  ///
+  /// Copied from [employeeFootprint].
+  EmployeeFootprintProvider call(
+    int employeeId,
+  ) {
+    return EmployeeFootprintProvider(
+      employeeId,
+    );
+  }
+
+  @override
+  EmployeeFootprintProvider getProviderOverride(
+    covariant EmployeeFootprintProvider provider,
+  ) {
+    return call(
+      provider.employeeId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'employeeFootprintProvider';
+}
+
+/// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+///
+/// Copied from [employeeFootprint].
+class EmployeeFootprintProvider extends AutoDisposeFutureProvider<
+    ({int unpaidAdvances, double advanceBalance, int salaryRows})> {
+  /// أثر الموظف المالي — يُقرأ قبل عرض حوار الحذف ليقول ما يمنعه
+  ///
+  /// Copied from [employeeFootprint].
+  EmployeeFootprintProvider(
+    int employeeId,
+  ) : this._internal(
+          (ref) => employeeFootprint(
+            ref as EmployeeFootprintRef,
+            employeeId,
+          ),
+          from: employeeFootprintProvider,
+          name: r'employeeFootprintProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$employeeFootprintHash,
+          dependencies: EmployeeFootprintFamily._dependencies,
+          allTransitiveDependencies:
+              EmployeeFootprintFamily._allTransitiveDependencies,
+          employeeId: employeeId,
+        );
+
+  EmployeeFootprintProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.employeeId,
+  }) : super.internal();
+
+  final int employeeId;
+
+  @override
+  Override overrideWith(
+    FutureOr<({int unpaidAdvances, double advanceBalance, int salaryRows})>
+            Function(EmployeeFootprintRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: EmployeeFootprintProvider._internal(
+        (ref) => create(ref as EmployeeFootprintRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        employeeId: employeeId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<
+          ({int unpaidAdvances, double advanceBalance, int salaryRows})>
+      createElement() {
+    return _EmployeeFootprintProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EmployeeFootprintProvider && other.employeeId == employeeId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, employeeId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin EmployeeFootprintRef on AutoDisposeFutureProviderRef<
+    ({int unpaidAdvances, double advanceBalance, int salaryRows})> {
+  /// The parameter `employeeId` of this provider.
+  int get employeeId;
+}
+
+class _EmployeeFootprintProviderElement
+    extends AutoDisposeFutureProviderElement<
+        ({int unpaidAdvances, double advanceBalance, int salaryRows})>
+    with EmployeeFootprintRef {
+  _EmployeeFootprintProviderElement(super.provider);
+
+  @override
+  int get employeeId => (origin as EmployeeFootprintProvider).employeeId;
+}
+
+String _$advanceRepaymentDetailsHash() =>
+    r'3cd0bb00f70682a74ecfdfde26708bf7ee2e43bf';
+
+/// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+///
+/// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+/// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+///
+/// Copied from [advanceRepaymentDetails].
+@ProviderFor(advanceRepaymentDetails)
+const advanceRepaymentDetailsProvider = AdvanceRepaymentDetailsFamily();
+
+/// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+///
+/// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+/// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+///
+/// Copied from [advanceRepaymentDetails].
+class AdvanceRepaymentDetailsFamily
+    extends Family<AsyncValue<List<AdvanceRepaymentDetail>>> {
+  /// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+  ///
+  /// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+  /// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+  ///
+  /// Copied from [advanceRepaymentDetails].
+  const AdvanceRepaymentDetailsFamily();
+
+  /// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+  ///
+  /// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+  /// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+  ///
+  /// Copied from [advanceRepaymentDetails].
+  AdvanceRepaymentDetailsProvider call(
+    int advanceId,
+  ) {
+    return AdvanceRepaymentDetailsProvider(
+      advanceId,
+    );
+  }
+
+  @override
+  AdvanceRepaymentDetailsProvider getProviderOverride(
+    covariant AdvanceRepaymentDetailsProvider provider,
+  ) {
+    return call(
+      provider.advanceId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'advanceRepaymentDetailsProvider';
+}
+
+/// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+///
+/// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+/// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+///
+/// Copied from [advanceRepaymentDetails].
+class AdvanceRepaymentDetailsProvider
+    extends AutoDisposeFutureProvider<List<AdvanceRepaymentDetail>> {
+  /// **تفاصيل تسديد سلفة** — كل قسط بمصدره (سند نقدي أو رواتب شهر)
+  ///
+  /// بلاغ المالك 2026-08-30: «أريد أن أرى **كيف** سُدّدت السلفة». والبيانات
+  /// كانت كلها في `cash_advance_repayments` — ينقص العرض فقط.
+  ///
+  /// Copied from [advanceRepaymentDetails].
+  AdvanceRepaymentDetailsProvider(
+    int advanceId,
+  ) : this._internal(
+          (ref) => advanceRepaymentDetails(
+            ref as AdvanceRepaymentDetailsRef,
+            advanceId,
+          ),
+          from: advanceRepaymentDetailsProvider,
+          name: r'advanceRepaymentDetailsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$advanceRepaymentDetailsHash,
+          dependencies: AdvanceRepaymentDetailsFamily._dependencies,
+          allTransitiveDependencies:
+              AdvanceRepaymentDetailsFamily._allTransitiveDependencies,
+          advanceId: advanceId,
+        );
+
+  AdvanceRepaymentDetailsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.advanceId,
+  }) : super.internal();
+
+  final int advanceId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<AdvanceRepaymentDetail>> Function(
+            AdvanceRepaymentDetailsRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: AdvanceRepaymentDetailsProvider._internal(
+        (ref) => create(ref as AdvanceRepaymentDetailsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        advanceId: advanceId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<AdvanceRepaymentDetail>>
+      createElement() {
+    return _AdvanceRepaymentDetailsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AdvanceRepaymentDetailsProvider &&
+        other.advanceId == advanceId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, advanceId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin AdvanceRepaymentDetailsRef
+    on AutoDisposeFutureProviderRef<List<AdvanceRepaymentDetail>> {
+  /// The parameter `advanceId` of this provider.
+  int get advanceId;
+}
+
+class _AdvanceRepaymentDetailsProviderElement
+    extends AutoDisposeFutureProviderElement<List<AdvanceRepaymentDetail>>
+    with AdvanceRepaymentDetailsRef {
+  _AdvanceRepaymentDetailsProviderElement(super.provider);
+
+  @override
+  int get advanceId => (origin as AdvanceRepaymentDetailsProvider).advanceId;
+}
+
 String _$salariesByEmployeeHash() =>
     r'602c27eac056f26a8c2a54dd2c29346d27611207';
 
@@ -489,7 +809,7 @@ class _PendingAdvancesAmountProviderElement
   int get employeeId => (origin as PendingAdvancesAmountProvider).employeeId;
 }
 
-String _$employeeNotifierHash() => r'd648f98634f3da2e170c371ef05ac09e434a7ccb';
+String _$employeeNotifierHash() => r'55634cdf3cca803af427959aabfc3ecb7ad01e42';
 
 /// Notifier لإدارة عمليات الموظفين (إضافة / تعديل / حذف / تفعيل)
 ///

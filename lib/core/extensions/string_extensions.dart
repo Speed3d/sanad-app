@@ -148,38 +148,13 @@ extension StringExtensions on String {
   /// تحويل رمز العملة إلى اسم عربي كامل
   ///
   /// مثال: 'IQD' → 'دينار عراقي' | 'USD' → 'دولار أمريكي'
-  String toCurrencyName() {
-    return switch (this) {
-      'IQD' => 'دينار عراقي',
-      'USD' => 'دولار أمريكي',
-      _     => this,
-    };
-  }
-
-  /// تحويل رمز العملة إلى رمزها القصير
+    /// تحويل رمز العملة إلى رمزها القصير
   ///
   /// مثال: 'IQD' → 'د.ع' | 'USD' → '$'
-  String toCurrencySymbol() {
-    return switch (this) {
-      'IQD' => 'د.ع',
-      'USD' => '\$',
-      _     => this,
-    };
-  }
-
-  /// تحويل حالة الفترة المالية إلى نص عربي
+    /// تحويل حالة الفترة المالية إلى نص عربي
   ///
   /// مثال: 'active' → 'نشطة' | 'frozen' → 'مغلقة'
-  String toArabicFiscalStatus() {
-    return switch (this) {
-      'active'                  => 'نشطة',
-      'frozen'                  => 'مغلقة',
-      'frozen_pending_recompute'=> 'مغلقة (تحتاج إعادة حساب)',
-      _                         => this,
-    };
-  }
-
-  /// تحويل حالة السلفة إلى نص عربي
+    /// تحويل حالة السلفة إلى نص عربي
   ///
   /// مثال: 'pending' → 'قيد السداد' | 'paid' → 'مسددة'
   String toArabicAdvanceStatus() {

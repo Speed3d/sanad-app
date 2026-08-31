@@ -513,6 +513,21 @@ class _EntryRow extends ConsumerWidget {
       );
     }
 
+    // 🟠 **من عليه سلفة متبقّية يُلوَّن** (بلاغ المالك 2026-08-30)
+    //
+    //   «يجب أن يظهر السطر الخاص بالموظف الذي عليه سلفة بلون مختلف حتى يعرف
+    //   المستخدم، ويستطيع الضغط عليه وتسديد السلفة منه — كلها أو جزءاً».
+    //
+    //   والضغط يفتح حوار التعديل الذي فيه **حقل خصم السلفة** أصلاً؛ فما كان
+    //   ينقص هو أن يعرف المالك **أيّ** سطر يستحقّ الضغط. ولهذا لونٌ لا شارة:
+    //   السؤال يُطرح على الكشف كلّه دفعةً واحدة.
+    //
+    //   ⚠️ الأولوية للصافي السالب: هو مانعُ تسديدٍ، والسلفة مجرّد تنبيه.
+    final pendingAdvance =
+        ref.watch(pendingAdvancesAmountProvider(entry.employeeId)).valueOrNull ??
+            0;
+    final hasPendingAdvance = pendingAdvance > 0;
+
     return InkWell(
       // 🔑 الضغط على السطر يفتح ما يناسب حالته: تعديلاً للمسودة، وإجراءات
       //   التصحيح/الإلغاء للمسدَّد. إيماءةٌ واحدة لا اثنتان (المرحلة ٦).
@@ -528,12 +543,45 @@ class _EntryRow extends ConsumerWidget {
               : Border(bottom: BorderSide(color: colors.border)),
           // الصافي السالب يُبرَز: مقبول في المسودة ومرفوض عند التسديد،
           // فرؤيته مبكراً تجنّب المالك رفضاً مفاجئاً بعد اختيار الخزينة
-          color: isNegative ? colors.danger.withValues(alpha: 0.06) : null,
+          color: isNegative
+              ? colors.danger.withValues(alpha: 0.06)
+              : (hasPendingAdvance && !isPaid
+                  ? Colors.orange.withValues(alpha: 0.10)
+                  : null),
         ),
         child: Row(
           children: [
             cell(_Col.seq, '$index', color: colors.subtext),
-            cell(_Col.name, entry.snapshotName, bold: true),
+            // الاسم + مؤشّر السلفة: اللون يلفت، والرقم يُجيب «كم؟»
+            if (hasPendingAdvance && !isPaid)
+              SizedBox(
+                width: _Col.name.width,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        entry.snapshotName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: colors.text,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Tooltip(
+                      message: 'عليه سلفة متبقّية '
+                          '${money.format(pendingAdvance)} — اضغط السطر لخصمها',
+                      child: Icon(Icons.account_balance_wallet_outlined,
+                          size: 13, color: Colors.orange.shade800),
+                    ),
+                  ],
+                ),
+              )
+            else
+              cell(_Col.name, entry.snapshotName, bold: true),
             cell(_Col.position, entry.snapshotPosition,
                 color: colors.subtext),
             cell(

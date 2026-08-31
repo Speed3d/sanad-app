@@ -35,6 +35,9 @@ void main() {
 
   group('العمليات الكارثية — super_admin فقط', () {
     const catastrophic = [
+      // 🔒 نُقلت من admin بطلب المالك 2026-08-30: السجل يكشف من فعل ماذا
+      //   لكل مستخدم، وإتاحته لكل مدير تجعل الرقابة مكشوفة لمن يُراقَب.
+      AppPermission.viewAudit,
       AppPermission.restoreBackup,
       AppPermission.resetFinancialData,
       AppPermission.reopenFiscalPeriod,
@@ -68,7 +71,6 @@ void main() {
       AppPermission.manageTreasuries,
       AppPermission.manageExchangeRate,
       AppPermission.createBackup,
-      AppPermission.viewAudit,
       AppPermission.closeFiscalPeriod,
       AppPermission.manageUsers,
       AppPermission.managePayroll,

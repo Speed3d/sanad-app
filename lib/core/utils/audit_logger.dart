@@ -18,9 +18,6 @@
 //   // تسجيل إنشاء سند
 //   await logger.logVoucherCreated(userId: 1, username: 'admin', voucherId: 42, amount: 150000);
 //
-//   // تسجيل استيراد Excel
-//   await logger.logExcelImport(userId: 1, username: 'admin', rowCount: 50, vaultName: 'الخزينة الرئيسية');
-//
 // ثوابت أنواع العمليات المدعومة:
 //   AuditActions.login         → 'LOGIN'
 //   AuditActions.logout        → 'LOGOUT'
@@ -28,7 +25,6 @@
 //   AuditActions.voucherDelete → 'DELETE'
 //   AuditActions.fiscalClose   → 'FISCAL_CLOSE'
 //   AuditActions.backupCreate  → 'BACKUP_CREATE'
-//   AuditActions.excelImport   → 'EXCEL_IMPORT'
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:convert';
@@ -318,6 +314,33 @@ class AuditLogger {
         ));
   }
 
+  /// تسجيل **تصفير المصنع** — محو التطبيق كلّه والعودة لشاشة الإعداد الأول
+  ///
+  /// ⚠️ **هذا السطر يُكتَب قبل التنفيذ لا بعده — وهو استثناء مقصود.**
+  ///   كل بقية دوال هذا الملف تُستدعى **بعد** نجاح العملية، لأن سطر تدقيق
+  ///   لعملية لم تقع هو كذب. لكن تصفير المصنع يمحو `audit_log` نفسه — فسطرٌ
+  ///   يُكتَب بعده يُكتَب في سجلٍّ وُلد للتوّ ويُسمّي مستخدماً لم يعد موجوداً.
+  ///
+  ///   فالكتابة قبل التنفيذ تعني:
+  ///     • نجح المحو  ⇒ يُمحى هذا السطر مع الباقي — وهو المطلوب («تطبيق نظيف»)
+  ///     • فشل المحو  ⇒ **يبقى** السطر شاهداً على ما جرت محاولته ومن حاولها
+  ///   وهي الحالة الوحيدة التي يفيد فيها الشاهد أصلاً.
+  Future<void> logFactoryReset({
+    required int userId,
+    required String username,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.system,
+          action: AuditActions.delete,
+          meta: _toMeta({
+            'event': 'factory_reset',
+            'note': 'محو شامل — يشمل المستخدمين والخزائن وسجل التدقيق نفسه',
+          }),
+        ));
+  }
+
   // ── أحداث السندات ─────────────────────────────────────────────────────────
 
   /// تسجيل إنشاء سند جديد
@@ -496,31 +519,7 @@ class AuditLogger {
   /// [treasuryId]  — معرّف الخزينة التي خُصم منها المبلغ
   /// [treasuryName]— اسم الخزينة
   /// [totalAmount] — المبلغ الإجمالي المستورد
-  Future<void> logExcelImport({
-    required int userId,
-    required String username,
-    required int rowCount,
-    required int treasuryId,
-    required String treasuryName,
-    required double totalAmount,
-    String? fileName,
-  }) async {
-    await _safeLog(() => _dao.logSimpleAction(
-          userId: userId,
-          username: username,
-          table: AuditTables.vouchers,
-          action: AuditActions.excelImport,
-          meta: _toMeta({
-            'row_count': rowCount,
-            'treasury_id': treasuryId,
-            'treasury_name': treasuryName,
-            'total_amount': totalAmount,
-            if (fileName != null) 'file_name': fileName,
-          }),
-        ));
-  }
-
-  // ── أحداث سلف المشاريع ────────────────────────────────────────────────────
+    // ── أحداث سلف المشاريع ────────────────────────────────────────────────────
 
   /// تسجيل اعتماد سلفة مشروع
   ///
@@ -642,7 +641,7 @@ class AuditLogger {
 
   /// تسجيل **استيراد ملف رواتب** إلى كشف شهر
   ///
-  /// منفصلة عن [logExcelImport] عمداً: تلك تصف استيراد **مصاريف سلفة** إلى
+  /// دالة مستقلّة عن استيراد مصاريف السلفة عمداً: تلك تصف استيراداً إلى
   /// خزينة بعينها بإجمالي مبلغ، وحقولها الإلزامية (الخزينة والإجمالي) لا
   /// معنى لها هنا — كشف الرواتب لا يخصّ خزينةً حتى لحظة التسديد.
   Future<void> logPayrollImported({

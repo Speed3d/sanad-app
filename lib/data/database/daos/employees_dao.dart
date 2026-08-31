@@ -54,6 +54,21 @@ class CashAdvanceSummary {
 }
 
 /// DAO الموظفين والسلف والرواتب
+/// قسط سداد سلفة موظف مع مصدره — لعرض «كيف سُدّدت»
+///
+/// [periodYear]/[periodMonth] تُملأ للأقساط المخصومة من الراتب وحدها.
+typedef AdvanceRepaymentDetail = ({
+  int id,
+  double amount,
+  DateTime date,
+  String method,
+  int? voucherId,
+  int? voucherNumber,
+  int? periodYear,
+  int? periodMonth,
+  String notes,
+});
+
 @DriftAccessor(tables: [Employees, CashAdvances, CashAdvanceRepayments, SalaryPayments])
 class EmployeesDao extends DatabaseAccessor<AppDatabase>
     with _$EmployeesDaoMixin {
@@ -99,20 +114,7 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// بحث نصي في أسماء الموظفين وأرقام هواتفهم
-  Future<List<Employee>> searchEmployees(String query) {
-    final q = '%${query.toLowerCase()}%';
-    return (select(employees)
-          ..where(
-            (e) =>
-                e.isDeleted.equals(false) &
-                (e.fullName.lower().like(q) | e.phone.lower().like(q)),
-          )
-          ..orderBy([(e) => OrderingTerm.asc(e.fullName)])
-          ..limit(50))
-        .get();
-  }
-
-  /// الموظفون المرتبطون بخزينة محددة
+    /// الموظفون المرتبطون بخزينة محددة
   ///
   /// يُستخدَم عند حذف خزينة للتحقق من عدم وجود موظفين مرتبطين
   /// نقل موظفي خزينة إلى أخرى — أو تجريدهم من الخزينة بـ`null`
@@ -144,16 +146,7 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
     return row.data['c'] as int? ?? 0;
   }
 
-  Future<List<Employee>> getEmployeesByTreasury(int treasuryId) {
-    return (select(employees)
-          ..where(
-            (e) =>
-                e.treasuryId.equals(treasuryId) & e.isDeleted.equals(false),
-          ))
-        .get();
-  }
-
-  /// إضافة موظف جديد — يُعيد الـ ID المُولَّد
+    /// إضافة موظف جديد — يُعيد الـ ID المُولَّد
   Future<int> insertEmployee(EmployeesCompanion employee) {
     return into(employees).insert(employee);
   }
@@ -170,6 +163,72 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// حذف ناعم للموظف — لا يُحذَف فعلياً لحفظ سجل الرواتب والسلف
+  /// **أثر الموظف المالي** — ما يمنع حذفه
+  ///
+  /// 🔑 بلاغ المالك 2026-08-30: «زرّ حذف الموظفين بالكامل، مع التحقّق بعدم
+  ///   قبول الحذف إذا كان الموظف لديه سلفة لم تُسدَّد أو استلم راتباً سابقاً
+  ///   — في هذه الحالة لا يُحذف بل **يُعطَّل** حتى لا يظهر في الرواتب».
+  ///
+  /// ⚠️ **لماذا الراتب المستلَم يمنع الحذف؟** لأن سطر الراتب يحمل **لقطة**
+  ///   الموظف لحظة الشهر (الاسم · الصفة · الأساسي)، لكن التقارير تربطه
+  ///   بـ`employee_id`. وحذف الموظف — ولو ناعماً — يجعل تقرير الموظف وتقرير
+  ///   السنة يقرآن سطوراً لصاحبٍ لا وجود له.
+  ///
+  ///   والسلفة غير المسدَّدة أوضح: دَينٌ على الشركة لا يُمحى بحذف صاحبه.
+  Future<({int unpaidAdvances, double advanceBalance, int salaryRows})>
+      getEmployeeFinancialFootprint(int id) async {
+    final adv = await customSelect(
+      'SELECT COUNT(*) AS c, COALESCE(SUM(amount - total_repaid), 0) AS bal '
+      'FROM cash_advances '
+      "WHERE employee_id = ? AND is_deleted = 0 AND status != 'paid' "
+      'AND (amount - total_repaid) > 0.001',
+      variables: [Variable.withInt(id)],
+      readsFrom: {cashAdvances},
+    ).getSingle();
+
+    final sal = await customSelect(
+      'SELECT COUNT(*) AS c FROM salary_payments '
+      'WHERE employee_id = ? AND is_deleted = 0',
+      variables: [Variable.withInt(id)],
+      readsFrom: {salaryPayments},
+    ).getSingle();
+
+    return (
+      unpaidAdvances: adv.data['c'] as int? ?? 0,
+      advanceBalance: (adv.data['bal'] as num?)?.toDouble() ?? 0,
+      salaryRows: sal.data['c'] as int? ?? 0,
+    );
+  }
+
+  /// حذف موظف **بعد التحقّق من خلوّه من أي أثر مالي**
+  ///
+  /// يرمي [StateError] برسالة عربية تسمّي المانع وتقترح البديل (التعطيل).
+  /// والحارس هنا لا في الحوار: حوارٌ تتجاوزه أي شاشة أخرى ليس حارساً
+  /// (القانون ٤).
+  Future<void> deleteEmployeeGuarded(int id) async {
+    final f = await getEmployeeFinancialFootprint(id);
+
+    if (f.unpaidAdvances > 0) {
+      throw StateError(
+        'لا يمكن حذف هذا الموظف — عليه ${f.unpaidAdvances} سلفة غير مسدَّدة '
+        'بمتبقٍّ ${f.advanceBalance.toStringAsFixed(0)}.\n'
+        'سدّد السلفة أو ألغِها أولاً، أو **عطّل** الموظف بدل حذفه فلا يظهر '
+        'في كشوف الرواتب.',
+      );
+    }
+
+    if (f.salaryRows > 0) {
+      throw StateError(
+        'لا يمكن حذف هذا الموظف — له ${f.salaryRows} سطر راتب في كشوف سابقة، '
+        'وحذفه يجعل التقارير تقرأ رواتب لصاحبٍ لا وجود له.\n'
+        '**عطّله** بدل ذلك: يبقى سجلّه وتقاريره، ولا يظهر في كشوف الرواتب '
+        'الجديدة.',
+      );
+    }
+
+    await softDeleteEmployee(id);
+  }
+
   Future<void> softDeleteEmployee(int id) async {
     await (update(employees)..where((e) => e.id.equals(id))).write(
       const EmployeesCompanion(
@@ -480,6 +539,80 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
           ..where((r) => r.cashAdvanceId.equals(advanceId))
           ..orderBy([(r) => OrderingTerm.asc(r.repaymentDate)]))
         .watch();
+  }
+
+  /// **تفاصيل تسديد سلفة** — كل قسط بمصدره الحقيقي
+  ///
+  /// 🔑 **البلاغ (المالك 2026-08-30):** «سلفة مليون سُدّدت على دفعتين: ٥٠٠
+  ///   ألف نقداً و٥٠٠ ألف خصماً من الراتب. أريد عند الضغط عليها أن أرى
+  ///   **كيف** سُدّدت — بأي سند وبرواتب أي شهر.»
+  ///
+  ///   والبيانات كانت كلها موجودة في `cash_advance_repayments` منذ البداية
+  ///   (المبلغ · التاريخ · الطريقة · السند) — **ينقص العرض فقط**.
+  ///
+  /// ⚠️ **لماذا استعلامات فرعية لا `LEFT JOIN`؟** سطر الراتب قد يتعدّد على
+  ///   السند الواحد (سند رواتب الشهر مشترك بين كل موظفيه)، فالضمّ يُكرّر
+  ///   القسط مرّاتٍ بعدد سطور الكشف. والاستعلام الفرعي بـ`LIMIT 1` يُعيد
+  ///   صفّاً واحداً لكل قسط مهما كثر ما حوله.
+  ///
+  /// `periodYear`/`periodMonth` تُملأ للأقساط المخصومة من الراتب وحدها —
+  /// وهي التي يريد المالك أن يعرف شهرها.
+  Future<List<AdvanceRepaymentDetail>> getRepaymentDetails(
+    int advanceId,
+  ) async {
+    final rows = await customSelect(
+      '''
+      SELECT
+        r.id              AS id,
+        r.amount          AS amount,
+        r.repayment_date  AS repayment_date,
+        r.method          AS method,
+        r.voucher_id      AS voucher_id,
+        r.notes           AS notes,
+        (SELECT v.voucher_number FROM vouchers v
+          WHERE v.id = r.voucher_id)                        AS voucher_number,
+        (SELECT pp.year FROM salary_payments sp
+           JOIN payroll_periods pp ON pp.id = sp.payroll_period_id
+          WHERE sp.cash_advance_id = r.cash_advance_id
+            AND sp.voucher_id = r.voucher_id
+            AND sp.is_deleted = 0
+          LIMIT 1)                                          AS period_year,
+        (SELECT pp.month FROM salary_payments sp
+           JOIN payroll_periods pp ON pp.id = sp.payroll_period_id
+          WHERE sp.cash_advance_id = r.cash_advance_id
+            AND sp.voucher_id = r.voucher_id
+            AND sp.is_deleted = 0
+          LIMIT 1)                                          AS period_month
+      FROM cash_advance_repayments r
+      WHERE r.cash_advance_id = ?
+      ORDER BY r.repayment_date ASC, r.id ASC
+      ''',
+      variables: [Variable.withInt(advanceId)],
+      readsFrom: {
+        cashAdvanceRepayments,
+        salaryPayments,
+        db.vouchers,
+        db.payrollPeriods,
+      },
+    ).get();
+
+    return [
+      for (final r in rows)
+        (
+          id: r.data['id'] as int,
+          amount: (r.data['amount'] as num).toDouble(),
+          // ⚠️ `r.read<DateTime>` لا التحويل اليدوي: Drift قد يخزّن التاريخ
+          //   نصّاً ISO أو ثوانيَ يونكس حسب الإعداد، والتحويل اليدوي يفترض
+          //   أحدهما فينكسر على الآخر.
+          date: r.read<DateTime>('repayment_date'),
+          method: r.data['method'] as String? ?? 'cash',
+          voucherId: r.data['voucher_id'] as int?,
+          voucherNumber: r.data['voucher_number'] as int?,
+          periodYear: r.data['period_year'] as int?,
+          periodMonth: r.data['period_month'] as int?,
+          notes: r.data['notes'] as String? ?? '',
+        ),
+    ];
   }
 
   /// تسجيل قسط سداد جديد والتحديث الذري لحالة السلفة

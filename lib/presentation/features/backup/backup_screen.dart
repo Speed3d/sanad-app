@@ -31,12 +31,11 @@ import 'package:path_provider/path_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/repository_providers.dart';
-import '../../providers/attachment_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../../core/auth/permissions.dart';
 import '../../../core/constants/app_settings_keys.dart';
 import '../../../core/services/backup_crypto_service.dart';
-import '../../../core/services/attachment_service.dart';
+import '../../../core/services/backup_service.dart';
 import '../../../core/services/cloud_backup_service.dart';
 import '../../../core/utils/audit_logger.dart';
 
@@ -110,127 +109,215 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   ///   نقول ذلك صراحةً في ملف البيان وفي رسالة النتيجة بدل تركه يُفترَض.
   Future<void> _exportFullBackup() async {
     final pass = _passwordCtrl.text;
-    if (pass.isEmpty) {
-      _setStatus('أدخل كلمة المرور أولاً', error: true);
-      return;
-    }
-    if (pass.length < _kMinBackupPasswordLen) {
-      _setStatus(
-        'كلمة المرور قصيرة جداً — يجب ألا تقل عن $_kMinBackupPasswordLen أحرف',
-        error: true,
-      );
-      return;
-    }
-    if (pass != _confirmCtrl.text) {
-      _setStatus('كلمتا المرور غير متطابقتين', error: true);
-      return;
-    }
+    if (!_validateExportPassword(pass)) return;
+
+    // وجهةٌ يختارها المالك بدل الكتابة في «المستندات» صامتاً — النسخة
+    // الحقيقية تُحفَظ على قرص خارجي لا على نفس القرص الذي قد يتلف.
+    final dest = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'اختر مجلد حفظ النسخة الشاملة',
+    );
+    if (dest == null) return;
 
     setState(() => _working = true);
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final dbFile = io.File('${dir.path}/sales_management_db.sqlite');
-      if (!dbFile.existsSync()) {
-        _setStatus('لم يُعثَر على ملف قاعدة البيانات', error: true);
-        return;
-      }
+      final db = ref.read(appDatabaseProvider);
+      final root =
+          await db.appSettingsDao.getString(AppSettingsKeys.attachmentsRoot) ??
+              '';
 
-      // دمج WAL قبل النسخ — وإلا ضاعت آخر السندات المُثبَّتة
-      await ref.read(appDatabaseProvider).checkpointWal();
-
-      final now = DateTime.now();
-      String two(int v) => v.toString().padLeft(2, '0');
-      final stamp = '${now.year}${two(now.month)}${two(now.day)}'
-          '_${two(now.hour)}${two(now.minute)}';
-      final outDir = io.Directory('${dir.path}/sanad_backup_$stamp');
-      await outDir.create(recursive: true);
-
-      // ── ١) قاعدة البيانات مشفَّرة ────────────────────────────────────
-      final encrypted = await _encryptBytes(await dbFile.readAsBytes(), pass);
-      await io.File('${outDir.path}/database.smbak')
-          .writeAsBytes(encrypted, flush: true);
-
-      // ── ٢) المرفقات ─────────────────────────────────────────────────
-      //
-      // ننسخ من **الفهرس** لا بمسح المجلد: الفهرس هو الحقيقة، وأي ملف في
-      // المخزن لا يشير إليه صفّ هو مخلّفات لا تستحق النسخ.
-      final root = ref.read(attachmentsRootProvider).valueOrNull ?? '';
-      final rows = await ref.read(appDatabaseProvider).attachmentsDao.getAll();
-
-      var copied = 0;
-      var missing = 0;
-      var bytes = 0;
-
-      if (root.trim().isNotEmpty && rows.isNotEmpty) {
-        for (final a in rows) {
-          final src = io.File(
-            AttachmentService.absolutePathOf(
-              root: root,
-              relativePath: a.relativePath,
-            ),
-          );
-          if (!src.existsSync()) {
-            missing++;
-            continue;
-          }
-          final dst = io.File('${outDir.path}/attachments/${a.relativePath}');
-          await dst.parent.create(recursive: true);
-          await src.copy(dst.path);
-          copied++;
-          bytes += a.sizeBytes;
-        }
-      }
-
-      // ── ٣) بيان النسخة ──────────────────────────────────────────────
-      // يقرأه إنسان بعد سنة ولا يتذكّر ما في المجلد ولا كيف يستعيده
-      final manifest = StringBuffer()
-        ..writeln('نسخة احتياطية شاملة — نظام سند')
-        ..writeln('التاريخ: ${now.toIso8601String()}')
-        ..writeln('')
-        ..writeln('المحتويات:')
-        ..writeln('  database.smbak   — قاعدة البيانات (مشفَّرة SMBAK2)')
-        ..writeln('  attachments/     — $copied ملف مرفق')
-        ..writeln('')
-        ..writeln('⚠️ تنبيه أمني:')
-        ..writeln('  قاعدة البيانات مشفَّرة بكلمة المرور التي اخترتها.')
-        ..writeln('  ملفات المرفقات منسوخة **بلا تشفير** — احفظ هذا المجلد')
-        ..writeln('  في مكان آمن إن كانت الفواتير تحوي بيانات حسّاسة.')
-        ..writeln('')
-        ..writeln('الاستعادة:')
-        ..writeln('  ١. النسخ الاحتياطي ← استعادة ← اختر database.smbak')
-        ..writeln('  ٢. انسخ محتوى attachments/ إلى مجلد المرفقات المُعيَّن')
-        ..writeln('     في: الإعدادات ← المرفقات');
-      if (missing > 0) {
-        manifest
-          ..writeln('')
-          ..writeln('⚠️ $missing مرفقاً مفقوداً من القرص ولم يُنسَخ.');
-      }
-      await io.File('${outDir.path}/البيان.txt')
-          .writeAsString(manifest.toString(), flush: true);
+      final report = await BackupService.exportFull(
+        db: db,
+        dbFilePath: await _dbFilePath(),
+        destinationDir: dest,
+        attachmentsRoot: root,
+        password: pass,
+      );
 
       final actor = ref.read(authNotifierProvider.notifier).currentUser;
       if (actor != null) {
         await ref.read(auditLoggerProvider).logBackupCreated(
               userId: actor.id,
               username: actor.username,
-              filePath: outDir.path,
+              filePath: report.path,
             );
       }
 
-      final mb = (bytes / (1024 * 1024)).toStringAsFixed(1);
-      final warn = missing > 0
-          ? '\n⚠️ $missing مرفقاً مفقوداً من القرص لم يُنسَخ.'
+      final mb = (report.attachmentBytes / (1024 * 1024)).toStringAsFixed(1);
+      final warn = report.attachmentsMissing > 0
+          ? '\n⚠️ ${report.attachmentsMissing} مرفقاً مفقوداً من القرص لم يُنسَخ.'
           : '';
       _setStatus(
-        '✅ نسخة شاملة في:\n${outDir.path}\n'
-        'قاعدة البيانات (مشفَّرة) + $copied مرفقاً ($mb ميغابايت)\n'
-        'ℹ️ المرفقات منسوخة بلا تشفير — راجع «البيان.txt».$warn',
+        '✅ نسخة شاملة في:\n${report.path}\n'
+        'قاعدة البيانات (مشفَّرة) + ${report.attachmentsCopied} مرفقاً '
+        '($mb ميغابايت)\n'
+        'ℹ️ المرفقات منسوخة بلا تشفير — راجع «${BackupLayout.readmeFile}».$warn',
       );
+    } on StateError catch (e) {
+      _setStatus(e.message, error: true);
     } catch (e) {
       _setStatus('تعذّر إنشاء النسخة الشاملة: $e', error: true);
     } finally {
-      if (mounted) setState(() => _working = false);
+      if (mounted && _working) setState(() => _working = false);
     }
+  }
+
+  // ── استعادة النسخة الشاملة ────────────────────────────────────────────────
+
+  /// استعادة مجلد نسخة شاملة: قاعدة البيانات **والمرفقات** معاً
+  ///
+  /// كانت النسخة الشاملة تُصدَّر ولا تُستعاد: البيان يوجّه المالك إلى نسخ
+  /// المرفقات **يدوياً** من مستكشف الملفات. الترتيب داخل
+  /// [BackupService.restoreFull] مقصود — المرفقات أولاً ثم القاعدة، عكس
+  /// ترتيب الحذف. راجع تعليق رأس الخدمة.
+  Future<void> _restoreFullBackup() async {
+    final pass = _passwordCtrl.text;
+    if (pass.isEmpty) {
+      _setStatus('أدخل كلمة المرور أولاً', error: true);
+      return;
+    }
+
+    final dir = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'اختر مجلد النسخة الشاملة (sanad_backup_…)',
+    );
+    if (dir == null) return;
+
+    // ── الفحص قبل أي لمس ────────────────────────────────────────────
+    // يرى المالك ما سيستعيده **قبل** أن يقرّر — لا بعد أن يقع.
+    final BackupManifest manifest;
+    try {
+      manifest = await BackupService.inspect(dir);
+    } on StateError catch (e) {
+      _setStatus(e.message, error: true);
+      return;
+    } catch (e) {
+      _setStatus('تعذّر فحص المجلد: $e', error: true);
+      return;
+    }
+
+    if (!mounted) return;
+    final created = manifest.createdAt?.toLocal().toString().split('.').first;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('استعادة نسخة شاملة'),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('المجلد:\n$dir\n'),
+              Text('تاريخ النسخة: ${created ?? 'غير معروف'}'),
+              Text('المرفقات فيها: ${manifest.attachments.length}'),
+              if (manifest.isLegacy)
+                const Text(
+                  '\n⚠️ نسخة قديمة بلا بيان آليّ — لا يمكن التحقّق من إصدار '
+                  'مخططها، وقد تكون بلا مرفقات.',
+                ),
+              const Text(
+                '\nستُستبدَل قاعدة بياناتك الحالية بالكامل.\n'
+                'تُحفَظ نسخة أمان منها تلقائياً قبل الاستبدال، '
+                'والمرفقات الموجودة بنفس الاسم لا تُدهَس.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('استعد الآن'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final actor = ref.read(authNotifierProvider.notifier).currentUser;
+    if (actor == null) return;
+
+    setState(() => _working = true);
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final root =
+          await db.appSettingsDao.getString(AppSettingsKeys.attachmentsRoot) ??
+              '';
+
+      final report = await BackupService.restoreFull(
+        db: db,
+        dbFilePath: await _dbFilePath(),
+        backupDir: dir,
+        attachmentsRoot: root,
+        password: pass,
+        user: actor,
+      );
+
+      // القاعدة أُغلقت داخل الخدمة قبل الدهس — نُبطل المزوّد ليُعاد فتحها
+      ref.invalidate(appDatabaseProvider);
+
+      await ref.read(auditLoggerProvider).logBackupRestored(
+            userId: actor.id,
+            username: actor.username,
+            filePath: dir,
+          );
+
+      final skipped = report.attachmentsSkipped > 0
+          ? '\nℹ️ ${report.attachmentsSkipped} مرفقاً موجوداً مسبقاً لم يُدهَس.'
+          : '';
+      final missing = report.attachmentsMissing > 0
+          ? '\n⚠️ ${report.attachmentsMissing} مرفقاً في البيان ومفقوداً من النسخة.'
+          : '';
+      // تحذيرٌ غير قاتل: الاستعادة نجحت ومع ذلك بقي ما يُقال (ع-٤٤)
+      final note = report.warning != null ? '\nℹ️ ${report.warning}' : '';
+      _setStatus(
+        '✅ تمت الاستعادة الشاملة.\n'
+        'المرفقات المستعادة: ${report.attachmentsRestored}$skipped$missing\n'
+        'نسخة الأمان من قاعدتك السابقة:\n${report.safetyCopyPath}$note\n\n'
+        '⚠️ أعد تشغيل التطبيق لتطبيق التغييرات.',
+      );
+    } on StateError catch (e) {
+      _setStatus(e.message, error: true);
+    } catch (e) {
+      _setStatus('خطأ أثناء الاستعادة: $e', error: true);
+    } finally {
+      if (mounted && _working) setState(() => _working = false);
+    }
+  }
+
+  // ── مساعدات مشتركة ────────────────────────────────────────────────────────
+
+  /// مسار ملف قاعدة البيانات — موضع واحد بدل تكراره في ثلاث دوال
+  Future<String> _dbFilePath() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return '${dir.path}/sales_management_db.sqlite';
+  }
+
+  /// تحقّقات كلمة مرور التصدير الثلاثة — كانت مكرّرة حرفياً في دالتين
+  bool _validateExportPassword(String pass) {
+    if (pass.isEmpty) {
+      _setStatus('أدخل كلمة المرور أولاً', error: true);
+      return false;
+    }
+    if (pass.length < _kMinBackupPasswordLen) {
+      _setStatus(
+        'كلمة المرور قصيرة جداً — يجب ألا تقل عن $_kMinBackupPasswordLen أحرف',
+        error: true,
+      );
+      return false;
+    }
+    if (pass != _confirmCtrl.text) {
+      _setStatus('كلمتا المرور غير متطابقتين', error: true);
+      return false;
+    }
+    return true;
   }
 
   Future<void> _exportBackup() async {
@@ -548,6 +635,28 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     (_working || kIsWeb) ? null : _exportFullBackup,
                 icon: const Icon(Icons.folder_zip_outlined),
                 label: const Text('نسخة شاملة (قاعدة البيانات + المرفقات)'),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── استعادة النسخة الشاملة ───────────────────────────────
+            // كانت النسخة الشاملة تُصدَّر ولا تُستعاد: البيان يوجّه المالك
+            // إلى نسخ المرفقات **يدوياً** من مستكشف الملفات. ونسخةٌ استعادتها
+            // نصف يدوية تُكتشف قيمتها يوم الكارثة وحده.
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: (_working || kIsWeb || !canRestore)
+                    ? null
+                    : _restoreFullBackup,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                  side: BorderSide(
+                    color: theme.colorScheme.error.withValues(alpha: 0.5),
+                  ),
+                ),
+                icon: const Icon(Icons.restore_page_outlined),
+                label: const Text('استعادة نسخة شاملة (اختر المجلد)'),
               ),
             ),
 

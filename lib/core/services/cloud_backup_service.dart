@@ -147,23 +147,7 @@ class CloudBackupService {
   }
 
   /// استرجاع قائمة النسخ الإضافية المحفوظة على الجهاز
-  Future<List<String>> listCloudBackups() async {
-    try {
-      final docDir = await getApplicationDocumentsDirectory();
-      final cloudDir = io.Directory('${docDir.path}/extra_backups');
-      if (!await cloudDir.exists()) return [];
-
-      final files = await cloudDir.list().toList();
-      return files
-          .whereType<io.File>()
-          .where((f) => f.path.endsWith('.smbak'))
-          .map((f) => f.path.split(io.Platform.pathSeparator).last)
-          .toList();
-    } catch (_) {
-      return [];
-    }
   }
-}
 
 /// Provider لخدمة النسخ الاحتياطي السحابي
 final cloudBackupServiceProvider = Provider<CloudBackupService>((ref) {

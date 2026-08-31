@@ -14,9 +14,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/auth/permissions.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_settings_keys.dart';
+import '../../../../core/utils/audit_logger.dart';
+import '../../../../domain/models/auth_state.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/settings_provider.dart';
@@ -90,6 +94,25 @@ class _CurrencyTabState extends ConsumerState<CurrencyTab> {
   Future<void> _saveExchangeRate() async {
     if (!_rateFormKey.currentState!.validate()) return;
 
+    // 🔴 **فجوة أُغلقت (المرحلة ١٦ — 2026-08-30):** لم يكن على هذا الحقل أي
+    //   فحص صلاحية، ومسار `/settings` بلا حاجز في الموجّه — فأيّ مستخدم
+    //   مسجَّل كان يستطيع تغيير سعر الصرف.
+    //
+    //   وسعر الصرف ليس إعداداً كبقيّة الإعدادات: كل سند بالدولار يُثبَّت
+    //   عليه سعرُ لحظته، فتغييره يُغيّر **قيمة كل ما يُدخَل بعده** في
+    //   التقارير. وصلاحية `manageExchangeRate` كانت موجودة وبصفر مستدعٍ.
+    final authState = ref.read(authNotifierProvider);
+    final actor = authState is AuthAuthenticated ? authState.user : null;
+    if (actor == null || !actor.can(AppPermission.manageExchangeRate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('تغيير سعر الصرف متاح للمدير فما فوق.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     final rate = double.parse(_rateCtrl.text.trim());
     setState(() => _isSaving = true);
 
@@ -97,11 +120,25 @@ class _CurrencyTabState extends ConsumerState<CurrencyTab> {
       final repo = ref.read(settingsRepositoryProvider);
       final db = ref.read(appDatabaseProvider);
 
+      // القيمة السابقة قبل الكتابة — سطرُ تدقيقٍ بلا «من ماذا» يوثّق نصف
+      // الحقيقة، ولا يُعرف منه هل ارتفع السعر أم انخفض.
+      final previous = await repo.getString(AppSettingsKeys.exchangeRate);
+
       // حفظ في الإعدادات النصية
       await repo.setExchangeRate(rate);
 
       // حفظ سجل تاريخي في جدول exchange_rates
       await db.exchangeRatesDao.setUsdToIqdRate(rate);
+
+      // ⚠️ كان تغيير سعر الصرف يقع **بلا أي أثر في سجل التدقيق**
+      //   (`logSettingChanged` كانت بصفر مستدعٍ).
+      await ref.read(auditLoggerProvider).logSettingChanged(
+            userId: actor.id,
+            username: actor.username,
+            key: AppSettingsKeys.exchangeRate,
+            oldValue: previous ?? '—',
+            newValue: rate.toString(),
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
