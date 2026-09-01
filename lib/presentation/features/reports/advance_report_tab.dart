@@ -17,6 +17,7 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/models/advance_model.dart';
 import '../../providers/advance_providers.dart';
+import '../../providers/repository_providers.dart';
 import '../../../core/extensions/string_extensions.dart';
 import 'report_print_actions.dart';
 import 'report_table_builders.dart';
@@ -38,14 +39,65 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
   String _query = '';
   String? _statusFilter;
 
+  String get _statusLabel =>
+      _statusFilter == null ? 'الكل' : _statusFilter!.toArabicAdvanceStatus();
+
   /// بيان الطباعة — من القائمة المفلترة المعروضة نفسها
   ReportTableData _table(List<AdvanceModel> list) => buildAdvancesListTable(
-        statusLabel: _statusFilter == null
-            ? 'الكل'
-            : _statusFilter!.toArabicAdvanceStatus(),
+        statusLabel: _statusLabel,
         query: _query,
         advances: list,
       );
+
+  /// تصدير السلف **بسطور مصاريفها** (الدفعة ج — بلاغ المالك 2026-08-30)
+  ///
+  /// [matches] — السلف التي طابقت بالبند: لهذه وحدها تُصفَّى السطور على البند
+  /// المطلوب. أمّا ما طابق برقم السلفة أو باسم المشروع فيخرج **بكل** سطوره،
+  /// لأن البند لم يكن سبب مطابقته أصلاً.
+  Future<void> _exportDetails(
+    List<AdvanceModel> list,
+    Map<int, ({int count, double total})> matches,
+  ) async {
+    final ids = [for (final a in list) a.id];
+    final itemQuery = matches.isEmpty ? '' : _query;
+
+    try {
+      var lines =
+          await ref.read(advanceRepositoryProvider).getLinesForAdvances(ids);
+
+      if (itemQuery.isNotEmpty) {
+        final q = itemQuery.toLowerCase();
+        lines = lines
+            .where((l) =>
+                !matches.containsKey(l.advanceId) ||
+                l.itemType.toLowerCase().contains(q))
+            .toList();
+      }
+
+      if (!mounted) return;
+      await ReportPrintActions.exportExcel(
+        context,
+        ref,
+        buildAdvanceLinesTable(
+          statusLabel: _statusLabel,
+          query: _query,
+          itemQuery: itemQuery,
+          advances: list,
+          lines: lines,
+        ),
+      );
+    } catch (e) {
+      // الصمت هنا هو عين ع-٢٥: زرٌّ يبدو أنه «لا يفعل شيئاً»
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تعذّر تحميل تفاصيل السلف: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -57,6 +109,11 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final async = ref.watch(advancesByStatusProvider(_statusFilter));
+
+    // السلف التي فيها بندٌ يطابق البحث — استعلامٌ واحد يخدم الفلترة والشارة
+    final matches =
+        ref.watch(advancesByItemTypeProvider(_query)).valueOrNull ??
+            const <int, ({int count, double total})>{};
 
     return Column(
       children: [
@@ -73,7 +130,9 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
                 TextField(
                   controller: _searchCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'رقم السلفة أو اسم المشروع',
+                    labelText: 'رقم السلفة · اسم المشروع · بند داخل السلفة',
+                    helperText:
+                        'اكتب بنداً مثل «وقود» لترى السلف التي صُرف فيها',
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                     isDense: true,
@@ -121,12 +180,16 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('خطأ: $e')),
             data: (all) {
+              // البحث يشمل **البند داخل السلفة** أيضاً (الدفعة ج): كان على
+              // رقم السلفة واسم المشروع فقط، فسؤال «أين صُرف الوقود؟» لا
+              // سبيل إليه إلا بفتح كل سلفة على حدة.
               final list = _query.isEmpty
                   ? all
                   : all
                       .where((a) =>
                           a.advanceNumber.contains(_query) ||
-                          a.projectName.contains(_query))
+                          a.projectName.contains(_query) ||
+                          matches.containsKey(a.id))
                       .toList();
 
               if (list.isEmpty) {
@@ -138,7 +201,9 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
                       children: [
                         Icon(Icons.manage_search, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
-                        Text('لا توجد سلف تطابق البحث.'),
+                        Text('لا توجد سلف تطابق البحث —\n'
+                            'لا برقمها ولا باسم مشروعها ولا ببنودها.',
+                            textAlign: TextAlign.center),
                       ],
                     ),
                   ),
@@ -151,8 +216,11 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       itemCount: list.length,
-                      itemBuilder: (_, i) =>
-                          _AdvanceReportCard(advance: list[i]),
+                      itemBuilder: (_, i) => _AdvanceReportCard(
+                        advance: list[i],
+                        itemQuery: _query,
+                        itemMatch: matches[list[i].id],
+                      ),
                     ),
                   ),
                   // الطباعة والتصدير — من القائمة **المفلترة** المعروضة
@@ -163,6 +231,7 @@ class _AdvanceReportTabState extends ConsumerState<AdvanceReportTab> {
                           context, ref, _table(list)),
                       onExport: () =>
                           ReportPrintActions.exportExcel(context, ref, _table(list)),
+                      onExportDetails: () => _exportDetails(list, matches),
                     ),
                   ),
                 ],
@@ -201,8 +270,21 @@ class _StatusFilterChip extends StatelessWidget {
 // ── بطاقة تقرير سلفة ─────────────────────────────────────────────────────────
 
 class _AdvanceReportCard extends ConsumerWidget {
-  const _AdvanceReportCard({required this.advance});
+  const _AdvanceReportCard({
+    required this.advance,
+    this.itemQuery = '',
+    this.itemMatch,
+  });
+
   final AdvanceModel advance;
+
+  /// بند البحث الفعّال — يُميَّز داخل تفصيل البنود فتقع عليه العين
+  final String itemQuery;
+
+  /// حصيلة هذا البند في هذه السلفة — `null` حين لم تطابق بالبند
+  ///
+  /// يجيب السؤال في مكانه: لا «هذه السلفة فيها وقود» بل **كم** وقودٍ فيها.
+  final ({int count, double total})? itemMatch;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -230,9 +312,36 @@ class _AdvanceReportCard extends ConsumerWidget {
           '${advance.projectName} — ${advance.statusDisplayName}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          dateFmt.format(advance.advanceDate),
-          style: const TextStyle(fontSize: 12),
+        subtitle: Row(
+          children: [
+            Text(
+              dateFmt.format(advance.advanceDate),
+              style: const TextStyle(fontSize: 12),
+            ),
+            if (itemMatch != null) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '$itemQuery: ${itemMatch!.count} مصروف · '
+                    '${fmt.format(itemMatch!.total)} د.ع',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         trailing: IconButton(
           icon: const Icon(Icons.open_in_new, size: 18),
@@ -316,7 +425,14 @@ class _AdvanceReportCard extends ConsumerWidget {
                             style: theme.textTheme.labelLarge),
                         const SizedBox(height: 6),
                         ...sorted.map(
-                          (e) => Padding(
+                          (e) {
+                            // البند المطابق للبحث يُميَّز — القائمة قد تطول،
+                            // والعين تجد اللون قبل أن تقرأ السطور
+                            final isMatch = itemQuery.isNotEmpty &&
+                                e.key
+                                    .toLowerCase()
+                                    .contains(itemQuery.toLowerCase());
+                            return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
                             child: Row(
                               children: [
@@ -324,15 +440,23 @@ class _AdvanceReportCard extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.secondaryContainer,
+                                    color: isMatch
+                                        ? theme.colorScheme.primaryContainer
+                                        : theme.colorScheme.secondaryContainer,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     e.key,
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: theme
-                                          .colorScheme.onSecondaryContainer,
+                                      fontWeight: isMatch
+                                          ? FontWeight.w700
+                                          : FontWeight.normal,
+                                      color: isMatch
+                                          ? theme
+                                              .colorScheme.onPrimaryContainer
+                                          : theme
+                                              .colorScheme.onSecondaryContainer,
                                     ),
                                   ),
                                 ),
@@ -345,7 +469,8 @@ class _AdvanceReportCard extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          ),
+                          );
+                          },
                         ),
                         const SizedBox(height: 8),
                         Text(

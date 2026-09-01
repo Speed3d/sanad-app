@@ -244,6 +244,62 @@ class AdvancesDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// أسطر عدّة سلف دفعةً **واحدة** — للتصدير بالتفاصيل
+  ///
+  /// ⚠️ **ولماذا استعلامٌ واحد لا حلقةٌ على `getLines`؟** لأن التصدير يعمل
+  ///   على القائمة المفلترة كلّها، وقد تكون عشرات السلف. واستعلامٌ لكلٍّ
+  ///   منها يعني عشرات الرحلات إلى القرص أثناء ضغطة زرّ واحدة.
+  ///
+  /// الترتيب بالسلفة ثم بترتيب الملف الأصلي — فالورقة المصدَّرة تُقرأ
+  /// كما يُقرأ ملف المحاسب.
+  Future<List<AdvanceLine>> getLinesForAdvances(List<int> advanceIds) {
+    if (advanceIds.isEmpty) return Future.value(const []);
+    return (select(advanceLines)
+          ..where((l) => l.advanceId.isIn(advanceIds))
+          ..orderBy([
+            (l) => OrderingTerm.asc(l.advanceId),
+            (l) => OrderingTerm.asc(l.rowNumber),
+          ]))
+        .get();
+  }
+
+  /// السلف التي فيها بندٌ يطابق [query] — ولكلٍّ عددُ مصاريفه ومجموعها
+  ///
+  /// 🔑 **البند الذي طلبه المالك** (الدفعة ج — بلاغ 2026-08-30): كان بحث
+  ///   تقرير السلف على **رقم السلفة واسم المشروع فقط**، فسؤالٌ مثل «أين
+  ///   صُرف الوقود؟» لا سبيل إليه إلا بفتح كل سلفة على حدة.
+  ///
+  /// 📌 **ولماذا هنا لا في الواجهة؟** (القانون ٤) لأن الفلترة في الواجهة
+  ///   تعني تحميل أسطر **كل** سلفة إلى الذاكرة لتصفيتها، ولأن حارساً أو
+  ///   استعلاماً لا يمرّ به اختبار ليس حارساً. وهنا يُختبَر بلا واجهة.
+  ///
+  /// ⚠️ **والمستبعَد مستثنى**: السطر المستبعَد لا يدخل مجموع السلفة، فعدُّه
+  ///   هنا يجعل الشارة تقول «٣ مصاريف · ٥٠٠٬٠٠٠» بينما البطاقة تحته تعرض
+  ///   مصروفين — رقمان متناقضان في بطاقة واحدة.
+  Future<Map<int, ({int count, double total})>> searchByItemType(
+      String query) async {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const {};
+
+    final count = advanceLines.id.count();
+    final total = advanceLines.amount.sum();
+
+    final rows = await (selectOnly(advanceLines)
+          ..addColumns([advanceLines.advanceId, count, total])
+          ..where(advanceLines.isExcluded.equals(false) &
+              advanceLines.itemType.lower().like('%$q%'))
+          ..groupBy([advanceLines.advanceId]))
+        .get();
+
+    return {
+      for (final r in rows)
+        r.read(advanceLines.advanceId)!: (
+          count: r.read(count) ?? 0,
+          total: r.read(total) ?? 0,
+        ),
+    };
+  }
+
   /// إدراج أسطر المسودة دفعة واحدة (بعد قراءة ملف الإكسل)
   Future<void> insertLines(List<AdvanceLinesCompanion> lines) async {
     await batch((b) => b.insertAll(advanceLines, lines));

@@ -114,6 +114,16 @@ Future<
 }
 
 /// نقطة سيولة يومية واحدة لمخطط آخر 7 أيام
+///
+/// 🔑 **ولماذا العملتان حقلان منفصلان لا رقماً واحداً؟** (الدفعة ج —
+///   بلاغ المالك 2026-08-30)
+///   `getDailySummary` تُعيد الدولار منذ المرحلة ١٦، وكانت هذه النقطة
+///   **تُسقطه في الطريق** فيصل المخطّط بالدينار وحده. فيومٌ صُرف فيه ٥٠٠
+///   دولار وحدها كان يُرسَم خطّاً مسطّحاً على الصفر — نمط ع-٠٦ نفسه:
+///   حقلٌ يُحسَب ولا يُقرأ.
+///
+///   وجمعُهما بسعر اليوم ممنوع بقاعدة المشروع المحروسة في
+///   `expense_reports_test`: العملتان تُعرَضان متجاورتين ولا تُجمعان أبداً.
 class DailyLiquidityPoint {
   /// تاريخ اليوم
   final DateTime date;
@@ -124,11 +134,25 @@ class DailyLiquidityPoint {
   /// إجمالي الصرف في هذا اليوم (IQD)
   final double sarf;
 
+  /// إجمالي القبض بالدولار في هذا اليوم — بلا أي تحويل
+  final double kabdUsd;
+
+  /// إجمالي الصرف بالدولار في هذا اليوم — بلا أي تحويل
+  final double sarfUsd;
+
   const DailyLiquidityPoint({
     required this.date,
     required this.kabd,
     required this.sarf,
+    this.kabdUsd = 0,
+    this.sarfUsd = 0,
   });
+
+  /// هل في هذا اليوم حركة بالدولار أصلاً؟
+  ///
+  /// يحكم ظهور مبدّل العملة فوق المخطّطات: مبدّلٌ إلى عملة لا حركة فيها
+  /// يعرض ورقةً فارغة ويُوهم بأن البيانات ناقصة.
+  bool get hasUsd => kabdUsd.abs() > 0.001 || sarfUsd.abs() > 0.001;
 }
 
 /// اتجاه السيولة لآخر 7 أيام — بيانات حقيقية للمخطط في لوحة التحكم
@@ -149,6 +173,8 @@ Future<List<DailyLiquidityPoint>> weeklyLiquidity(Ref ref) async {
       date: day,
       kabd: summary.totalKabd,
       sarf: summary.totalSarf,
+      kabdUsd: summary.totalKabdUsd,
+      sarfUsd: summary.totalSarfUsd,
     ));
   }
   return points;

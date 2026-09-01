@@ -55,6 +55,25 @@ Stream<List<AdvanceLineModel>> advanceLines(Ref ref, int advanceId) {
   return ref.watch(advanceRepositoryProvider).watchLines(advanceId);
 }
 
+/// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+///
+/// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+///
+/// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+@riverpod
+Future<Map<int, ({int count, double total})>> advancesByItemType(
+  Ref ref,
+  String query,
+) {
+  if (query.trim().isEmpty) {
+    return Future.value(const <int, ({int count, double total})>{});
+  }
+  return ref.watch(advanceRepositoryProvider).searchByItemType(query);
+}
+
 /// ملخص السلفة: المُرسَل / المصروف / المتبقي أو العجز
 ///
 /// يُعاد حسابه تلقائياً عند تغيّر الأسطر أو الأرصدة، لأنه يراقب

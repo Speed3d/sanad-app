@@ -169,10 +169,20 @@ class ReportActionsBar extends StatelessWidget {
     super.key,
     required this.onPrint,
     required this.onExport,
+    this.onExportDetails,
+    this.exportDetailsLabel = 'تصدير بالتفاصيل',
   });
 
   final VoidCallback? onPrint;
   final VoidCallback? onExport;
+
+  /// زرّ تصدير ثالث اختياري — تقريرٌ **أعمق** لا صيغة أخرى
+  ///
+  /// وُجد لتصدير سلف المشاريع بسطور مصاريفها (الدفعة ج): الملخّص والتفصيل
+  /// ورقتان مختلفتان لسؤالين مختلفين، لا ورقة واحدة تُرضي نصف السؤالين.
+  /// `null` — التبويب بلا تفصيل، فلا يظهر الزرّ إطلاقاً.
+  final VoidCallback? onExportDetails;
+  final String exportDetailsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -190,8 +200,16 @@ class ReportActionsBar extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onExport,
             icon: const Icon(Icons.table_view_outlined, size: 18),
-            label: const Text('تصدير Excel/CSV'),
+            label: const Text('تصدير Excel'),
           ),
+          if (onExportDetails != null) ...[
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: onExportDetails,
+              icon: const Icon(Icons.list_alt_outlined, size: 18),
+              label: Text(exportDetailsLabel),
+            ),
+          ],
         ],
       ),
     );

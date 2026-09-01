@@ -470,6 +470,198 @@ class _AdvanceLinesProviderElement
   int get advanceId => (origin as AdvanceLinesProvider).advanceId;
 }
 
+String _$advancesByItemTypeHash() =>
+    r'a1b3c8e904c4a843be37423809ce91f50303c4fd';
+
+/// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+///
+/// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+///
+/// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+///
+/// Copied from [advancesByItemType].
+@ProviderFor(advancesByItemType)
+const advancesByItemTypeProvider = AdvancesByItemTypeFamily();
+
+/// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+///
+/// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+///
+/// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+///
+/// Copied from [advancesByItemType].
+class AdvancesByItemTypeFamily
+    extends Family<AsyncValue<Map<int, ({int count, double total})>>> {
+  /// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+  ///
+  /// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+  ///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+  ///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+  ///
+  /// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+  ///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+  ///
+  /// Copied from [advancesByItemType].
+  const AdvancesByItemTypeFamily();
+
+  /// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+  ///
+  /// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+  ///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+  ///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+  ///
+  /// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+  ///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+  ///
+  /// Copied from [advancesByItemType].
+  AdvancesByItemTypeProvider call(
+    String query,
+  ) {
+    return AdvancesByItemTypeProvider(
+      query,
+    );
+  }
+
+  @override
+  AdvancesByItemTypeProvider getProviderOverride(
+    covariant AdvancesByItemTypeProvider provider,
+  ) {
+    return call(
+      provider.query,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'advancesByItemTypeProvider';
+}
+
+/// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+///
+/// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+///
+/// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+///
+/// Copied from [advancesByItemType].
+class AdvancesByItemTypeProvider
+    extends AutoDisposeFutureProvider<Map<int, ({int count, double total})>> {
+  /// السلف التي فيها بندٌ يطابق [query] — مفتاحها `advance_id`
+  ///
+  /// يخدم أمرين معاً في تقرير السلف (الدفعة ج — بلاغ المالك 2026-08-30):
+  ///   ١. **الفلترة**: «وقود» تُبقي السلف التي صُرف فيها وقود
+  ///   ٢. **الشارة**: «وقود: ٣ مصاريف · ١٬٢٠٠٬٠٠٠ د.ع» على كل بطاقة
+  ///
+  /// ⚠️ استعلامٌ واحد للأمرين لا اثنان: رقمان يُقرآن من مصدرين قد يفترقان،
+  ///   وقائمةٌ تقول «مطابِقة» وشارةٌ تقول «صفر» تُفقد الثقة بالبحث كلّه.
+  ///
+  /// Copied from [advancesByItemType].
+  AdvancesByItemTypeProvider(
+    String query,
+  ) : this._internal(
+          (ref) => advancesByItemType(
+            ref as AdvancesByItemTypeRef,
+            query,
+          ),
+          from: advancesByItemTypeProvider,
+          name: r'advancesByItemTypeProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$advancesByItemTypeHash,
+          dependencies: AdvancesByItemTypeFamily._dependencies,
+          allTransitiveDependencies:
+              AdvancesByItemTypeFamily._allTransitiveDependencies,
+          query: query,
+        );
+
+  AdvancesByItemTypeProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.query,
+  }) : super.internal();
+
+  final String query;
+
+  @override
+  Override overrideWith(
+    FutureOr<Map<int, ({int count, double total})>> Function(
+            AdvancesByItemTypeRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: AdvancesByItemTypeProvider._internal(
+        (ref) => create(ref as AdvancesByItemTypeRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        query: query,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Map<int, ({int count, double total})>>
+      createElement() {
+    return _AdvancesByItemTypeProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AdvancesByItemTypeProvider && other.query == query;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, query.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin AdvancesByItemTypeRef
+    on AutoDisposeFutureProviderRef<Map<int, ({int count, double total})>> {
+  /// The parameter `query` of this provider.
+  String get query;
+}
+
+class _AdvancesByItemTypeProviderElement
+    extends AutoDisposeFutureProviderElement<
+        Map<int, ({int count, double total})>> with AdvancesByItemTypeRef {
+  _AdvancesByItemTypeProviderElement(super.provider);
+
+  @override
+  String get query => (origin as AdvancesByItemTypeProvider).query;
+}
+
 String _$advanceSummaryHash() => r'baadd5433a51154303056d4d28ddf9ce849dd3c8';
 
 /// ملخص السلفة: المُرسَل / المصروف / المتبقي أو العجز

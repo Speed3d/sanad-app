@@ -22,6 +22,8 @@ import '../../../core/services/pdf_service.dart';
 import '../../providers/provider_read_once.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_provider.dart';
+import '../reports/report_print_actions.dart';
+import '../reports/report_table_builders.dart';
 
 /// إجراءات طباعة الرواتب
 abstract final class PayrollPrintActions {
@@ -48,6 +50,36 @@ abstract final class PayrollPrintActions {
       final header = await _header(ref);
       if (!context.mounted) return;
       await PdfPrintHelper.printPayrollSheet(context, data, header: header);
+    });
+  }
+
+  /// حفظ كشف رواتب شهر ملفَّ **Excel** (الدفعة ج — بلاغ المالك 2026-08-30)
+  ///
+  /// 🔑 **ولماذا تُعاد إلى `ReportPrintActions.exportExcel` بدل كتابة حفظٍ
+  ///   هنا؟** لأن اختيار المسار وإضافة `.xlsx` وترويسة الشركة ورسالة
+  ///   النجاح والفشل منطقٌ واحد. ونسخةٌ ثانية منه تعني أن إصلاح رسالةِ خطأ
+  ///   أو تغيير امتدادٍ يصل واحدة وينسى الأخرى — وهي عائلة الأعطال الأشيع
+  ///   في هذا المشروع.
+  ///
+  /// 📌 وبيان الكشف يُبنى من `buildSheetPrintData` نفسها التي تطبع — فلا
+  ///   مجموعان لكشفٍ واحد.
+  static Future<void> exportSheetExcel(
+    BuildContext context,
+    WidgetRef ref,
+    int periodId,
+  ) async {
+    await _guarded(context, () async {
+      final data = await ref
+          .read(payrollRepositoryProvider)
+          .buildSheetPrintData(periodId);
+
+      if (data.rows.isEmpty) {
+        throw StateError('الكشف فارغ — لا يوجد ما يُصدَّر.');
+      }
+
+      if (!context.mounted) return;
+      await ReportPrintActions.exportExcel(
+          context, ref, buildPayrollSheetTable(data));
     });
   }
 

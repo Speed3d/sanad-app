@@ -113,41 +113,69 @@ class _SheetHeader extends ConsumerWidget {
                 label: isPosted ? 'مُسدَّد' : 'مسودة',
                 color: isPosted ? Colors.green : colors.gold,
               ),
-              const Spacer(),
-              // الطباعة متاحة للجميع: قراءةٌ لا تكتب شيئاً ولا تمسّ مالاً
-              TextButton.icon(
-                onPressed: () => _openPrintSheetDialog(context, ref, period),
-                icon: const Icon(Icons.print_outlined, size: 18),
-                label: const Text('طباعة الكشف'),
+              // ⚠️ **`Expanded` + `Wrap` لا `Spacer` + أزرار في الصفّ**:
+              //   الصفّ كان يحمل خمسة أزرار بأقصى الحالات، وإضافة «حفظ
+              //   Excel» تجاوزت عرض النافذة الضيّقة فرمى الإطار
+              //   `RenderFlex overflowed` — الشريط الأصفر المشطوب الذي حجب
+              //   الأزرار. `Wrap` تُنزل ما لا يتّسع سطراً وتبقى كلها قابلة
+              //   للضغط. يحرسه `payroll_screens_test`.
+              Expanded(
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 4,
+                  runSpacing: 6,
+                  children: [
+                    // الطباعة متاحة للجميع: قراءةٌ لا تكتب شيئاً ولا تمسّ مالاً
+                    TextButton.icon(
+                      onPressed: () =>
+                          _openPrintSheetDialog(context, ref, period),
+                      icon: const Icon(Icons.print_outlined, size: 18),
+                      label: const Text('طباعة الكشف'),
+                    ),
+                    // حفظ الكشف Excel (الدفعة ج — بلاغ المالك 2026-08-30)
+                    //
+                    // بجوار الطباعة لا في قائمة مخفيّة: هما جوابان لسؤال
+                    // واحد — «أريد هذا الكشف خارج البرنامج» — وأحدهما للورق
+                    // والآخر للحساب. وهو **قراءةٌ لا تمسّ مالاً** فيراه
+                    // الجميع كالطباعة.
+                    TextButton.icon(
+                      onPressed: () => PayrollPrintActions.exportSheetExcel(
+                          context, ref, period.id),
+                      icon: const Icon(Icons.table_view_outlined, size: 18),
+                      label: const Text('حفظ Excel'),
+                    ),
+                    // 🔑 **إلغاء تسديد الشهر** (بلاغ المالك 2026-08-27): الكشف
+                    //   المُسدَّد كان بلا أي زرّ سوى الطباعة — فلا سبيل لتصحيح
+                    //   شهر اعتُمد خطأً إلا بالالتفاف على النظام (ع-٣٢).
+                    if (isPosted && canPay && (t?.paidCount ?? 0) > 0)
+                      TextButton.icon(
+                        onPressed: () =>
+                            _confirmUnpayPeriod(context, ref, period),
+                        icon: Icon(Icons.undo_rounded, color: colors.gold),
+                        label: Text('إلغاء تسديد الشهر',
+                            style: TextStyle(color: colors.gold)),
+                      ),
+                    // ⚠️ **والحذف يظهر للمُسدَّد أيضاً**: حواره صار يتعامل مع
+                    //   المدفوع بأمان منذ المرحلة ٧ (يعكسه أو يُبقيه)، والشرط
+                    //   الذي كان يُخفيه بقي من قبلها.
+                    if (canPrepare)
+                      TextButton.icon(
+                        onPressed: () =>
+                            _confirmDeletePeriod(context, ref, period),
+                        icon: Icon(Icons.delete_outline, color: colors.danger),
+                        label: Text('حذف الكشف',
+                            style: TextStyle(color: colors.danger)),
+                      ),
+                    if (canPay && hasUnpaid)
+                      FilledButton.icon(
+                        onPressed: () => _openPayDialog(context, ref, period),
+                        icon: const Icon(Icons.payments_rounded, size: 18),
+                        label: const Text('تسديد الرواتب'),
+                      ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 4),
-              // 🔑 **إلغاء تسديد الشهر** (بلاغ المالك 2026-08-27): الكشف
-              //   المُسدَّد كان بلا أي زرّ سوى الطباعة — فلا سبيل لتصحيح شهر
-              //   اعتُمد خطأً إلا بالالتفاف على النظام (وهو ما ولّد ع-٣٢).
-              if (isPosted && canPay && (t?.paidCount ?? 0) > 0)
-                TextButton.icon(
-                  onPressed: () => _confirmUnpayPeriod(context, ref, period),
-                  icon: Icon(Icons.undo_rounded, color: colors.gold),
-                  label: Text('إلغاء تسديد الشهر',
-                      style: TextStyle(color: colors.gold)),
-                ),
-              // ⚠️ **والحذف يظهر للمُسدَّد أيضاً**: حواره صار يتعامل مع
-              //   المدفوع بأمان منذ المرحلة ٧ (يعكسه أو يُبقيه)، والشرط
-              //   الذي كان يُخفيه بقي من قبلها.
-              if (canPrepare)
-                TextButton.icon(
-                  onPressed: () => _confirmDeletePeriod(context, ref, period),
-                  icon: Icon(Icons.delete_outline, color: colors.danger),
-                  label: Text('حذف الكشف',
-                      style: TextStyle(color: colors.danger)),
-                ),
-              const SizedBox(width: 8),
-              if (canPay && hasUnpaid)
-                FilledButton.icon(
-                  onPressed: () => _openPayDialog(context, ref, period),
-                  icon: const Icon(Icons.payments_rounded, size: 18),
-                  label: const Text('تسديد الرواتب'),
-                ),
             ],
           ),
           const SizedBox(height: 12),

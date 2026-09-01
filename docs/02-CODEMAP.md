@@ -115,6 +115,7 @@ lib/
 | `treasuries_dao` | `getTreasuryBalance()` — يقرأ من الـ VIEW |
 | `attachments_dao` | `watchForEntity()` · `findDuplicate()` · `deleteForEntity()` **يُعيد الصفوف** ليحذف المستدعي ملفاتها |
 | `advances_dao` | **+Schema v7**: `linkLineToPayroll()` · `getPayrollLinkPreviews()` · و**حارس المطابقة داخل `postAdvance`** يمنع احتساب المال مرّتين |
+| `advances_dao` | **+الدفعة ج**: `searchByItemType()` البحث بالبند داخل السلف (لا يعدّ المستبعَد) · `getLinesForAdvances()` أسطر عدّة سلف باستعلام واحد |
 | `payroll_dao` | `payEntries()` **ذرّية** (سند واحد + السطور + أقساط السلف) · `getTotals()` **مصدر الحقيقة الوحيد للمجموع** · `getYears()` تشتقّ السنوات · `findByFileHash()` · `getYearMonths()` و`getYearTreasuryShares()` و`getOutOfSheetSalaries()` لتقرير السنة |
 | `payroll_dao_reports.dart` | جزء (`mixin`) — **قراءة فقط**: تقرير الموظف والسنة · و`getStalePaidPayrolls()` **الكاشف المرآة**: سطورٌ «مسدَّدة» فقدت سندها |
 | `payroll_dao_reversals.dart` | جزء (`mixin`) — **كل ما يعكس راتباً خرج ماله**: `unpayEntry` · `correctPaidEntry` · `unpayEntriesForAdvance` · `recordSalaryDeductions` (المسار الوحيد لأقساط السلف). مصدر ستة أعطال متتالية فجُمعت لتُقرأ ككتلة |
@@ -141,7 +142,7 @@ lib/
 | الشاشة | المسار | ملاحظة |
 |---|---|---|
 | `splash_screen` · `login_screen` · `first_run_screen` | خارج الـ Shell | |
-| `dashboard_screen` + `dashboard_charts` | `/dashboard` | **بطاقات الخزائن** بدل الإجمالي · ٣ مخططات · بيانات حقيقية |
+| `dashboard_screen` + `dashboard_charts` | `/dashboard` | **بطاقات الخزائن** بدل الإجمالي · ٣ مخططات · بيانات حقيقية · **مبدّل عملة** يظهر حين يوجد دولار (الدفعة ج) |
 | `vouchers_list_screen` + جزء | `/vouchers` | ٤ تبويبات · بحث في **٩ حقول** · فلاتر: خزينة · بند · مشروع · **نطاق تاريخ ومبلغ**. قُسِّم بـ `part`: `vouchers_list_widgets` |
 | `voucher_sarf_screen` · `voucher_kabd_screen` | `/vouchers/sarf` · `/kabd` | ✅ الودجتات المشتركة في `voucher_form_widgets.dart` |
 | `voucher_transfer_screen` | `/vouchers/transfer` | ربط اختياري بسلفة |

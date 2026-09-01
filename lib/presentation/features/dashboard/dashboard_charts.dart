@@ -30,10 +30,42 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
   /// مؤشر التبويب النشط (0: اتجاه السيولة، 1: التوزيع الدائري، 2: أرصدة الخزائن)
   int _activeChartIndex = 0;
 
+  /// العملة المعروضة — الدينار افتراضاً (الدفعة ج — بلاغ المالك 2026-08-30)
+  ///
+  /// 🔑 **لماذا مبدّل لا خطّان في مخطّط واحد؟**
+  ///   لأن العملتين لا تُجمعان ولا تُقارنان: ٥٠٠ دولار و٥٠٠٬٠٠٠ دينار على
+  ///   محور واحد تجعل إحداهما خطّاً مسطّحاً على الصفر، ورسمُهما بمقياسين
+  ///   مختلفين يُوهم بمقارنةٍ بين رقمين لا يُقارنان. والقاعدة نفسها التي
+  ///   يحرسها `expense_reports_test`: **متجاورتان لا مجموعتان**.
+  bool _showUsd = false;
+
+  /// عناوين المخطّطات — العنوان يتبع المعروض
+  ///
+  /// كان الرأس يكتب «اتجاه السيولة» **دائماً** ولو كان المعروض أرصدة
+  /// الخزائن، فيقرأ المالك عنواناً لا يصف ما تحته.
+  static const _titles = [
+    'اتجاه السيولة — آخر 7 أيام',
+    'الحركة اليومية — قبض وصرف',
+    'أرصدة الخزائن',
+  ];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    // هل في البيانات دولارٌ أصلاً؟ — المبدّل لا يظهر إلا حين يوجد ما يُعرَض
+    //
+    // ⚠️ المزوّدان مُراقَبان في المخطّطات نفسها، فمراقبتهما هنا **قراءة
+    //   ثانية للمخزَّن لا استعلام إضافي** (Riverpod يشارك النتيجة).
+    final weekly = ref.watch(weeklyLiquidityProvider).valueOrNull;
+    final balances = ref.watch(treasuryBalancesProvider).valueOrNull;
+    final hasUsd = (weekly?.any((p) => p.hasUsd) ?? false) ||
+        (balances?.any((b) => b.balanceUsd.abs() > 0.001) ?? false);
+
+    // اختفاء البيانات بعد اختيار الدولار يُعيدنا إلى الدينار: مبدّلٌ مخفيّ
+    // وعملةٌ محفوظة يُنتجان مخطّطاً فارغاً بلا تفسير
+    final showUsd = _showUsd && hasUsd;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -48,10 +80,20 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── رأس الكارت ومبدّل الرسوم البيانية ───────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //
+          // ⚠️ **`Wrap` لا `Row`**: العنوان ومفاتيحُ المخطّطات الثلاثة كانت
+          //   تتجاوز عرض النافذة الضيّقة أصلاً، ومبدّل العملة زادها. و`Row`
+          //   لا تنكسر — ترمي `RenderFlex overflowed` وتُظهر الشريط الأصفر
+          //   المشطوب. `Wrap` تُنزل المفاتيح سطراً وتبقى الشاشة سليمة.
+          //   يحرسه `dashboard_currency_test`.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 32,
@@ -68,7 +110,7 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'اتجاه السيولة — آخر 7 أيام',
+                    _titles[_activeChartIndex],
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
@@ -80,7 +122,21 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
 
               // مفاتيح التبديل (Segmented Controls)
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // مبدّل العملة — قبل مفاتيح المخطّطات ليُقرأ أولاً
+                  if (hasUsd) ...[
+                    _buildCurrencyButton(false, 'د.ع', showUsd, isDark),
+                    const SizedBox(width: 4),
+                    _buildCurrencyButton(true, '\$', showUsd, isDark),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 1,
+                      height: 18,
+                      color: context.colors.border,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   _buildTabButton(0, 'اتجاه السيولة', Icons.show_chart_rounded, isDark),
                   const SizedBox(width: 4),
                   _buildTabButton(1, 'الحركة', Icons.pie_chart_outline_rounded, isDark),
@@ -97,10 +153,10 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
           SizedBox(
             height: 220,
             child: _activeChartIndex == 0
-                ? const _LiquiditySplineChart()
+                ? _LiquiditySplineChart(showUsd: showUsd)
                 : _activeChartIndex == 1
-                    ? const _DailyVouchersPieChart()
-                    : const _TreasuryBalancesBarChart(),
+                    ? _DailyVouchersPieChart(showUsd: showUsd)
+                    : _TreasuryBalancesBarChart(showUsd: showUsd),
           ),
         ],
       ),
@@ -145,6 +201,35 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
       ),
     );
   }
+
+  /// مفتاح عملة — بالشكل نفسه لمفاتيح المخطّطات فلا يبدو عنصراً غريباً
+  Widget _buildCurrencyButton(
+      bool usd, String label, bool showUsd, bool isDark) {
+    final isSelected = showUsd == usd;
+    return InkWell(
+      onTap: () => setState(() => _showUsd = usd),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark
+                  ? const Color(0xFFE0BC66).withValues(alpha: 0.18)
+                  : AppColors.navy.withValues(alpha: 0.10))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? context.colors.gold : context.colors.subtext,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── 1. مخطط اتجاه السيولة المنساب (LineChart Spline Area) ─────────────────────
@@ -152,7 +237,10 @@ class _DashboardChartsSectionState extends ConsumerState<DashboardChartsSection>
 // ✅ بيانات حقيقية (تصحيح تدقيق 2026-08-06): كان يعرض أرقاماً ثابتة مُلفَّقة.
 //    الآن يقرأ إجمالي القبض/الصرف لكل يوم من الأيام السبعة الأخيرة فعلياً.
 class _LiquiditySplineChart extends ConsumerWidget {
-  const _LiquiditySplineChart();
+  const _LiquiditySplineChart({required this.showUsd});
+
+  /// العملة المعروضة — يمرّرها القسم لا الودجت
+  final bool showUsd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -167,15 +255,18 @@ class _LiquiditySplineChart extends ConsumerWidget {
             style: theme.textTheme.bodySmall),
       ),
       data: (points) {
-        // تحويل المبالغ إلى ملايين لسهولة القراءة على المحور الرأسي
-        const scale = 1000000.0;
+        // مقياس المحور الرأسي بحسب العملة: الدينار بالملايين والدولار
+        // بالآلاف. مقياسٌ واحد للاثنين يجعل خطّ الدولار مسطّحاً على الصفر.
+        final scale = showUsd ? 1000.0 : 1000000.0;
         final kabdSpots = [
           for (var i = 0; i < points.length; i++)
-            FlSpot(i.toDouble(), points[i].kabd / scale),
+            FlSpot(i.toDouble(),
+                (showUsd ? points[i].kabdUsd : points[i].kabd) / scale),
         ];
         final sarfSpots = [
           for (var i = 0; i < points.length; i++)
-            FlSpot(i.toDouble(), points[i].sarf / scale),
+            FlSpot(i.toDouble(),
+                (showUsd ? points[i].sarfUsd : points[i].sarf) / scale),
         ];
 
         // أقصى قيمة على المحور الرأسي (مع هامش 20%) — 1 كحد أدنى لتجنب مخطط مسطّح
@@ -202,6 +293,7 @@ class _LiquiditySplineChart extends ConsumerWidget {
           sarfSpots,
           dayLabels,
           maxY,
+          showUsd ? '\$' : 'د.ع',
         );
       },
     );
@@ -214,16 +306,17 @@ class _LiquiditySplineChart extends ConsumerWidget {
     List<FlSpot> sarfSpots,
     List<String> dayLabels,
     double maxY,
+    String currencyLabel,
   ) {
     return Column(
       children: [
-        // مفتاح الرسم (Legend)
+        // مفتاح الرسم (Legend) — العملة مكتوبة فيه لا مفهومة ضمناً
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _buildLegendDot(context, 'قبض', Colors.green.shade600),
+            _buildLegendDot(context, 'قبض ($currencyLabel)', Colors.green.shade600),
             const SizedBox(width: 16),
-            _buildLegendDot(context, 'صرف', Colors.red.shade600),
+            _buildLegendDot(context, 'صرف ($currencyLabel)', Colors.red.shade600),
           ],
         ),
         const SizedBox(height: 10),
@@ -346,7 +439,10 @@ class _LiquiditySplineChart extends ConsumerWidget {
 
 // ── 2. الرسم البياني الدائري للحركة اليومية (قبض / صرف) ──────────────────────
 class _DailyVouchersPieChart extends ConsumerWidget {
-  const _DailyVouchersPieChart();
+  const _DailyVouchersPieChart({required this.showUsd});
+
+  /// العملة المعروضة — يمرّرها القسم لا الودجت
+  final bool showUsd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -364,14 +460,16 @@ class _DailyVouchersPieChart extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(child: Text('خطأ: $err')),
       data: (summary) {
-        final totalKabd = summary.totalKabd;
-        final totalSarf = summary.totalSarf;
+        final totalKabd = showUsd ? summary.totalKabdUsd : summary.totalKabd;
+        final totalSarf = showUsd ? summary.totalSarfUsd : summary.totalSarf;
         final total = totalKabd + totalSarf;
 
         if (total == 0) {
           return Center(
             child: Text(
-              'لا توجد حركات مالية مسجّلة اليوم',
+              showUsd
+                  ? 'لا حركات بالدولار اليوم'
+                  : 'لا توجد حركات مالية مسجّلة اليوم',
               style: TextStyle(
                 color: context.colors.subtext,
                 fontSize: 13,
@@ -420,7 +518,19 @@ class _DailyVouchersPieChart extends ConsumerWidget {
 
 // ── 3. الرسم البياني الشريط لأرصدة الخزائن ─────────────────────────────────
 class _TreasuryBalancesBarChart extends ConsumerWidget {
-  const _TreasuryBalancesBarChart();
+  const _TreasuryBalancesBarChart({required this.showUsd});
+
+  /// العملة المعروضة — يمرّرها القسم لا الودجت
+  final bool showUsd;
+
+  /// رصيد الخزينة بالعملة المعروضة — نقطة قراءةٍ **واحدة** يتبعها
+  /// الرسمُ وحسابُ أقصى المحور معاً
+  ///
+  /// ⚠️ كانتا قراءتين مستقلّتين لـ`balanceIqd` (العمود و`_calculateMaxY`)،
+  ///   ونسيانُ إحداهما عند إضافة عملةٍ يُنتج أعمدةً تتجاوز سقف المحور فتُقصّ
+  ///   بلا رسالة.
+  double _value(TreasuryBalanceModel t) =>
+      showUsd ? t.balanceUsd.abs() : t.balanceIqd.abs();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -434,7 +544,16 @@ class _TreasuryBalancesBarChart extends ConsumerWidget {
           return const Center(child: Text('لا توجد خزائن للعرض'));
         }
 
-        final displayList = balances.take(5).toList();
+        // بالدولار تُعرَض الخزائن التي فيها دولار وحدها — خمسة أعمدة
+        // صفرية تُوهم بأن الأرصدة صفر لا بأنها بعملة أخرى
+        final source = showUsd
+            ? balances.where((t) => t.balanceUsd.abs() > 0.001).toList()
+            : balances;
+        if (source.isEmpty) {
+          return const Center(child: Text('لا خزينة برصيد بالدولار'));
+        }
+
+        final displayList = source.take(5).toList();
 
         return BarChart(
           BarChartData(
@@ -475,7 +594,7 @@ class _TreasuryBalancesBarChart extends ConsumerWidget {
                 x: idx,
                 barRods: [
                   BarChartRodData(
-                    toY: t.balanceIqd.abs(),
+                    toY: _value(t),
                     color: const Color(0xFFE0BC66),
                     width: 22,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
@@ -493,8 +612,8 @@ class _TreasuryBalancesBarChart extends ConsumerWidget {
     if (list.isEmpty) return 100;
     double maxVal = 0;
     for (final item in list) {
-      if (item.balanceIqd.abs() > maxVal) {
-        maxVal = item.balanceIqd.abs();
+      if (_value(item) > maxVal) {
+        maxVal = _value(item);
       }
     }
     return maxVal == 0 ? 100 : maxVal * 1.2;

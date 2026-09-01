@@ -113,6 +113,19 @@ class AdvanceRepository implements IAdvanceRepository {
   }
 
   @override
+  Future<List<AdvanceLineModel>> getLinesForAdvances(
+      List<int> advanceIds) async {
+    final rows = await _db.advancesDao.getLinesForAdvances(advanceIds);
+    return rows.map(_toLineModel).toList();
+  }
+
+  @override
+  Future<Map<int, ({int count, double total})>> searchByItemType(
+      String query) {
+    return _db.advancesDao.searchByItemType(query);
+  }
+
+  @override
   Future<AdvanceModel?> findByFileHash(String hash) async {
     final a = await _db.advancesDao.findByFileHash(hash);
     return a == null ? null : _toModel(a);

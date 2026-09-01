@@ -957,7 +957,7 @@ class _DailySummaryProviderElement extends AutoDisposeFutureProviderElement<
   DateTime get date => (origin as DailySummaryProvider).date;
 }
 
-String _$weeklyLiquidityHash() => r'7deb9ed471d6fa9b692367dafb3d29c2a7eaf218';
+String _$weeklyLiquidityHash() => r'51e9bc9a6a0d4d150606c77dc657065090b50938';
 
 /// اتجاه السيولة لآخر 7 أيام — بيانات حقيقية للمخطط في لوحة التحكم
 ///

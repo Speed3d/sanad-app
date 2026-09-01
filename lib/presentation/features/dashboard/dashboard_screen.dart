@@ -393,76 +393,75 @@ class _DailyStatCardsRow extends ConsumerWidget {
         final kabdSub = _changeSubtitle(summary.totalKabd, prev?.totalKabd);
         final sarfSub = _changeSubtitle(summary.totalSarf, prev?.totalSarf);
 
+        // ── الدولار — متجاوراً لا مجموعاً (الدفعة ج — بلاغ المالك) ──────
+        //
+        // 🔴 **ما كان معطوباً:** `getDailySummary` تُعيد الدولار منذ المرحلة
+        //   ١٦، وتبويبُ «الملخّص اليومي» في التقارير يعرضه — ولوحة التحكم
+        //   **وحدها** كانت تقرأ الدينار وتكتب «د.ع» بلا تحفّظ. فيومٌ قُبض
+        //   فيه ٥٠٠ دولار وحدها يقول «قبض اليوم: 0» — رقمٌ مطمئِن وكاذب.
+        //
+        // والدولار يظهر **حين يوجد فقط**: سطرُ «$ 0.00» تحت كل بطاقة في
+        // شركةٍ لا تتعامل بالدولار ضجيجٌ دائم.
+        final usdFmt = NumberFormat('#,##0.00');
+        final hasUsd = summary.totalKabdUsd.abs() > 0.001 ||
+            summary.totalSarfUsd.abs() > 0.001;
+        final netUsd = summary.totalKabdUsd - summary.totalSarfUsd;
+
+        // البطاقات الثلاث تُبنى **مرّة واحدة** ويُعاد ترتيبها بحسب العرض.
+        // نسختان منها تعنيان أن إضافة الدولار تصل إحداهما وتنسى الأخرى —
+        // وهي عين العلّة التي أنتجت ٨٤٠ سطراً مكرّراً (المرحلة د).
+        final tiles = [
+          _StatTile(
+            label: 'قبض اليوم',
+            value: fmt.format(summary.totalKabd),
+            subtitle: kabdSub,
+            usdValue: hasUsd ? usdFmt.format(summary.totalKabdUsd) : null,
+            icon: Icons.south_west_rounded,
+            chipBg: Colors.green.withValues(alpha: 0.12),
+            color: Colors.green.shade600,
+          ),
+          _StatTile(
+            label: 'صرف اليوم',
+            value: fmt.format(summary.totalSarf),
+            subtitle: sarfSub,
+            usdValue: hasUsd ? usdFmt.format(summary.totalSarfUsd) : null,
+            icon: Icons.north_east_rounded,
+            chipBg: Colors.red.withValues(alpha: 0.12),
+            color: Colors.red.shade600,
+          ),
+          _StatTile(
+            label: 'الصافي',
+            value: fmt.format(net),
+            subtitle: net >= 0 ? 'فرق موجب' : 'فرق سالب',
+            usdValue: hasUsd ? usdFmt.format(netUsd) : null,
+            icon: Icons.swap_horiz_rounded,
+            chipBg: const Color(0xFFE0BC66).withValues(alpha: 0.14),
+            color: const Color(0xFFB8862E),
+          ),
+        ];
+
         return LayoutBuilder(
           builder: (context, constraints) {
             final isNarrow = constraints.maxWidth < 600;
             if (isNarrow) {
               return Column(
                 children: [
-                  _StatTile(
-                    label: 'قبض اليوم',
-                    value: fmt.format(summary.totalKabd),
-                    subtitle: kabdSub,
-                    icon: Icons.south_west_rounded,
-                    chipBg: Colors.green.withValues(alpha: 0.12),
-                    color: Colors.green.shade600,
-                  ),
+                  tiles[0],
                   const SizedBox(height: 10),
-                  _StatTile(
-                    label: 'صرف اليوم',
-                    value: fmt.format(summary.totalSarf),
-                    subtitle: sarfSub,
-                    icon: Icons.north_east_rounded,
-                    chipBg: Colors.red.withValues(alpha: 0.12),
-                    color: Colors.red.shade600,
-                  ),
+                  tiles[1],
                   const SizedBox(height: 10),
-                  _StatTile(
-                    label: 'الصافي',
-                    value: fmt.format(net),
-                    subtitle: net >= 0 ? 'فرق موجب' : 'فرق سالب',
-                    icon: Icons.swap_horiz_rounded,
-                    chipBg: const Color(0xFFE0BC66).withValues(alpha: 0.14),
-                    color: const Color(0xFFB8862E),
-                  ),
+                  tiles[2],
                 ],
               );
             }
 
             return Row(
               children: [
-                Expanded(
-                  child: _StatTile(
-                    label: 'قبض اليوم',
-                    value: fmt.format(summary.totalKabd),
-                    subtitle: kabdSub,
-                    icon: Icons.south_west_rounded,
-                    chipBg: Colors.green.withValues(alpha: 0.12),
-                    color: Colors.green.shade600,
-                  ),
-                ),
+                Expanded(child: tiles[0]),
                 const SizedBox(width: 14),
-                Expanded(
-                  child: _StatTile(
-                    label: 'صرف اليوم',
-                    value: fmt.format(summary.totalSarf),
-                    subtitle: sarfSub,
-                    icon: Icons.north_east_rounded,
-                    chipBg: Colors.red.withValues(alpha: 0.12),
-                    color: Colors.red.shade600,
-                  ),
-                ),
+                Expanded(child: tiles[1]),
                 const SizedBox(width: 14),
-                Expanded(
-                  child: _StatTile(
-                    label: 'الصافي',
-                    value: fmt.format(net),
-                    subtitle: net >= 0 ? 'فرق موجب' : 'فرق سالب',
-                    icon: Icons.swap_horiz_rounded,
-                    chipBg: const Color(0xFFE0BC66).withValues(alpha: 0.14),
-                    color: const Color(0xFFB8862E),
-                  ),
-                ),
+                Expanded(child: tiles[2]),
               ],
             );
           },
@@ -480,6 +479,9 @@ class _StatTile extends StatelessWidget {
   final Color chipBg;
   final Color color;
 
+  /// المبلغ بالدولار منسَّقاً — `null` حين لا دولار في اليوم فلا يظهر السطر
+  final String? usdValue;
+
   const _StatTile({
     required this.label,
     required this.value,
@@ -487,6 +489,7 @@ class _StatTile extends StatelessWidget {
     required this.icon,
     required this.chipBg,
     required this.color,
+    this.usdValue,
   });
 
   @override
@@ -545,6 +548,21 @@ class _StatTile extends StatelessWidget {
               color: context.colors.subtext,
             ),
           ),
+          // الدولار بلونه الذهبي المميّز — بالشكل نفسه المستعمَل في بطاقات
+          // الخزائن أعلاه، فيعرفه المالك من لمحة
+          if (usdValue != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '\$ $usdValue',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFB8862E),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );

@@ -19,6 +19,8 @@
 import 'package:intl/intl.dart';
 
 import '../../../core/extensions/string_extensions.dart';
+import '../../../core/services/payroll_print_data.dart';
+import '../../../core/services/pdf_service.dart' show PayrollPrintCurrency;
 import '../../../core/services/report_print_data.dart';
 
 import '../../../data/database/daos/advances_dao.dart';
@@ -346,5 +348,173 @@ ReportTableData buildAdvancesListTable({
     numericColumns: const {4, 5},
     footerNote: 'مجموع الملف هو ما ذكره ملف الإكسل عند الاستيراد — '
         'والمصروف الفعليّ لكل سلفة في شاشة مراجعتها.',
+  );
+}
+
+// ── ٤-ب) سلف المشاريع **بسطورها** ───────────────────────────────────────────
+
+/// تصدير السلف بتفاصيل مصاريفها — سطرٌ لكل مصروف لا لكل سلفة
+///
+/// 🔑 **ما كان ناقصاً** (الدفعة ج — بلاغ المالك 2026-08-30): التصدير كان
+///   يُخرج **المبلغ الكلي** لكل سلفة، فالورقة تقول «سلفة ٢٣: ٨٬٤٠٠٬٠٠٠»
+///   ولا تقول على ماذا. والسؤال الذي يُطرَح فعلاً — «على ماذا صُرفت؟» — يبقى
+///   بلا جواب إلا بفتح البرنامج سلفةً سلفة.
+///
+/// ⚠️ **والمستبعَد يظهر ولا يُحتسَب.** إخفاؤه يجعل الورقة تقول إن المحاسب
+///   أرسل عشرة مصاريف وقد أرسل اثني عشر — وهو تزييفٌ بالحذف. وعمودُ الحالة
+///   يقول أيّها دخل المجموع، والمجموع نفسه لا يعدّ المستبعَد.
+///
+/// [itemQuery] — بند البحث الفعّال إن وُجد؛ يُكتَب في الترويسة كي **لا
+///   تُقرأ الورقة ناقصةً** بعد شهور: صفحةٌ فيها الوقود وحده بلا ذكر الفلتر
+///   تبدو كشفاً كاملاً للسلفة.
+ReportTableData buildAdvanceLinesTable({
+  required String statusLabel,
+  required String query,
+  required String itemQuery,
+  required List<AdvanceModel> advances,
+  required List<AdvanceLineModel> lines,
+}) {
+  final byId = {for (final a in advances) a.id: a};
+
+  final filters = [
+    'الحالة: $statusLabel',
+    if (query.isNotEmpty) 'بحث: «$query»',
+    if (itemQuery.isNotEmpty) 'البند: «$itemQuery»',
+  ].join(' · ');
+
+  final counted = lines.where((l) => !l.isExcluded).toList();
+  final excluded = lines.length - counted.length;
+
+  return ReportTableData(
+    title: 'سلف المشاريع — بتفاصيل المصاريف',
+    subtitle: filters,
+    columns: const [
+      'رقم السلفة',
+      'المشروع',
+      'التاريخ',
+      'البند',
+      'البيان',
+      'الشخص',
+      'الفاتورة',
+      'المبلغ (د.ع)',
+      'الحالة',
+    ],
+    rows: [
+      for (final l in lines)
+        [
+          byId[l.advanceId]?.advanceNumber ?? '—',
+          byId[l.advanceId]?.projectName.orDefault('—') ?? '—',
+          _date.format(l.voucherDate.toLocal()),
+          l.itemType.isEmpty ? 'بلا بند' : l.itemType,
+          l.reason.orDefault('—'),
+          l.personName.orDefault('—'),
+          (l.invoiceNumber ?? '').orDefault('—'),
+          _money.format(l.amount),
+          l.isExcluded ? 'مستبعَد' : 'محتسَب',
+        ],
+    ],
+    summary: [
+      (label: 'عدد السلف', value: '${byId.length}'),
+      (label: 'عدد المصاريف', value: '${counted.length}'),
+      (
+        label: 'المجموع المحتسَب',
+        value: _iqd(counted.fold<double>(0, (s, l) => s + l.amount))
+      ),
+      if (excluded > 0) (label: 'مصاريف مستبعَدة', value: '$excluded'),
+    ],
+    landscape: true,
+    numericColumns: const {7},
+    footerNote: [
+      'المصاريف المستبعَدة معروضة ولا تدخل المجموع.',
+      if (itemQuery.isNotEmpty)
+        'هذه الورقة مفلترة على البند «$itemQuery» — وليست كشف السلفة كاملاً.',
+    ].join(' '),
+  );
+}
+
+// ── ٧) كشف رواتب شهر ─────────────────────────────────────────────────────────
+
+/// كشف رواتب شهر جاهزاً لـExcel — الأعمدة نفسها التي تُطبع في الـPDF
+///
+/// 🔑 **ما كان ناقصاً** (الدفعة ج — بلاغ المالك 2026-08-30): كشف الشهر كان
+///   يُطبَع PDF ولا يُحفَظ Excel إطلاقاً، بينما البنية كلّها جاهزة
+///   (`ExcelExportService` + `ReportPrintActions.exportExcel`). فمن أراد
+///   جمعاً أو فرزاً أو معادلةً على الكشف طبعه ثم أعاد إدخاله بيده.
+///
+/// ⚠️ **والفرق المقصود عن ورقة الطباعة: الصفر يُكتَب صفراً لا «—».**
+///   الشرطة أوضح على الورق، وفي Excel تجعل الخليّة **نصّاً** فينكسر جمع
+///   العمود — وهو الغرض الوحيد من التصدير. والأيام أرقامٌ كذلك، فسؤال «كم
+///   يوم غياب هذا الشهر؟» يُجاب بمعادلة واحدة.
+///
+/// ⚠️ **وعمود التوقيع لا يُصدَّر**: خانةٌ فارغة تُوقَّع باليد لا معنى لها في
+///   ملف، وتُزيح الأعمدة بلا فائدة.
+ReportTableData buildPayrollSheetTable(PayrollSheetPrintData data) {
+  final hasUsd = data.hasForeignCurrency;
+  final gap = data.fileTotalGap;
+
+  return ReportTableData(
+    title: 'كشف رواتب ${data.periodLabel}',
+    subtitle: [
+      'أيام العمل: ${data.workingDays}',
+      if (data.exchangeRate != null)
+        'سعر الصرف: ${_money.format(data.exchangeRate)}',
+      data.isPosted ? 'الحالة: مُسدَّد' : 'الحالة: غير مُسدَّد بالكامل',
+    ].join(' · '),
+    columns: const [
+      '#',
+      'الاسم',
+      'الصفة',
+      'العملة',
+      'الأساسي',
+      'الأيام',
+      'غياب',
+      'خصم الغياب',
+      'مكافأة',
+      'خصم',
+      'خصم سلفة',
+      'الصافي',
+      'بالدينار',
+      'الحالة',
+    ],
+    rows: [
+      for (final r in data.rows)
+        [
+          '${r.seq}',
+          r.name,
+          r.position.orDefault('—'),
+          r.currency == PayrollPrintCurrency.iqd ? 'د.ع' : '\$',
+          _money.format(r.basicSalary),
+          '${r.eligibleDays}',
+          '${r.absenceDays}',
+          _money.format(r.absenceDeduction),
+          _money.format(r.bonus),
+          _money.format(r.deduction),
+          _money.format(r.advanceRepayment),
+          _money.format(r.net),
+          _money.format(r.netIqd),
+          r.isPaid
+              ? (r.addedAfterPosting ? 'مسدَّد (لاحق)' : 'مسدَّد')
+              : 'مستحقّ',
+        ],
+    ],
+    summary: [
+      (label: 'عدد الموظفين', value: '${data.employeeCount}'),
+      (label: 'مجموع الكشف', value: _iqd(data.totalIqd)),
+      (label: 'المُسدَّد', value: _iqd(data.paidIqd)),
+      (label: 'المتبقّي', value: _iqd(data.unpaidIqd)),
+      if (data.fileTotal > 0)
+        (label: 'مجموع ملف المحاسب', value: _iqd(data.fileTotal)),
+      if (gap != null) (label: 'الفرق عن الملف', value: _iqd(gap)),
+    ],
+    landscape: true,
+    // كل عمود مالٍ أو عددِ أيام — فيُجمَع ويُفرَز في Excel
+    numericColumns: const {4, 5, 6, 7, 8, 9, 10, 11, 12},
+    footerNote: [
+      if (hasUsd)
+        'رواتب الدولار محوَّلة في عمود «بالدينار» بسعر صرف الشهر المجمَّد '
+            'لا بسعر اليوم.',
+      if (gap != null)
+        'مجموع الكشف يخالف مجموع ملف المحاسب — راجع الفرق أعلاه.',
+    ].join(' '),
   );
 }

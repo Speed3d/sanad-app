@@ -129,6 +129,15 @@ abstract class IAdvanceRepository {
   /// متابعة أسطر مسودة سلفة
   Stream<List<AdvanceLineModel>> watchLines(int advanceId);
 
+  /// أسطر عدّة سلف دفعةً واحدة — للتصدير بالتفاصيل (الدفعة ج)
+  Future<List<AdvanceLineModel>> getLinesForAdvances(List<int> advanceIds);
+
+  /// السلف التي فيها بندٌ يطابق [query] — ولكلٍّ عددُ مصاريفه ومجموعها
+  ///
+  /// المفتاح `advance_id`. المستبعَد لا يُعدّ. راجع
+  /// `AdvancesDao.searchByItemType` لشرح القرارين.
+  Future<Map<int, ({int count, double total})>> searchByItemType(String query);
+
   /// ملخص السلفة: المُرسَل / المصروف / المتبقي أو العجز
   Future<AdvanceSummary> getSummary(int advanceId);
 
