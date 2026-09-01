@@ -110,10 +110,10 @@ Future<bool> verifyPassword(String storedHash, String inputPassword) async { ...
 
 ### إصدار المشروع الحالي
 - **Flutter**: ≥ 3.22 (المستعمَل 3.44.4) | **Dart**: ≥ 3.5.0
-- **Schema Version**: **7**
+- **Schema Version**: **8**
 - **App Version**: 1.0.0+1
 - **المنصة الهدف**: ويندوز سطح المكتب (قرار المالك 2026-08-23)
-- **خط الأساس**: **510/510 اختبار** · المحلّل **0 مشاكل**
+- **خط الأساس**: **821/821 اختبار** · المحلّل **0 مشاكل**
 
 ### 📚 التوثيق الرسمي — المصدر المتكامل
 
@@ -135,6 +135,7 @@ Future<bool> verifyPassword(String storedHash, String inputPassword) async { ...
 |---|---|
 | `plan/PROGRESS_LOG.md` | سجل التقدم اليومي والأخطاء |
 | `plan/MASTER_PLAN_ADVANCES_V2.md` | خطة نظام سلف المشاريع |
+| `plan/MASTER_PLAN_PAYROLL.md` | خطة نظام الموظفين والرواتب (مُنفَّذة بالكامل) |
 | `plan/SECURITY_AUDIT_REPORT.md` | تقرير التدقيق الأمني |
 | `plan/IMPLEMENTATION_PLAN.md` | الخطة التاريخية الأولى (مرجع) |
 
@@ -148,6 +149,7 @@ Future<bool> verifyPassword(String storedHash, String inputPassword) async { ...
 
 ---
 
-*آخر تحديث: 2026-08-24 — وثيقة الميثاق v1.1*
-*التحديث: ربط التوثيق الرسمي · Schema v5 · المنصة الهدف · خط الأساس 342*
+*آخر تحديث: 2026-09-01 — وثيقة الميثاق v1.2*
+*التحديث: مزامنة مرجع الحالة — Schema v8 · خط الأساس 821*
+*⚠️ لم تُمسّ أي شرطٍ من شروط الميثاق — التحديث في الأرقام المرجعية وحدها*
 *لا يُعدَّل هذا الملف إلا بموافقة صريحة من المالك*
