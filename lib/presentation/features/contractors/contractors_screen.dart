@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/models/contractor_model.dart';
 import '../../providers/contractor_providers.dart';
 import '../../widgets/common/app_components.dart';
+import '../../widgets/common/treasury_link_picker.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ContractorsScreen — الشاشة الرئيسية
@@ -592,6 +593,10 @@ class _ContractorFormDialogState
   String _contractorType = 'individual';
   bool _saving = false;
 
+  /// كيف تُربَط خزينته — الإنشاء التلقائي هو الافتراضي (قرار المالك)
+  TreasuryLinkMode _treasuryMode = TreasuryLinkMode.create;
+  int? _linkedTreasuryId;
+
   bool get _isEdit => widget.existing != null;
 
   @override
@@ -669,6 +674,8 @@ class _ContractorFormDialogState
                     border: const OutlineInputBorder(),
                   ),
                   textCapitalization: TextCapitalization.words,
+                  // إعادة البناء ليتبع اسمُ الخزينة المقترَح ما يُكتَب
+                  onChanged: (_) => setState(() {}),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'حقل إلزامي' : null,
                 ),
@@ -717,6 +724,26 @@ class _ContractorFormDialogState
                   maxLines: 3,
                 ),
                 const SizedBox(height: 16),
+                // ── الخزينة (الإنشاء وحده — راجع أدناه) ───────────────
+                //
+                // ⚠️ **لا تظهر عند التعديل**: تغيير خزينة مقاولٍ له حركة
+                //   مالية ينقل رصيداً بين حسابين بضغطة، وهو قرارٌ يحتاج
+                //   مساراً محروساً بنفسه لا حقلاً في حوار تعديل بيانات.
+                if (!_isEdit) ...[
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  TreasuryLinkPicker(
+                    mode: _treasuryMode,
+                    linkedTreasuryId: _linkedTreasuryId,
+                    autoName: 'مقاول: ${_nameCtrl.text.trim().isEmpty ?
+                        '(اسم المقاول)' : _nameCtrl.text.trim()}',
+                    onChanged: (m, id) => setState(() {
+                      _treasuryMode = m;
+                      _linkedTreasuryId = id;
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ],
             ),
           ),
@@ -766,6 +793,9 @@ class _ContractorFormDialogState
         address: _addressCtrl.text,
         contractorType: _contractorType,
         notes: _notesCtrl.text,
+        createTreasury: _treasuryMode == TreasuryLinkMode.create,
+        existingTreasuryId:
+            _treasuryMode == TreasuryLinkMode.link ? _linkedTreasuryId : null,
       );
     }
 

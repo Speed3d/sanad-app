@@ -98,7 +98,7 @@ lib/
 | `departments` | **أقسام الموظفين** (Schema v8) | الفرادة **فهرس جزئي** لا قيد عمود (الحذف ناعم) · والترتيب على مستويين: القسم ثم الموظف داخله |
 | `payroll_periods` | **كشف رواتب شهر** (Schema v7) | فهرس فريد `(year, month)` ⇒ لا كشفان لشهر واحد |
 | `salary_payments` | **سطر كشف الرواتب** (تغيّر معناه في v7) | يحمل **لقطة** الموظف لحظة الشهر · فريد `(كشف، موظف)` · سطور الدفعة الواحدة تشترك في `voucher_id` |
-| `contractors` · `partners` | الأطراف الخارجية | |
+| `contractors` · `partners` | الأطراف الخارجية | **وُصِّلا بالخزائن 2026-09-01**: `insertContractorWithTreasury` / `insertPartnerWithTreasury` تُنشئان الخزينة بنوعها وتربطانها في معاملة واحدة |
 | `advances` · `advance_lines` · `item_types` | **سلف المشاريع** (Schema v5) | ⚠️ ≠ `cash_advances` |
 | `attachments` | فهرس مرفقات السلف والسندات (Schema v6) | **المسار نسبي لا مطلق** · `entity_id` بلا مفتاح خارجي (يشير لجدولين) |
 | `exchange_rates` · `audit_log` | مساعدة | |

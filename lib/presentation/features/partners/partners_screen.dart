@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/models/partner_model.dart';
 import '../../providers/partner_providers.dart';
+import '../../widgets/common/treasury_link_picker.dart';
 import '../../widgets/common/app_components.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -669,6 +670,10 @@ class _PartnerFormDialogState extends ConsumerState<_PartnerFormDialog> {
   final _notesCtrl = TextEditingController();
   bool _saving = false;
 
+  /// كيف تُربَط خزينته — الإنشاء التلقائي هو الافتراضي (قرار المالك)
+  TreasuryLinkMode _treasuryMode = TreasuryLinkMode.create;
+  int? _linkedTreasuryId;
+
   bool get _isEdit => widget.existing != null;
 
   @override
@@ -727,6 +732,8 @@ class _PartnerFormDialogState extends ConsumerState<_PartnerFormDialog> {
                     border: OutlineInputBorder(),
                   ),
                   textCapitalization: TextCapitalization.words,
+                  // إعادة البناء ليتبع اسمُ الخزينة المقترَح ما يُكتَب
+                  onChanged: (_) => setState(() {}),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'حقل إلزامي' : null,
                 ),
@@ -788,6 +795,25 @@ class _PartnerFormDialogState extends ConsumerState<_PartnerFormDialog> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 16),
+                // ── الخزينة (الإنشاء وحده) ────────────────────────────
+                //
+                // ⚠️ لا تظهر عند التعديل: تغيير خزينة شريكٍ له حركة مالية
+                //   ينقل رصيداً بين حسابين بضغطة — مسارٌ يحتاج حارساً بنفسه.
+                if (!_isEdit) ...[
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  TreasuryLinkPicker(
+                    mode: _treasuryMode,
+                    linkedTreasuryId: _linkedTreasuryId,
+                    autoName: 'شريك: ${_nameCtrl.text.trim().isEmpty ?
+                        '(اسم الشريك)' : _nameCtrl.text.trim()}',
+                    onChanged: (m, id) => setState(() {
+                      _treasuryMode = m;
+                      _linkedTreasuryId = id;
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ],
             ),
           ),
@@ -836,6 +862,9 @@ class _PartnerFormDialogState extends ConsumerState<_PartnerFormDialog> {
         address: _addressCtrl.text,
         sharePercentage: share,
         notes: _notesCtrl.text,
+        createTreasury: _treasuryMode == TreasuryLinkMode.create,
+        existingTreasuryId:
+            _treasuryMode == TreasuryLinkMode.link ? _linkedTreasuryId : null,
       );
     }
 

@@ -224,7 +224,7 @@ class _SearchPartnersProviderElement
   String get query => (origin as SearchPartnersProvider).query;
 }
 
-String _$partnerNotifierHash() => r'6d43e4a9a45204d59d59fa84205f02c5dadc0dad';
+String _$partnerNotifierHash() => r'9f836b2a5e88ae081bdea6654b5522c1b5f420e6';
 
 /// Notifier لإدارة عمليات الشركاء
 ///

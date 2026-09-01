@@ -15,11 +15,12 @@
 import 'package:drift/drift.dart';
 import '../app_database.dart';
 import '../tables/contractors_table.dart';
+import '../tables/treasuries_table.dart';
 
 part 'contractors_dao.g.dart';
 
 /// DAO المقاولين
-@DriftAccessor(tables: [Contractors])
+@DriftAccessor(tables: [Contractors, Treasuries])
 class ContractorsDao extends DatabaseAccessor<AppDatabase>
     with _$ContractorsDaoMixin {
   ContractorsDao(super.db);
@@ -108,6 +109,57 @@ class ContractorsDao extends DatabaseAccessor<AppDatabase>
   /// إضافة مقاول جديد — يُعيد الـ ID المُولَّد
   Future<int> insertContractor(ContractorsCompanion contractor) {
     return into(contractors).insert(contractor);
+  }
+
+  /// إضافة مقاول **مع خزينته** — معاملة واحدة ذرّية
+  ///
+  /// 🔑 **الميزة التي وُصلت أخيراً** (قرار المالك 2026-09-01): كان
+  ///   `contractors.treasury_id` يبقى `NULL` **أبداً** لأن واجهة الإنشاء لا
+  ///   تمرّره، و`kind` ثابت `'main'` عند إنشاء أي خزينة. فتبويبا الفلترة
+  ///   «مقاولون/شركاء» في شاشة الخزائن وشاراتهما كانا **واجهةً لبيانات لا
+  ///   يمكن أن توجد** — وهو ع-٠٦ في أوسع صوره: ميزةٌ كاملة معروضة ومعطَّلة.
+  ///
+  /// [treasuryName] — اسم خزينةٍ تُنشَأ له · `null` ⇒ لا خزينة جديدة
+  /// [existingTreasuryId] — ربطٌ بخزينة قائمة بدل إنشاء واحدة
+  ///
+  /// ⚠️ **معاملة واحدة**: مقاولٌ بلا خزينته أو خزينةٌ بلا صاحبها نصفُ
+  ///   عملية — والنصف هنا يظهر في شاشة الخزائن ببطاقة «حساب مقاول» بلا
+  ///   مقاول، أو بتبويبٍ فارغ رغم وجود المقاول.
+  Future<int> insertContractorWithTreasury(
+    ContractorsCompanion contractor, {
+    String? treasuryName,
+    int? existingTreasuryId,
+  }) {
+    return transaction(() async {
+      final id = await into(contractors).insert(contractor);
+
+      var treasuryId = existingTreasuryId;
+      if (treasuryId == null && treasuryName != null) {
+        treasuryId = await into(treasuries).insert(
+          TreasuriesCompanion.insert(
+            name: treasuryName,
+            kind: const Value('contractor'),
+            entityId: Value(id),
+            entityType: const Value('contractor'),
+          ),
+        );
+      } else if (treasuryId != null) {
+        // خزينةٌ قائمة تصير حساب مقاول — وإلا بقيت «رئيسية» في كل تبويب
+        // وشارة، فيُربَط المقاول بها ولا يراه أحد
+        await (update(treasuries)..where((t) => t.id.equals(treasuryId!)))
+            .write(TreasuriesCompanion(
+          kind: const Value('contractor'),
+          entityId: Value(id),
+          entityType: const Value('contractor'),
+        ));
+      }
+
+      if (treasuryId != null) {
+        await (update(contractors)..where((c) => c.id.equals(id)))
+            .write(ContractorsCompanion(treasuryId: Value(treasuryId)));
+      }
+      return id;
+    });
   }
 
   /// تحديث بيانات مقاول — تحديث جزئي للحقول الحاضرة فقط

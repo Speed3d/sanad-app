@@ -97,6 +97,8 @@ class PartnerNotifier extends _$PartnerNotifier {
     String address = '',
     double sharePercentage = 0.0,
     String notes = '',
+    bool createTreasury = true,
+    int? existingTreasuryId,
   }) async {
     if (name.trim().isEmpty) {
       state = const AsyncError(
@@ -125,17 +127,25 @@ class PartnerNotifier extends _$PartnerNotifier {
         );
         return false;
       }
-      await _db.partnersDao.insertPartner(
+      // 🔑 الخزينة تُنشَأ أو تُربَط هنا — راجع `createContractor` للشرح
+      final clean = name.trim();
+      await _db.partnersDao.insertPartnerWithTreasury(
         PartnersCompanion.insert(
-          name: name.trim(),
+          name: clean,
           phone: Value(phone.trim()),
           address: Value(address.trim()),
           sharePercentage: Value(sharePercentage),
           notes: Value(notes.trim()),
         ),
+        treasuryName: existingTreasuryId == null && createTreasury
+            ? 'شريك: $clean'
+            : null,
+        existingTreasuryId: existingTreasuryId,
       );
       _invalidateShareTotal();
-      state = const AsyncData('تم إضافة الشريك بنجاح ✓');
+      state = AsyncData(existingTreasuryId != null || createTreasury
+          ? 'تم إضافة الشريك وخزينته ✓'
+          : 'تم إضافة الشريك بنجاح ✓');
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);

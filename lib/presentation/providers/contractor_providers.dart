@@ -82,6 +82,8 @@ class ContractorNotifier extends _$ContractorNotifier {
     String address = '',
     String contractorType = 'individual',
     String notes = '',
+    bool createTreasury = true,
+    int? existingTreasuryId,
   }) async {
     if (name.trim().isEmpty) {
       state = const AsyncError(
@@ -92,17 +94,29 @@ class ContractorNotifier extends _$ContractorNotifier {
     }
     state = const AsyncLoading();
     try {
-      await _db.contractorsDao.insertContractor(
+      // 🔑 **الخزينة تُنشَأ أو تُربَط هنا** (قرار المالك 2026-09-01)
+      //
+      //   كان `treasury_id` يبقى `NULL` أبداً، فتبويبا «مقاولون/شركاء» في
+      //   شاشة الخزائن **واجهةً لبيانات لا يمكن أن توجد**. والاسم يحمل
+      //   «مقاول:» صراحةً كي يُميَّز في كل قائمة اختيار خزينة.
+      final clean = name.trim();
+      await _db.contractorsDao.insertContractorWithTreasury(
         ContractorsCompanion.insert(
-          name: name.trim(),
+          name: clean,
           phone1: Value(phone1.trim()),
           phone2: Value(phone2.trim()),
           address: Value(address.trim()),
           contractorType: Value(contractorType),
           notes: Value(notes.trim()),
         ),
+        treasuryName: existingTreasuryId == null && createTreasury
+            ? 'مقاول: $clean'
+            : null,
+        existingTreasuryId: existingTreasuryId,
       );
-      state = const AsyncData('تم إضافة المقاول بنجاح ✓');
+      state = AsyncData(existingTreasuryId != null || createTreasury
+          ? 'تم إضافة المقاول وخزينته ✓'
+          : 'تم إضافة المقاول بنجاح ✓');
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);

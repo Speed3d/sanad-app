@@ -16,11 +16,12 @@
 import 'package:drift/drift.dart';
 import '../app_database.dart';
 import '../tables/partners_table.dart';
+import '../tables/treasuries_table.dart';
 
 part 'partners_dao.g.dart';
 
 /// DAO الشركاء
-@DriftAccessor(tables: [Partners])
+@DriftAccessor(tables: [Partners, Treasuries])
 class PartnersDao extends DatabaseAccessor<AppDatabase>
     with _$PartnersDaoMixin {
   PartnersDao(super.db);
@@ -105,6 +106,45 @@ class PartnersDao extends DatabaseAccessor<AppDatabase>
   /// إضافة شريك جديد — يُعيد الـ ID المُولَّد
   Future<int> insertPartner(PartnersCompanion partner) {
     return into(partners).insert(partner);
+  }
+
+  /// إضافة شريك **مع خزينته** — معاملة واحدة ذرّية
+  ///
+  /// راجع `ContractorsDao.insertContractorWithTreasury` للشرح الكامل: الميزة
+  /// كانت **واجهةً لبيانات لا يمكن أن توجد** حتى قرار المالك 2026-09-01.
+  Future<int> insertPartnerWithTreasury(
+    PartnersCompanion partner, {
+    String? treasuryName,
+    int? existingTreasuryId,
+  }) {
+    return transaction(() async {
+      final id = await into(partners).insert(partner);
+
+      var treasuryId = existingTreasuryId;
+      if (treasuryId == null && treasuryName != null) {
+        treasuryId = await into(treasuries).insert(
+          TreasuriesCompanion.insert(
+            name: treasuryName,
+            kind: const Value('partner'),
+            entityId: Value(id),
+            entityType: const Value('partner'),
+          ),
+        );
+      } else if (treasuryId != null) {
+        await (update(treasuries)..where((t) => t.id.equals(treasuryId!)))
+            .write(TreasuriesCompanion(
+          kind: const Value('partner'),
+          entityId: Value(id),
+          entityType: const Value('partner'),
+        ));
+      }
+
+      if (treasuryId != null) {
+        await (update(partners)..where((p) => p.id.equals(id)))
+            .write(PartnersCompanion(treasuryId: Value(treasuryId)));
+      }
+      return id;
+    });
   }
 
   /// تحديث بيانات شريك (بما فيها نسبة الحصة) — تحديث جزئي للحقول الحاضرة فقط
