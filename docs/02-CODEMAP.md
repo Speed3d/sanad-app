@@ -47,7 +47,8 @@ lib/
 | `services/cloud_backup_service.dart` | نسخة محلية إضافية (**ليست سحابة** — التسمية صادقة) | نسخة ثانية على الجهاز |
 | `services/attachment_service.dart` | نسخ المرفقات · بصمة SHA-256 · تنقية المسارات · الفتح عبر `explorer` · و`deleteAllInStore` لتصفير المصنع (يمحو **المفهرَس** لا المجلد) | أي تعامل مع ملفات المرفقات — **لا تلمس نظام الملفات مباشرةً** |
 | `services/smart_alert_service.dart` | تنبيهات: رصيد منخفض · سلف معلّقة قديمة | شريط التنبيهات في لوحة التحكم |
-| `services/pdf_service.dart` + جزآن `pdf_payroll_documents.dart` و`pdf_report_documents.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم). **مستندات الرواتب الثلاثة في `part` لا خدمة ثانية** — مسار الخطوط العربية واحد | طباعة السندات والرواتب. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء** |
+| `constants/employee_status.dart` | **حالات الموظف** — حالي · منتهية خدمته · في إجازة + تسمياتها + `joinsNewPayroll` | أي عرض أو فحص لحالة موظف. **في `core` لأن الثلاث طبقات تحتاجها** |
+| `services/pdf_service.dart` + جزآن `pdf_payroll_documents.dart` و`pdf_report_documents.dart` + `pdf_print_helper.dart` | توليد وطباعة PDF + `PdfCompanyHeader` (الشعار والاسم). **مستندات الرواتب الثلاثة في `part` لا خدمة ثانية** — مسار الخطوط العربية واحد | طباعة السندات والرواتب. ⚠️ `printVaultStatement` و`printAdvanceReport` **بصفر استدعاء**. و**`ArabicPdfFont` لا `pw.Font.ttf`** — تُصحّح خريطةً معطوبة في الحزمة تُسقط ياءً من كل اسم (ع-٥٢) |
 | `services/payroll_print_data.dart` | نماذج مستندات الرواتب **النقيّة** (كشف · إيصال · تقرير سنة · **تقرير موظف**) — بلا Drift، فتبقى `PdfService` جاهلةً بقاعدة البيانات | أي طباعة رواتب. **الإجماليات حقولٌ تُمرَّر لا تُحسَب في المستند** |
 | `auth/permissions.dart` | **مصدر الحقيقة الوحيد للصلاحيات** — `AppPermission` + `user.can()` | أي فحص صلاحية. **لا تكتب `role == 'admin'` يدوياً أبداً** |
 | `utils/audit_labels.dart` | **تعريب سجل التدقيق** — أسماء العمليات السبعة عشر والجداول | أي عرض لسجل التدقيق. **لا تكتب ترجمة في الشاشة** |
@@ -93,7 +94,8 @@ lib/
 | `voucher_sequences` | تسلسل أرقام السندات | مفتاح مركّب (فترة + نوع) · **ذرّي** |
 | `treasuries` | الخزائن | موحّد بحقل `kind` · **الرصيد ليس هنا** |
 | `vouchers` | **قلب النظام** | `transfer_group_id` يربط التوأمين · `advance_id` يربط بالسلفة · حذف ناعم |
-| `employees` · `cash_advances` · `cash_advance_repayments` | الموارد البشرية | ⚠️ `cash_advances` = سلفة **موظف** · `employees.treasury_id` = **رابط المشروع** |
+| `employees` · `cash_advances` · `cash_advance_repayments` | الموارد البشرية | ⚠️ `cash_advances` = سلفة **موظف** · `employees.treasury_id` = **رابط المشروع** · **v8**: `status` حلّ محلّ `is_active` · `department_id` · `sort_order` |
+| `departments` | **أقسام الموظفين** (Schema v8) | الفرادة **فهرس جزئي** لا قيد عمود (الحذف ناعم) · والترتيب على مستويين: القسم ثم الموظف داخله |
 | `payroll_periods` | **كشف رواتب شهر** (Schema v7) | فهرس فريد `(year, month)` ⇒ لا كشفان لشهر واحد |
 | `salary_payments` | **سطر كشف الرواتب** (تغيّر معناه في v7) | يحمل **لقطة** الموظف لحظة الشهر · فريد `(كشف، موظف)` · سطور الدفعة الواحدة تشترك في `voucher_id` |
 | `contractors` · `partners` | الأطراف الخارجية | |
@@ -116,6 +118,7 @@ lib/
 | `attachments_dao` | `watchForEntity()` · `findDuplicate()` · `deleteForEntity()` **يُعيد الصفوف** ليحذف المستدعي ملفاتها |
 | `advances_dao` | **+Schema v7**: `linkLineToPayroll()` · `getPayrollLinkPreviews()` · و**حارس المطابقة داخل `postAdvance`** يمنع احتساب المال مرّتين |
 | `advances_dao` | **+الدفعة ج**: `searchByItemType()` البحث بالبند داخل السلف (لا يعدّ المستبعَد) · `getLinesForAdvances()` أسطر عدّة سلف باستعلام واحد |
+| `employees_dao` | **+Schema v8**: `setEmployeeStatus()` · `insertDepartment/renameDepartment/deleteDepartment` (تفكّ ربط الموظفين) · `reorderDepartments/reorderEmployees` · `assignDepartment` · و`_orderedEmployees()` **نقطة الترتيب الوحيدة** |
 | `payroll_dao` | `payEntries()` **ذرّية** (سند واحد + السطور + أقساط السلف) · `getTotals()` **مصدر الحقيقة الوحيد للمجموع** · `getYears()` تشتقّ السنوات · `findByFileHash()` · `getYearMonths()` و`getYearTreasuryShares()` و`getOutOfSheetSalaries()` لتقرير السنة |
 | `payroll_dao_reports.dart` | جزء (`mixin`) — **قراءة فقط**: تقرير الموظف والسنة · و`getStalePaidPayrolls()` **الكاشف المرآة**: سطورٌ «مسدَّدة» فقدت سندها |
 | `payroll_dao_reversals.dart` | جزء (`mixin`) — **كل ما يعكس راتباً خرج ماله**: `unpayEntry` · `correctPaidEntry` · `unpayEntriesForAdvance` · `recordSalaryDeductions` (المسار الوحيد لأقساط السلف). مصدر ستة أعطال متتالية فجُمعت لتُقرأ ككتلة |

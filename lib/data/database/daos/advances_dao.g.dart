@@ -11,6 +11,7 @@ mixin _$AdvancesDaoMixin on DatabaseAccessor<AppDatabase> {
   $AdvanceLinesTable get advanceLines => attachedDatabase.advanceLines;
   $ItemTypesTable get itemTypes => attachedDatabase.itemTypes;
   $VouchersTable get vouchers => attachedDatabase.vouchers;
+  $DepartmentsTable get departments => attachedDatabase.departments;
   $EmployeesTable get employees => attachedDatabase.employees;
   $SalaryPaymentsTable get salaryPayments => attachedDatabase.salaryPayments;
 }

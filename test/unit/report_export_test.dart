@@ -27,7 +27,7 @@ import 'package:sales_management/core/services/report_print_data.dart';
 void main() {
   late PdfService service;
 
-  pw.Font load(String name) => pw.Font.ttf(
+  pw.Font load(String name) => ArabicPdfFont(
       File('assets/fonts/$name').readAsBytesSync().buffer.asByteData());
 
   setUp(() {

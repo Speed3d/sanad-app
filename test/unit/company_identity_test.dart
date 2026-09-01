@@ -140,7 +140,7 @@ PdfService _service() => PdfService(
       bold: _font('Tajawal-Bold.ttf'),
     );
 
-pw.Font _font(String name) => pw.Font.ttf(
+pw.Font _font(String name) => ArabicPdfFont(
       File('assets/fonts/$name').readAsBytesSync().buffer.asByteData(),
     );
 

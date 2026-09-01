@@ -25,13 +25,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:sales_management/core/services/pdf_service.dart';
 import 'package:sales_management/domain/models/voucher_model.dart';
 
 void main() {
   /// تحميل خط من القرص — `rootBundle` لا يعمل خارج تطبيق حيّ
-  pw.Font load(String name) => pw.Font.ttf(
+  pw.Font load(String name) => ArabicPdfFont(
         File('assets/fonts/$name').readAsBytesSync().buffer.asByteData(),
       );
 
@@ -107,6 +108,71 @@ void main() {
     final first = await service.generateVoucherReceipt(_voucher());
     final second = await service.generateVoucherReceipt(_voucher());
     expect(embeddedFonts(first), equals(embeddedFonts(second)));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ع-٥٢ — الألف المقصورة والياء المنفصلتان (بلاغ المالك 2026-09-01)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // بلاغ المالك: «إيصال الراتب يكتب خصومات **أخري** والصواب **أخرى**».
+  // والنصّ في المصدر سليم — العلّة في `basicToIsolatedMappings` داخل حزمة
+  // `pdf`: سطرٌ واحد خاطئ من سبعة وثلاثين يُسنِد رسم **ي** إلى رمز **ى**.
+  //
+  // راجع `ArabicPdfFont` في `pdf_service.dart` للشرح الكامل.
+
+  group('ع-٥٢ · الأشكال المنفصلة', () {
+    /// خريطة المحرف ← رقم الرسم كما ستراها الحزمة عند التوليد
+    Map<int, int> glyphMap(String fontFile) {
+      final font = ArabicPdfFont(
+        File('assets/fonts/$fontFile').readAsBytesSync().buffer.asByteData(),
+      );
+      final built = font.buildFont(PdfDocument()) as PdfTtfFont;
+      return built.font.charToGlyphIndexMap;
+    }
+
+    for (final file in ['Tajawal-Regular.ttf', 'Tajawal-Bold.ttf']) {
+      test('⭐⭐⭐ [$file] ى المنفصلة برسمها هي لا برسم ي', () {
+        final map = glyphMap(file);
+
+        // 🔴 قبل الإصلاح: FEEF ← رسم ي (297 في Tajawal-Regular)، فكانت
+        //   «أخرى» تُطبع «أخري» في كل إيصال راتب.
+        expect(map[0xFEEF], isNotNull);
+        expect(map[0xFEEF], map[0x0649]);
+        expect(map[0xFEEF], isNot(map[0x064A]));
+      });
+
+      test('⭐⭐⭐ [$file] ي المنفصلة لها رسم أصلاً — كانت تختفي', () {
+        final map = glyphMap(file);
+
+        // 🔴 قبل الإصلاح: FEF1 غير موجود إطلاقاً (لا في الخطّ ولا في جدول
+        //   الحزمة) فعرضه **صفر** — واسمٌ مثل «هادي» أو «الجبوري» يُطبع
+        //   بلا يائه الأخيرة، في كل إيصال وكل كشف.
+        expect(map[0xFEF1], isNotNull);
+        expect(map[0xFEF1], map[0x064A]);
+      });
+
+      test('⭐⭐ [$file] الشكلان النهائيان لم يُمسّا', () {
+        final map = glyphMap(file);
+        // الخطّ يحوي FEF0 و FEF2 أصلاً — إصلاحنا يمسّ المنفصل وحده
+        expect(map[0xFEF0], isNotNull);
+        expect(map[0xFEF2], isNotNull);
+        expect(map[0xFEF0], isNot(map[0xFEF2]));
+      });
+    }
+
+    test('⭐⭐ الحرفان يُرسمان بعرضٍ حقيقي لا صفر', () {
+      final font = ArabicPdfFont(
+        File('assets/fonts/Tajawal-Regular.ttf')
+            .readAsBytesSync()
+            .buffer
+            .asByteData(),
+      );
+      final built = font.buildFont(PdfDocument()) as PdfTtfFont;
+
+      // عرضُ صفرٍ يعني حرفاً غير مرئي — وهو ما كان يقع لـ ي المنفصلة
+      expect(built.glyphMetrics(0xFEEF).advanceWidth, greaterThan(0));
+      expect(built.glyphMetrics(0xFEF1).advanceWidth, greaterThan(0));
+    });
   });
 }
 

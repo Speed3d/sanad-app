@@ -90,6 +90,68 @@ List<List<T>> rtlRows<T>(List<List<T>> rows) =>
 Map<int, T> rtlColumnMap<T>(Map<int, T> map, int count) =>
     {for (final e in map.entries) count - 1 - e.key: e.value};
 
+/// خطّ TrueType عربي — يُصلح **خريطةً معطوبة داخل حزمة `pdf` نفسها**
+///
+/// 🔴 **ع-٥٢ — بلاغ المالك 2026-09-01: «خصومات أخري» والصواب «أخرى».**
+///
+/// والنصّ في المصدر **سليم** («خصومات أخرى» بألف مقصورة صحيحة). العلّة في
+/// `pdf/lib/src/pdf/font/bidi_utils.dart` — جدول `basicToIsolatedMappings`
+/// يحوي سطراً واحداً خاطئاً من سبعة وثلاثين:
+///
+/// ```dart
+/// 0x064A: 0xFEEF, // ي   ← خطأ: FEEF هو الشكل المنفصل لـ ى لا لـ ي
+/// ```
+///
+/// • `U+FEEF` = الشكل المنفصل لـ **ى** (ألف مقصورة)
+/// • الشكل المنفصل لـ **ي** هو `U+FEF1`
+/// • و`U+0649` (ى) **لا سطر له في الجدول إطلاقاً**
+///
+/// والحزمة تستعمل هذا الجدول لسدّ نقصٍ حقيقي: الخطوط العربية الحديثة —
+/// ومنها Tajawal — لا تُدرج الأشكال المنفصلة في `FE70–FEFF` لأن المحرف
+/// الأساس نفسه يحمل الشكل المنفصل. فتُسنِد الحزمة رسم المحرف الأساس إلى
+/// رمز الشكل المنفصل. والسطر الخاطئ يُسنِد رسم **ي** إلى رمز **ى**.
+///
+/// **الأثر المُثبَت تجريبياً على Tajawal:**
+///
+/// | المحرف | glyph قبل الإصلاح | النتيجة |
+/// |---|---|---|
+/// | ى منفصلة `FEEF` | **297** — وهو رسم **ي** | «أخرى» تُطبع «أخري» |
+/// | ي منفصلة `FEF1` | **null** · عرض **0.0** | **الحرف يختفي كلّياً** |
+///
+/// ⚠️ **والثاني أخطر من المُبلَّغ عنه ولم يلحظه أحد:** الحرف المنفصل يقع بعد
+///   حرفٍ لا يتّصل بما بعده (ا د ذ ر ز و أ إ ة). فاسمٌ مثل **«هادي»** أو
+///   **«الجبوري»** كان يُطبع في كل إيصال راتب وكل كشف **بلا يائه الأخيرة**.
+///
+/// **ولماذا الإصلاح هنا لا في النصّ؟** لأن تعديل «أخرى» إلى «أخري» يُفسد
+/// نصّاً سليماً ولا يُصلح الأسماء المبتورة. العلّة في الخريطة فتُصلَح في
+/// الخريطة — والمحرفان الصحيحان موجودان في الخطّ أصلاً.
+///
+/// 📌 **لا تستعمل `pw.Font.ttf` مباشرةً في هذا المشروع** — يحرسه
+///   `tech_debt_guard_test`.
+class ArabicPdfFont extends pw.TtfFont {
+  ArabicPdfFont(super.data);
+
+  /// الأشكال المنفصلة التي تُخطئها الحزمة أو تُغفلها: الرمز ← المحرف الأساس
+  static const Map<int, int> _isolatedFixups = {
+    0xFEEF: 0x0649, // ى — كانت تُسنَد إلى رسم ي
+    0xFEF1: 0x064A, // ي — لم تكن مُسنَدة إطلاقاً فتختفي
+  };
+
+  @override
+  PdfFont buildFont(PdfDocument pdfDocument) {
+    final built = super.buildFont(pdfDocument);
+    if (built is! PdfTtfFont) return built;
+
+    final map = built.font.charToGlyphIndexMap;
+    for (final entry in _isolatedFixups.entries) {
+      final glyph = map[entry.value];
+      // خطٌّ بلا المحرف الأساس لا نخترع له رسماً — نتركه كما هو
+      if (glyph != null) map[entry.key] = glyph;
+    }
+    return built;
+  }
+}
+
 /// خدمة إنشاء ملفات PDF
 class PdfService {
   /// [regular] و[bold] — حقن الخطوط بدل تحميلها من الأصول
@@ -135,8 +197,9 @@ class PdfService {
     }
     final regularData = await rootBundle.load('assets/fonts/Tajawal-Regular.ttf');
     final boldData = await rootBundle.load('assets/fonts/Tajawal-Bold.ttf');
-    _arabicRegular = pw.Font.ttf(regularData);
-    _arabicBold = pw.Font.ttf(boldData);
+    // `ArabicPdfFont` لا `pw.Font.ttf` — راجع ع-٥٢ أعلى الملف
+    _arabicRegular = ArabicPdfFont(regularData);
+    _arabicBold = ArabicPdfFont(boldData);
     return (regular: _arabicRegular!, bold: _arabicBold!);
   }
 

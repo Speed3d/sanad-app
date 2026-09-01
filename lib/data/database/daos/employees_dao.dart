@@ -19,8 +19,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:drift/drift.dart';
+import '../../../core/constants/employee_status.dart';
 import '../../../core/services/payroll_calculator.dart';
 import '../app_database.dart';
+import '../tables/departments_table.dart';
 import '../tables/employees_table.dart';
 
 part 'employees_dao.g.dart';
@@ -69,7 +71,8 @@ typedef AdvanceRepaymentDetail = ({
   String notes,
 });
 
-@DriftAccessor(tables: [Employees, CashAdvances, CashAdvanceRepayments, SalaryPayments])
+@DriftAccessor(
+    tables: [Departments, Employees, CashAdvances, CashAdvanceRepayments, SalaryPayments])
 class EmployeesDao extends DatabaseAccessor<AppDatabase>
     with _$EmployeesDaoMixin {
   EmployeesDao(super.db);
@@ -90,22 +93,52 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
   /// 📌 والبحث في الشاشة يغطّي حاجة «أين فلان؟» التي كان الترتيب الأبجدي
   ///   يخدمها. ولو احتاج المالك ترتيباً يدوياً لاحقاً فيلزمه عمود ترتيب
   ///   صريح — وهو تغيير مخطط يحتاج قراره (القانون ٦).
+  ///
+  /// 🔄 **وصار الترتيب يدوياً في Schema v8** (بلاغ المالك 2026-08-30):
+  ///   القسم أولاً بترتيبه، ثم الموظف بترتيبه **داخل قسمه**، ثم الاسم لفضّ
+  ///   التعادل. ومن بلا قسم يقع في الآخر لا في الأول — فقائمةٌ تبدأ بمن لم
+  ///   يُصنَّف بعدُ تُخفي البنية التي أنشأها المالك.
+  ///
+  ///   وقاعدةٌ لم يُرتَّب فيها شيء تُعرَض كما كانت: `sort_order` صفرٌ للجميع
+  ///   فيفضّ التعادلَ الاسمُ.
   Stream<List<Employee>> watchAllEmployees() {
-    return (select(employees)
-          ..where((e) => e.isDeleted.equals(false))
-          ..orderBy([(e) => OrderingTerm.asc(e.id)]))
-        .watch();
+    return _orderedEmployees().watch().map(_readEmployees);
   }
 
   /// جميع الموظفين النشطين (Future — للقراءة لمرة واحدة)
   ///
-  /// بترتيب الإضافة كنظيرتها التفاعلية — راجع [watchAllEmployees].
+  /// بالترتيب نفسه لنظيرتها التفاعلية — راجع [watchAllEmployees].
   Future<List<Employee>> getAllEmployees() {
-    return (select(employees)
-          ..where((e) => e.isDeleted.equals(false))
-          ..orderBy([(e) => OrderingTerm.asc(e.id)]))
-        .get();
+    return _orderedEmployees().get().then(_readEmployees);
   }
+
+  /// استعلام الموظفين مرتَّباً — **نقطة الترتيب الوحيدة**
+  ///
+  /// ⚠️ نسختان من الترتيب (تفاعلية وفورية) تفترقان بأول تعديل يمسّ إحداهما،
+  ///   فتُعرَض القائمة بترتيبين مختلفين في شاشتين (نمط ع-٣٧).
+  JoinedSelectStatement<HasResultSet, dynamic> _orderedEmployees() {
+    return select(employees).join([
+      leftOuterJoin(
+          departments, departments.id.equalsExp(employees.departmentId)),
+    ])
+      ..where(employees.isDeleted.equals(false))
+      ..orderBy([
+        // بلا قسم في الآخر: `false` = 0 تسبق `true` = 1 في SQLite
+        OrderingTerm.asc(departments.sortOrder.isNull()),
+        OrderingTerm.asc(departments.sortOrder),
+        OrderingTerm.asc(employees.sortOrder),
+        // ⚠️ **المعرّف لا الاسم** يفضّ التعادل الأخير — وهذا ليس تفصيلاً:
+        //   الترتيب الأبجدي كان مرفوضاً صراحةً (بلاغ المالك 2026-08-25)،
+        //   لأن الموظفين يُنشَؤون بترتيب ملف المحاسب والمالك يطابق القائمة
+        //   بالورقة التي أمامه. وفضُّ التعادل بالاسم كان **يُعيد الترتيب
+        //   الأبجدي من الباب الخلفي** لقاعدةٍ لم يُرتَّب فيها شيء بعد.
+        //   كشفه `payroll_posting_test` لحظة التغيير.
+        OrderingTerm.asc(employees.id),
+      ]);
+  }
+
+  List<Employee> _readEmployees(List<TypedResult> rows) =>
+      rows.map((r) => r.readTable(employees)).toList();
 
   /// موظف واحد بالمعرّف
   Future<Employee?> getEmployeeById(int id) {
@@ -233,16 +266,155 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
     await (update(employees)..where((e) => e.id.equals(id))).write(
       const EmployeesCompanion(
         isDeleted: Value(true),
-        isActive: Value(false),
+        status: Value(EmployeeStatus.terminated),
       ),
     );
   }
 
-  /// تفعيل / تعطيل موظف
-  Future<void> setEmployeeActive(int id, {required bool isActive}) async {
+  /// تغيير حالة الموظف — حالي · منتهية خدمته · في إجازة (Schema v8)
+  ///
+  /// ⚠️ **حلّت محلّ `setEmployeeActive`** ولم تُضَف بجوارها: مبدّلٌ ثنائي
+  ///   وحقلُ حالةٍ ثلاثيّ على المعنى نفسه يفترقان بأول كتابة تنسى أحدهما.
+  ///
+  /// والقيمة تُفحَص **هنا** لا في الشاشة: قيمةٌ رابعة تجعل الموظف يختفي من
+  /// كل شريحة فلترة بصمت، ورسالةُ قيد القاعدة إنجليزية لا يفهمها المالك.
+  Future<void> setEmployeeStatus(int id, String status) async {
+    if (!EmployeeStatus.all.contains(status)) {
+      throw StateError('حالة موظف غير معروفة: $status');
+    }
     await (update(employees)..where((e) => e.id.equals(id))).write(
-      EmployeesCompanion(isActive: Value(isActive)),
+      EmployeesCompanion(status: Value(status)),
     );
+  }
+
+  // ── الأقسام (Schema v8) ───────────────────────────────────────────────────
+
+  /// أقسام الموظفين مرتَّبة — Reactive Stream
+  Stream<List<Department>> watchDepartments() {
+    return (_departmentsQuery()).watch();
+  }
+
+  /// أقسام الموظفين مرتَّبة (قراءة فورية)
+  Future<List<Department>> getDepartments() => _departmentsQuery().get();
+
+  SimpleSelectStatement<$DepartmentsTable, Department> _departmentsQuery() {
+    return select(departments)
+      ..where((d) => d.isDeleted.equals(false))
+      ..orderBy([
+        (d) => OrderingTerm.asc(d.sortOrder),
+        (d) => OrderingTerm.asc(d.name),
+      ]);
+  }
+
+  /// إنشاء قسم — يقع **آخر** القائمة، ويرمي [StateError] عند تكرار الاسم
+  ///
+  /// ⚠️ **الفحص هنا لا في الحوار** (القانون ٤): الفهرس الجزئي في القاعدة
+  ///   يمنع التكرار فعلاً، لكنه يرمي رسالة SQLite إنجليزية لا يفهمها
+  ///   المالك — والحارس يترجمها قبل أن تصل.
+  Future<int> insertDepartment(String name) async {
+    final clean = name.trim();
+    if (clean.isEmpty) {
+      throw StateError('اسم القسم لا يكون فارغاً.');
+    }
+
+    final existing = await (select(departments)
+          ..where((d) => d.isDeleted.equals(false) & d.name.equals(clean)))
+        .getSingleOrNull();
+    if (existing != null) {
+      throw StateError('القسم «$clean» موجود أصلاً.');
+    }
+
+    final last = await (select(departments)
+          ..orderBy([(d) => OrderingTerm.desc(d.sortOrder)])
+          ..limit(1))
+        .getSingleOrNull();
+
+    return into(departments).insert(DepartmentsCompanion.insert(
+      name: clean,
+      sortOrder: Value((last?.sortOrder ?? 0) + 1),
+    ));
+  }
+
+  /// إعادة تسمية قسم — بالحارس نفسه
+  Future<void> renameDepartment(int id, String name) async {
+    final clean = name.trim();
+    if (clean.isEmpty) {
+      throw StateError('اسم القسم لا يكون فارغاً.');
+    }
+    final clash = await (select(departments)
+          ..where((d) =>
+              d.isDeleted.equals(false) &
+              d.name.equals(clean) &
+              d.id.equals(id).not()))
+        .getSingleOrNull();
+    if (clash != null) {
+      throw StateError('القسم «$clean» موجود أصلاً.');
+    }
+    await (update(departments)..where((d) => d.id.equals(id)))
+        .write(DepartmentsCompanion(name: Value(clean)));
+  }
+
+  /// حذف قسم — **ويُفكّ ربط موظفيه صراحةً**. يُعيد عدد من نُقل
+  ///
+  /// ⚠️ تركُهم يشيرون إلى قسمٍ محذوف يجعلهم «بلا قسم» في العرض بينما
+  ///   القاعدة تقول غير ذلك، وإن أُعيد إنشاء قسمٍ بالاسم نفسه لم يعودوا
+  ///   إليه. كلتا الحالتين انتماءٌ شبحيّ لا يراه أحد.
+  Future<int> deleteDepartment(int id) async {
+    final moved = await (update(employees)
+          ..where((e) => e.departmentId.equals(id)))
+        .write(const EmployeesCompanion(departmentId: Value(null)));
+    await (update(departments)..where((d) => d.id.equals(id)))
+        .write(const DepartmentsCompanion(isDeleted: Value(true)));
+    return moved;
+  }
+
+  /// إعادة ترتيب الأقسام — بترتيب [idsInOrder] حرفياً
+  Future<void> reorderDepartments(List<int> idsInOrder) async {
+    await batch((b) {
+      for (var i = 0; i < idsInOrder.length; i++) {
+        b.update(
+          departments,
+          DepartmentsCompanion(sortOrder: Value(i)),
+          where: ($DepartmentsTable d) => d.id.equals(idsInOrder[i]),
+        );
+      }
+    });
+  }
+
+  /// نقل موظف إلى قسم (أو إلى «بلا قسم» بـ`null`) — يقع آخر القسم الجديد
+  Future<void> assignDepartment(int employeeId, int? departmentId) async {
+    final last = await (select(employees)
+          ..where((e) =>
+              e.isDeleted.equals(false) &
+              (departmentId == null
+                  ? e.departmentId.isNull()
+                  : e.departmentId.equals(departmentId)))
+          ..orderBy([(e) => OrderingTerm.desc(e.sortOrder)])
+          ..limit(1))
+        .getSingleOrNull();
+
+    await (update(employees)..where((e) => e.id.equals(employeeId))).write(
+      EmployeesCompanion(
+        departmentId: Value(departmentId),
+        sortOrder: Value((last?.sortOrder ?? 0) + 1),
+      ),
+    );
+  }
+
+  /// إعادة ترتيب موظفين — بترتيب [idsInOrder] حرفياً
+  ///
+  /// المستدعي يمرّر موظفي **قسمٍ واحد**: الترتيب يعيش داخل القسم، وخلطُ
+  /// قسمين في نداء واحد يجعل أرقام الترتيب تتصادم بلا معنى.
+  Future<void> reorderEmployees(List<int> idsInOrder) async {
+    await batch((b) {
+      for (var i = 0; i < idsInOrder.length; i++) {
+        b.update(
+          employees,
+          EmployeesCompanion(sortOrder: Value(i)),
+          where: ($EmployeesTable e) => e.id.equals(idsInOrder[i]),
+        );
+      }
+    });
   }
 
   // ══════════════════════════════════════════════════════════════════════════

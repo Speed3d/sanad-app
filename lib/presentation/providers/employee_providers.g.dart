@@ -25,6 +25,26 @@ final allEmployeesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllEmployeesRef = AutoDisposeStreamProviderRef<List<EmployeeModel>>;
+String _$allDepartmentsHash() => r'ea8fb7a2fdbda09ae9f582cde87586801266cd7e';
+
+/// أقسام الموظفين مرتَّبة — Reactive Stream (Schema v8)
+///
+/// Copied from [allDepartments].
+@ProviderFor(allDepartments)
+final allDepartmentsProvider =
+    AutoDisposeStreamProvider<List<DepartmentModel>>.internal(
+  allDepartments,
+  name: r'allDepartmentsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$allDepartmentsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AllDepartmentsRef = AutoDisposeStreamProviderRef<List<DepartmentModel>>;
 String _$advancesByEmployeeHash() =>
     r'18201a85a5c32e62a78d0fbe0a48f4f70cd60dd6';
 
@@ -809,7 +829,7 @@ class _PendingAdvancesAmountProviderElement
   int get employeeId => (origin as PendingAdvancesAmountProvider).employeeId;
 }
 
-String _$employeeNotifierHash() => r'55634cdf3cca803af427959aabfc3ecb7ad01e42';
+String _$employeeNotifierHash() => r'0fe7fd230e4ad018a9858a0452ac5d6b36624ae5';
 
 /// Notifier لإدارة عمليات الموظفين (إضافة / تعديل / حذف / تفعيل)
 ///

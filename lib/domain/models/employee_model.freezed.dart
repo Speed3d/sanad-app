@@ -44,8 +44,32 @@ mixin _$EmployeeModel {
   /// ملاحظات
   String get notes => throw _privateConstructorUsedError;
 
-  /// هل الموظف نشط؟
-  bool get isActive => throw _privateConstructorUsedError;
+  /// الصفة الوظيفية — مهندس · سائق · محاسب
+  ///
+  /// 🔴 **كانت ساقطة من هذا النموذج** رغم وجودها في الجدول منذ v7: طبقة
+  ///   الرواتب تقرأها من صفّ Drift مباشرةً، فبقيت شاشة الموظفين عاجزة عن
+  ///   عرض صفة أيّ موظف. نمط ع-٥٠: الرقم يُحسَب صحيحاً ويسقط في المحطّة
+  ///   الوسطى لأن طرفيها سليمان.
+  String get position => throw _privateConstructorUsedError;
+
+  /// عملة الراتب: 'IQD' | 'USD'
+  ///
+  /// 🔴 **كانت ساقطة أيضاً** — فكانت البطاقة تكتب «الراتب: ٥٠٠ د.ع»
+  ///   لموظفٍ راتبه ٥٠٠ **دولار**، وتجمع الاثنين في مجموع واحد. راجع
+  ///   ع-٥٣.
+  String get salaryCurrency => throw _privateConstructorUsedError;
+
+  /// حالة الموظف (Schema v8) — راجع [EmployeeStatus]
+  ///
+  /// حلّت محلّ `isActive` ولم تُضَف بجوارها: عمودان لمعنى واحد يفترقان
+  /// بأول كتابة تنسى أحدهما (نمط ع-٤٠).
+  String get status => throw _privateConstructorUsedError;
+
+  /// القسم — `null` يعني «بلا قسم»
+  int? get departmentId => throw _privateConstructorUsedError;
+
+  /// ترتيب الموظف داخل قسمه — الأصغر أولاً
+  int get sortOrder => throw _privateConstructorUsedError;
 
   /// تاريخ الإنشاء
   DateTime? get createdAt => throw _privateConstructorUsedError;
@@ -75,7 +99,11 @@ abstract class $EmployeeModelCopyWith<$Res> {
       DateTime? hireDate,
       int? treasuryId,
       String notes,
-      bool isActive,
+      String position,
+      String salaryCurrency,
+      String status,
+      int? departmentId,
+      int sortOrder,
       DateTime? createdAt});
 }
 
@@ -102,7 +130,11 @@ class _$EmployeeModelCopyWithImpl<$Res, $Val extends EmployeeModel>
     Object? hireDate = freezed,
     Object? treasuryId = freezed,
     Object? notes = null,
-    Object? isActive = null,
+    Object? position = null,
+    Object? salaryCurrency = null,
+    Object? status = null,
+    Object? departmentId = freezed,
+    Object? sortOrder = null,
     Object? createdAt = freezed,
   }) {
     return _then(_value.copyWith(
@@ -138,10 +170,26 @@ class _$EmployeeModelCopyWithImpl<$Res, $Val extends EmployeeModel>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String,
-      isActive: null == isActive
-          ? _value.isActive
-          : isActive // ignore: cast_nullable_to_non_nullable
-              as bool,
+      position: null == position
+          ? _value.position
+          : position // ignore: cast_nullable_to_non_nullable
+              as String,
+      salaryCurrency: null == salaryCurrency
+          ? _value.salaryCurrency
+          : salaryCurrency // ignore: cast_nullable_to_non_nullable
+              as String,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+      departmentId: freezed == departmentId
+          ? _value.departmentId
+          : departmentId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -167,7 +215,11 @@ abstract class _$$EmployeeModelImplCopyWith<$Res>
       DateTime? hireDate,
       int? treasuryId,
       String notes,
-      bool isActive,
+      String position,
+      String salaryCurrency,
+      String status,
+      int? departmentId,
+      int sortOrder,
       DateTime? createdAt});
 }
 
@@ -192,7 +244,11 @@ class __$$EmployeeModelImplCopyWithImpl<$Res>
     Object? hireDate = freezed,
     Object? treasuryId = freezed,
     Object? notes = null,
-    Object? isActive = null,
+    Object? position = null,
+    Object? salaryCurrency = null,
+    Object? status = null,
+    Object? departmentId = freezed,
+    Object? sortOrder = null,
     Object? createdAt = freezed,
   }) {
     return _then(_$EmployeeModelImpl(
@@ -228,10 +284,26 @@ class __$$EmployeeModelImplCopyWithImpl<$Res>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String,
-      isActive: null == isActive
-          ? _value.isActive
-          : isActive // ignore: cast_nullable_to_non_nullable
-              as bool,
+      position: null == position
+          ? _value.position
+          : position // ignore: cast_nullable_to_non_nullable
+              as String,
+      salaryCurrency: null == salaryCurrency
+          ? _value.salaryCurrency
+          : salaryCurrency // ignore: cast_nullable_to_non_nullable
+              as String,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+      departmentId: freezed == departmentId
+          ? _value.departmentId
+          : departmentId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -252,7 +324,11 @@ class _$EmployeeModelImpl implements _EmployeeModel {
       this.hireDate,
       this.treasuryId,
       this.notes = '',
-      this.isActive = true,
+      this.position = '',
+      this.salaryCurrency = 'IQD',
+      this.status = EmployeeStatus.active,
+      this.departmentId,
+      this.sortOrder = 0,
       this.createdAt});
 
   factory _$EmployeeModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -294,10 +370,41 @@ class _$EmployeeModelImpl implements _EmployeeModel {
   @JsonKey()
   final String notes;
 
-  /// هل الموظف نشط؟
+  /// الصفة الوظيفية — مهندس · سائق · محاسب
+  ///
+  /// 🔴 **كانت ساقطة من هذا النموذج** رغم وجودها في الجدول منذ v7: طبقة
+  ///   الرواتب تقرأها من صفّ Drift مباشرةً، فبقيت شاشة الموظفين عاجزة عن
+  ///   عرض صفة أيّ موظف. نمط ع-٥٠: الرقم يُحسَب صحيحاً ويسقط في المحطّة
+  ///   الوسطى لأن طرفيها سليمان.
   @override
   @JsonKey()
-  final bool isActive;
+  final String position;
+
+  /// عملة الراتب: 'IQD' | 'USD'
+  ///
+  /// 🔴 **كانت ساقطة أيضاً** — فكانت البطاقة تكتب «الراتب: ٥٠٠ د.ع»
+  ///   لموظفٍ راتبه ٥٠٠ **دولار**، وتجمع الاثنين في مجموع واحد. راجع
+  ///   ع-٥٣.
+  @override
+  @JsonKey()
+  final String salaryCurrency;
+
+  /// حالة الموظف (Schema v8) — راجع [EmployeeStatus]
+  ///
+  /// حلّت محلّ `isActive` ولم تُضَف بجوارها: عمودان لمعنى واحد يفترقان
+  /// بأول كتابة تنسى أحدهما (نمط ع-٤٠).
+  @override
+  @JsonKey()
+  final String status;
+
+  /// القسم — `null` يعني «بلا قسم»
+  @override
+  final int? departmentId;
+
+  /// ترتيب الموظف داخل قسمه — الأصغر أولاً
+  @override
+  @JsonKey()
+  final int sortOrder;
 
   /// تاريخ الإنشاء
   @override
@@ -305,7 +412,7 @@ class _$EmployeeModelImpl implements _EmployeeModel {
 
   @override
   String toString() {
-    return 'EmployeeModel(id: $id, fullName: $fullName, phone: $phone, address: $address, basicSalary: $basicSalary, hireDate: $hireDate, treasuryId: $treasuryId, notes: $notes, isActive: $isActive, createdAt: $createdAt)';
+    return 'EmployeeModel(id: $id, fullName: $fullName, phone: $phone, address: $address, basicSalary: $basicSalary, hireDate: $hireDate, treasuryId: $treasuryId, notes: $notes, position: $position, salaryCurrency: $salaryCurrency, status: $status, departmentId: $departmentId, sortOrder: $sortOrder, createdAt: $createdAt)';
   }
 
   @override
@@ -325,16 +432,37 @@ class _$EmployeeModelImpl implements _EmployeeModel {
             (identical(other.treasuryId, treasuryId) ||
                 other.treasuryId == treasuryId) &&
             (identical(other.notes, notes) || other.notes == notes) &&
-            (identical(other.isActive, isActive) ||
-                other.isActive == isActive) &&
+            (identical(other.position, position) ||
+                other.position == position) &&
+            (identical(other.salaryCurrency, salaryCurrency) ||
+                other.salaryCurrency == salaryCurrency) &&
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.departmentId, departmentId) ||
+                other.departmentId == departmentId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, fullName, phone, address,
-      basicSalary, hireDate, treasuryId, notes, isActive, createdAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      fullName,
+      phone,
+      address,
+      basicSalary,
+      hireDate,
+      treasuryId,
+      notes,
+      position,
+      salaryCurrency,
+      status,
+      departmentId,
+      sortOrder,
+      createdAt);
 
   /// Create a copy of EmployeeModel
   /// with the given fields replaced by the non-null parameter values.
@@ -362,7 +490,11 @@ abstract class _EmployeeModel implements EmployeeModel {
       final DateTime? hireDate,
       final int? treasuryId,
       final String notes,
-      final bool isActive,
+      final String position,
+      final String salaryCurrency,
+      final String status,
+      final int? departmentId,
+      final int sortOrder,
       final DateTime? createdAt}) = _$EmployeeModelImpl;
 
   factory _EmployeeModel.fromJson(Map<String, dynamic> json) =
@@ -400,9 +532,37 @@ abstract class _EmployeeModel implements EmployeeModel {
   @override
   String get notes;
 
-  /// هل الموظف نشط؟
+  /// الصفة الوظيفية — مهندس · سائق · محاسب
+  ///
+  /// 🔴 **كانت ساقطة من هذا النموذج** رغم وجودها في الجدول منذ v7: طبقة
+  ///   الرواتب تقرأها من صفّ Drift مباشرةً، فبقيت شاشة الموظفين عاجزة عن
+  ///   عرض صفة أيّ موظف. نمط ع-٥٠: الرقم يُحسَب صحيحاً ويسقط في المحطّة
+  ///   الوسطى لأن طرفيها سليمان.
   @override
-  bool get isActive;
+  String get position;
+
+  /// عملة الراتب: 'IQD' | 'USD'
+  ///
+  /// 🔴 **كانت ساقطة أيضاً** — فكانت البطاقة تكتب «الراتب: ٥٠٠ د.ع»
+  ///   لموظفٍ راتبه ٥٠٠ **دولار**، وتجمع الاثنين في مجموع واحد. راجع
+  ///   ع-٥٣.
+  @override
+  String get salaryCurrency;
+
+  /// حالة الموظف (Schema v8) — راجع [EmployeeStatus]
+  ///
+  /// حلّت محلّ `isActive` ولم تُضَف بجوارها: عمودان لمعنى واحد يفترقان
+  /// بأول كتابة تنسى أحدهما (نمط ع-٤٠).
+  @override
+  String get status;
+
+  /// القسم — `null` يعني «بلا قسم»
+  @override
+  int? get departmentId;
+
+  /// ترتيب الموظف داخل قسمه — الأصغر أولاً
+  @override
+  int get sortOrder;
 
   /// تاريخ الإنشاء
   @override
@@ -413,6 +573,236 @@ abstract class _EmployeeModel implements EmployeeModel {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$EmployeeModelImplCopyWith<_$EmployeeModelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+DepartmentModel _$DepartmentModelFromJson(Map<String, dynamic> json) {
+  return _DepartmentModel.fromJson(json);
+}
+
+/// @nodoc
+mixin _$DepartmentModel {
+  /// المعرّف الفريد
+  int get id => throw _privateConstructorUsedError;
+
+  /// اسم القسم — «مهندسون» · «فنيون» · «سواق»
+  String get name => throw _privateConstructorUsedError;
+
+  /// ترتيب القسم في القائمة — الأصغر أولاً
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// تاريخ الإنشاء
+  DateTime? get createdAt => throw _privateConstructorUsedError;
+
+  /// Serializes this DepartmentModel to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of DepartmentModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $DepartmentModelCopyWith<DepartmentModel> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $DepartmentModelCopyWith<$Res> {
+  factory $DepartmentModelCopyWith(
+          DepartmentModel value, $Res Function(DepartmentModel) then) =
+      _$DepartmentModelCopyWithImpl<$Res, DepartmentModel>;
+  @useResult
+  $Res call({int id, String name, int sortOrder, DateTime? createdAt});
+}
+
+/// @nodoc
+class _$DepartmentModelCopyWithImpl<$Res, $Val extends DepartmentModel>
+    implements $DepartmentModelCopyWith<$Res> {
+  _$DepartmentModelCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of DepartmentModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? sortOrder = null,
+    Object? createdAt = freezed,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as int,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$DepartmentModelImplCopyWith<$Res>
+    implements $DepartmentModelCopyWith<$Res> {
+  factory _$$DepartmentModelImplCopyWith(_$DepartmentModelImpl value,
+          $Res Function(_$DepartmentModelImpl) then) =
+      __$$DepartmentModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int id, String name, int sortOrder, DateTime? createdAt});
+}
+
+/// @nodoc
+class __$$DepartmentModelImplCopyWithImpl<$Res>
+    extends _$DepartmentModelCopyWithImpl<$Res, _$DepartmentModelImpl>
+    implements _$$DepartmentModelImplCopyWith<$Res> {
+  __$$DepartmentModelImplCopyWithImpl(
+      _$DepartmentModelImpl _value, $Res Function(_$DepartmentModelImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of DepartmentModel
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? sortOrder = null,
+    Object? createdAt = freezed,
+  }) {
+    return _then(_$DepartmentModelImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as int,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$DepartmentModelImpl implements _DepartmentModel {
+  const _$DepartmentModelImpl(
+      {required this.id,
+      required this.name,
+      this.sortOrder = 0,
+      this.createdAt});
+
+  factory _$DepartmentModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$DepartmentModelImplFromJson(json);
+
+  /// المعرّف الفريد
+  @override
+  final int id;
+
+  /// اسم القسم — «مهندسون» · «فنيون» · «سواق»
+  @override
+  final String name;
+
+  /// ترتيب القسم في القائمة — الأصغر أولاً
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  /// تاريخ الإنشاء
+  @override
+  final DateTime? createdAt;
+
+  @override
+  String toString() {
+    return 'DepartmentModel(id: $id, name: $name, sortOrder: $sortOrder, createdAt: $createdAt)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$DepartmentModelImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, name, sortOrder, createdAt);
+
+  /// Create a copy of DepartmentModel
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$DepartmentModelImplCopyWith<_$DepartmentModelImpl> get copyWith =>
+      __$$DepartmentModelImplCopyWithImpl<_$DepartmentModelImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$DepartmentModelImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _DepartmentModel implements DepartmentModel {
+  const factory _DepartmentModel(
+      {required final int id,
+      required final String name,
+      final int sortOrder,
+      final DateTime? createdAt}) = _$DepartmentModelImpl;
+
+  factory _DepartmentModel.fromJson(Map<String, dynamic> json) =
+      _$DepartmentModelImpl.fromJson;
+
+  /// المعرّف الفريد
+  @override
+  int get id;
+
+  /// اسم القسم — «مهندسون» · «فنيون» · «سواق»
+  @override
+  String get name;
+
+  /// ترتيب القسم في القائمة — الأصغر أولاً
+  @override
+  int get sortOrder;
+
+  /// تاريخ الإنشاء
+  @override
+  DateTime? get createdAt;
+
+  /// Create a copy of DepartmentModel
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$DepartmentModelImplCopyWith<_$DepartmentModelImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

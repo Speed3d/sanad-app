@@ -261,6 +261,26 @@ void main() {
             '${offenders.join('\n')}');
   });
 
+  test('⭐⭐ لا `pw.Font.ttf` مباشرةً — تُسقط حروفاً عربية (ع-٥٢)', () {
+    // جدول `basicToIsolatedMappings` في حزمة `pdf` يُسنِد رسم **ي** إلى رمز
+    // **ى** المنفصلة، ولا يُسنِد رسماً لـ **ي** المنفصلة إطلاقاً. فالنتيجة
+    // أن «أخرى» تُطبع «أخري»، وأن اسماً مثل «هادي» يُطبع بلا يائه.
+    //
+    // `ArabicPdfFont` تُصلح الخريطة بعد بناء الخطّ — ومن يستعمل
+    // `pw.Font.ttf` مباشرةً يلتفّ حول الإصلاح ويُعيد العطل بصمت.
+    final offenders = <String>[];
+    for (final f in _sourceFiles()) {
+      final src = _read(f.path);
+      if (!src.contains('Font.ttf(')) continue;
+      // الاستثناء الوحيد: الملف الذي يُعرَّف فيه البديل ويشرح السبب
+      if (f.path.endsWith('pdf_service.dart')) continue;
+      offenders.add(f.path);
+    }
+    expect(offenders, isEmpty,
+        reason: 'استعمل `ArabicPdfFont(data)` بدل `pw.Font.ttf(data)`:\n'
+            '${offenders.join('\n')}');
+  });
+
   test('⭐ لا ملف مصدر يتجاوز ١٢٠٠ سطر', () {
     // employees_screen كان ٢٤٨٩ سطراً — أكبر ملف بفارق كبير — فقُسِّم
     // بـ part إلى ثلاثة. الحدّ يمنع عودة ملف عملاق آخر بصمت.

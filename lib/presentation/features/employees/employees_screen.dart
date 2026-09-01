@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/employee_status.dart';
 import '../../../core/services/payroll_calculator.dart';
 import '../../../domain/models/employee_model.dart';
 import '../../../domain/models/treasury_model.dart';
@@ -29,6 +30,7 @@ import '../../providers/database_provider.dart';
 
 // ── أجزاء المكتبة (المرحلة د) ───────────────────────────────────────
 // قُسِّم الملف بـ part لا بملفات مستقلة كي تبقى الأصناف خاصة.
+part 'employee_departments.dart';
 part 'employee_detail_sheet.dart';
 part 'employee_dialogs.dart';
 part 'employee_repayment_sheet.dart';
@@ -56,6 +58,13 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   /// ⚠️ الربط عبر `employees.treasury_id` — وهو **رابط المشروع** بقرار
   ///   المالك: موظفو خزنة البصرة هم موظفو مشروع البصرة. لا حقل مستقلّ.
   int? _projectTreasuryId;
+
+  /// فلتر الحالة — `null` يعني كل الحالات (Schema v8)
+  ///
+  /// ⚠️ **والافتراضي «الكل» لا «الحالي»**: فلترٌ مبدئيّ يُخفي منتهي الخدمة
+  ///   يجعل المالك يبحث عن موظفٍ فلا يجده ولا يعرف أن فلتراً يُخفيه. الشارة
+  ///   واللون يُميّزانه، والإخفاء قرارُه هو.
+  String? _statusFilter;
 
   @override
   void initState() {
@@ -282,15 +291,28 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
       backgroundColor: context.colors.bg,
       body: employeesAsync.when(
         data: (employees) {
-          // الفلتران يُطبَّقان معاً: البحث النصّي ثم المشروع
+          // الفلاتر الثلاثة تُطبَّق معاً: البحث ثم المشروع ثم الحالة
           final filtered = employees.where((e) {
             final matchesQuery = _query.isEmpty ||
                 e.fullName.toLowerCase().contains(_query.toLowerCase()) ||
-                e.phone.contains(_query);
+                e.phone.contains(_query) ||
+                e.position.contains(_query);
             final matchesProject = _projectTreasuryId == null ||
                 e.treasuryId == _projectTreasuryId;
-            return matchesQuery && matchesProject;
+            final matchesStatus =
+                _statusFilter == null || e.status == _statusFilter;
+            return matchesQuery && matchesProject && matchesStatus;
           }).toList();
+
+          // 🔑 **الترتيب اليدوي يعمل بلا فلاتر فقط** (Schema v8)
+          //
+          //   `reorderEmployees` تُسنِد ٠..ن بحسب موضع كل معرّف في القائمة
+          //   المُمرَّرة. وقائمةٌ مفلترة تحمل بعض القسم لا كلّه، فحفظُ ترتيبها
+          //   يمنح أرقاماً تتصادم مع من أُخفي — فيتبعثر ترتيبٌ بناه المالك
+          //   بيده وهو لا يرى ما وقع.
+          final canReorder = _query.isEmpty &&
+              _projectTreasuryId == null &&
+              _statusFilter == null;
 
           return Column(
             children: [
@@ -358,30 +380,43 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(left: 28, bottom: 8),
+                    padding: const EdgeInsets.only(left: 8, bottom: 8),
                     child: OutlinedButton.icon(
                       onPressed: () => _showBulkReassignDialog(context),
                       icon: const Icon(Icons.swap_horiz_rounded, size: 17),
                       label: const Text('نقل موظفي مشروع'),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 28, bottom: 8),
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDepartmentsDialog(context),
+                      icon: const Icon(Icons.category_outlined, size: 17),
+                      label: const Text('الأقسام'),
+                    ),
+                  ),
                 ],
+              ),
+
+              // ── فلتر الحالة (Schema v8) ──────────────────────────────
+              _StatusFilterBar(
+                selected: _statusFilter,
+                onChanged: (v) => setState(() => _statusFilter = v),
               ),
 
               Expanded(
                 child: filtered.isEmpty
                     ? _EmptyState(
-                        isSearch: _query.isNotEmpty,
+                        isSearch: _query.isNotEmpty || _statusFilter != null,
                         onAdd: _showCreateDialog,
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _EmployeeCard(
-                          employee: filtered[i],
-                          onTap: () => _showDetail(filtered[i]),
-                        ),
+                    : _EmployeeSections(
+                        employees: filtered,
+                        canReorder: canReorder,
+                        onTap: _showDetail,
+                        onReorder: (ids) => ref
+                            .read(employeeNotifierProvider.notifier)
+                            .reorderEmployees(ids),
                       ),
               ),
             ],
@@ -418,13 +453,25 @@ class _HeroEmployeeSummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🔴 **ع-٥٣ — المجموع كان يجمع العملتين** (كُشف في الدفعة د):
+    //   `totalSalary += e.basicSalary` بلا نظرٍ إلى `salary_currency`، ثم
+    //   يُطبع «د.ع». فموظفٌ راتبه ٥٠٠ **دولار** كان يُضاف إلى الكتلة كأنه
+    //   ٥٠٠ ديناراً — خطأٌ بمقدار سعر الصرف كلّه، وكسرٌ لقاعدة المشروع
+    //   المحروسة في `expense_reports_test`: **العملتان لا تُجمعان أبداً**.
+    //
+    //   والسبب الجذري أن `salaryCurrency` كانت ساقطة من `EmployeeModel`
+    //   أصلاً، فلم يكن للشاشة سبيل إلى معرفتها (نمط ع-٥٠).
     int activeCount = 0;
-    double totalSalary = 0;
+    double totalIqd = 0;
+    double totalUsd = 0;
 
     for (final e in employees) {
-      if (e.isActive) {
-        activeCount++;
-        totalSalary += e.basicSalary;
+      if (e.status != EmployeeStatus.active) continue;
+      activeCount++;
+      if (e.salaryCurrency == 'USD') {
+        totalUsd += e.basicSalary;
+      } else {
+        totalIqd += e.basicSalary;
       }
     }
 
@@ -525,7 +572,7 @@ class _HeroEmployeeSummaryBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${fmtNum.format(totalSalary)} د.ع',
+                  '${fmtNum.format(totalIqd)} د.ع',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -533,6 +580,17 @@ class _HeroEmployeeSummaryBar extends StatelessWidget {
                     fontFamily: 'Cairo',
                   ),
                 ),
+                // الدولار متجاوراً لا مجموعاً — ويظهر حين يوجد فقط
+                if (totalUsd.abs() > 0.001)
+                  Text(
+                    '\$ ${NumberFormat('#,##0.00').format(totalUsd)}',
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFE0BC66),
+                      fontFamily: 'Cairo',
+                    ),
+                  ),
               ],
             ),
           ),
@@ -573,11 +631,13 @@ class _EmployeeCard extends ConsumerWidget {
             : context.colors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: !employee.isActive
+          color: employee.status == EmployeeStatus.terminated
               ? Colors.red.withValues(alpha: 0.3)
-              : hasPending
-                  ? Colors.orange.withValues(alpha: 0.45)
-                  : context.colors.border,
+              : employee.status == EmployeeStatus.leave
+                  ? Colors.amber.withValues(alpha: 0.5)
+                  : hasPending
+                      ? Colors.orange.withValues(alpha: 0.45)
+                      : context.colors.border,
         ),
         boxShadow: [
           BoxShadow(
@@ -636,19 +696,29 @@ class _EmployeeCard extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          if (!employee.isActive)
+                          // شارة الحالة — «حالي» لا تُعرَض: هي الغالب،
+                          // وشارةٌ على كل بطاقة تُصبح ضجيجاً يُخفي الاستثناء
+                          if (employee.status != EmployeeStatus.active)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.12),
+                                color: (employee.status ==
+                                            EmployeeStatus.leave
+                                        ? Colors.amber
+                                        : Colors.red)
+                                    .withValues(alpha: 0.14),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                'موقوف',
+                              child: Text(
+                                EmployeeStatus.label(employee.status),
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.red,
+                                  color: employee.status ==
+                                          EmployeeStatus.leave
+                                      ? Colors.amber.shade900
+                                      : Colors.red,
                                 ),
                               ),
                             ),
@@ -664,7 +734,8 @@ class _EmployeeCard extends ConsumerWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'الراتب: ${fmtNum.format(employee.basicSalary)} د.ع',
+                            'الراتب: ${fmtNum.format(employee.basicSalary)}'
+                            ' ${employee.salaryCurrency == 'USD' ? '\$' : 'د.ع'}',
                             style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,

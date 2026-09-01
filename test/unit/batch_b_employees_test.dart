@@ -14,6 +14,7 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sales_management/core/constants/employee_status.dart';
 import 'package:sales_management/core/utils/audit_labels.dart';
 import 'package:sales_management/data/database/app_database.dart';
 
@@ -146,10 +147,13 @@ void main() {
 
     test('⭐⭐ التعطيل هو البديل — والمنع بلا بديل يُهجّر الخطر', () async {
       await grantAdvance();
-      await db.employeesDao.setEmployeeActive(employeeId, isActive: false);
+      // 🔄 Schema v8: حلّ `status` محلّ `is_active`، و«التعطيل» صار
+      //   «منتهية خدمته» — الحالة التي كان العمود الثنائي يعنيها فعلاً.
+      await db.employeesDao
+          .setEmployeeStatus(employeeId, EmployeeStatus.terminated);
 
       final e = await db.employeesDao.getEmployeeById(employeeId);
-      expect(e!.isActive, isFalse);
+      expect(e!.status, EmployeeStatus.terminated);
       expect(e.isDeleted, isFalse,
           reason: 'يبقى سجلّه وتقاريره — يختفي من الكشوف الجديدة فقط');
     });

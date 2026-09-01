@@ -39,6 +39,14 @@ import 'tables/advance_lines_table.dart';
 import 'tables/item_types_table.dart';
 import 'tables/attachments_table.dart';
 import 'tables/payroll_periods_table.dart';
+import 'tables/departments_table.dart';
+// ⚠️ **مستورَدة هنا صراحةً وإن لم يستعملها هذا الملف**: `app_database.g.dart`
+//   جزءٌ من هذه المكتبة، ويولّد `const Constant(EmployeeStatus.active)` قيمةً
+//   افتراضية لعمود الحالة. والجزء لا يرى إلا واردات مكتبته — وبدون هذا
+//   السطر يترجم المحلّل بلا شكوى ويرفض المصرِّف بـ«Not a constant expression»،
+//   فتفشل **كل** الاختبارات بينما `flutter analyze` يقول صفر مشاكل.
+// ignore: unused_import
+import '../../core/constants/employee_status.dart';
 import 'views/treasury_balance_view.dart';
 
 // ── استيراد الـ DAOs ──────────────────────────────────────────────────────────
@@ -83,6 +91,7 @@ part 'app_database.g.dart';
     // ── الموارد البشرية ────────────────────────────────────────────────────
     // ⚠️ ترتيب الإعلان لا يفرض ترتيب الإنشاء (Drift يحلّ الاعتماديات)، لكن
     //    PayrollPeriods قبل SalaryPayments يعكس العلاقة: الكشف أبٌ لسطوره.
+    Departments,
     Employees,
     CashAdvances,
     CashAdvanceRepayments,
@@ -138,7 +147,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -345,6 +354,52 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
+      // ── الترقية إلى الإصدار 8 (الأقسام وحالة الموظف) ───────────────────
+      //
+      // بلاغ المالك 2026-08-30 (الدفعة د): «حالة الموظف: حالي · منتهية
+      // خدمته · إجازة» و«أقسام بترتيب يدوي: مهندسون ١–٧ · فنيون ٨–١٩…».
+      //
+      // جدول `departments` أُنشئ أعلاه عبر createAll().
+      if (from < 8) {
+        // ⚠️ **إعادة بناء لا `ALTER TABLE ADD COLUMN`** — وهذا مقصود لسببين:
+        //
+        //   ١. **حذف `is_active`.** كان يحمل حالتين والواقع ثلاث، و«الموقوف»
+        //      تعني في الاستعمال «منتهية خدمته». وإبقاؤه بجوار `status`
+        //      يُنتج عمودين لمعنى واحد يفترقان بأول كتابة تنسى أحدهما
+        //      (نمط ع-٤٠). و`DROP COLUMN` في SQLite يحتاج إعادة بناء.
+        //
+        //   ٢. **قيد `CHECK` على الحالة.** القيود على مستوى الجدول تُكتَب
+        //      عند `CREATE TABLE` وحده، فـ`addColumn` تُنتج قاعدةً مُرقّاة
+        //      **بلا الحارس** الذي تحمله القاعدة الجديدة — وهما قاعدتان
+        //      مختلفتان تحت اسم واحد.
+        //
+        // والفحص قبل البناء يجعلها **قابلة للتكرار**: ترقيةٌ تعثّرت في
+        // منتصفها ثم أُعيدت لا تنهار على عمودٍ لم يعد موجوداً (نفس سبب
+        // `_addColumnIfMissing`).
+        if (await _hasColumn('employees', 'is_active')) {
+          // ignore: experimental_member_use
+          await m.alterTable(TableMigration(
+            employees,
+            columnTransformer: {
+              // قرار إيقافٍ اتّخذه المالك سابقاً لا يضيع — يصير «منتهية خدمته»
+              employees.status: const CustomExpression<String>(
+                "CASE WHEN is_active = 0 THEN 'terminated' ELSE 'active' END",
+              ),
+            },
+            newColumns: [
+              employees.status,
+              employees.departmentId,
+              employees.sortOrder,
+            ],
+          ));
+        } else {
+          // قاعدة بُنيت بمخطط v8 أصلاً ثم فُتحت برقم أقدم — الأعمدة موجودة
+          await _addColumnIfMissing(m, employees, employees.status);
+          await _addColumnIfMissing(m, employees, employees.departmentId);
+          await _addColumnIfMissing(m, employees, employees.sortOrder);
+        }
+      }
+
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────
       // كلها CREATE INDEX IF NOT EXISTS — آمنة للتكرار.
       // بدون هذا السطر تبقى قواعد البيانات المُرقّاة بلا فهارس إلى الأبد
@@ -488,6 +543,24 @@ class AppDatabase extends _$AppDatabase {
     await customStatement('''
       CREATE INDEX IF NOT EXISTS idx_employees_active
       ON employees (id)
+      WHERE is_deleted = 0
+    ''');
+
+    // Departments: **فرادة الاسم على غير المحذوف** (Schema v8)
+    //
+    // ⚠️ فهرس جزئي لا قيد `UNIQUE` على العمود: الحذف ناعم (القانون ٨)،
+    //   فقيدٌ مطلق يمنع إعادة إنشاء قسمٍ حُذف بالاسم نفسه **إلى الأبد** —
+    //   والمالك سيحذف «سواق» بالخطأ ثم يريدها مرّة أخرى.
+    await customStatement('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_departments_name_unique
+      ON departments (name)
+      WHERE is_deleted = 0
+    ''');
+
+    // Employees: ترتيب العرض (القسم ثم الترتيب داخله) — Schema v8
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_employees_department_order
+      ON employees (department_id, sort_order)
       WHERE is_deleted = 0
     ''');
 

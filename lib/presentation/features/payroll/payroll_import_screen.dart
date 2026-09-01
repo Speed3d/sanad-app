@@ -422,6 +422,13 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
           await notifier.importRows(periodId: periodId, rows: resolved);
       if (result == null || !mounted) return;
 
+      // ⚠️ **من انتهت خدمته يُقال صراحةً** (Schema v8): استبعادٌ صامت لسطر
+      //   راتب هو نصف عطل ع-٣٣ — عمليةٌ لم تقع والمالك يظنّها وقعت.
+      if (result.skippedTerminated.isNotEmpty) {
+        await _showSkippedTerminated(result.skippedTerminated);
+      }
+      if (!mounted) return;
+
       // الفروق بين المحسوب والمذكور تُعرَض قبل مغادرة الشاشة
       if (result.netMismatches.isNotEmpty) {
         await _showMismatches(result.netMismatches);
@@ -431,6 +438,47 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// من استُبعِدوا لانتهاء خدمتهم — بأسمائهم وبالطريق إلى تصحيح القرار
+  Future<void> _showSkippedTerminated(List<String> names) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('موظفون لم تُدرَج رواتبهم'),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${names.length} موظفاً في الملف حالتهم «منتهية خدمته»، '
+                'فلم تُدرَج صفوفهم في الكشف:',
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Text(names.map((n) => '• $n').join('\n')),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'إن كان أحدهم عائداً إلى العمل — غيّر حالته من شاشة '
+                'الموظفين إلى «حالي» ثم أعِد الاستيراد.',
+                style: TextStyle(fontSize: 12.5),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('فهمت'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showMismatches(List<String> messages) {

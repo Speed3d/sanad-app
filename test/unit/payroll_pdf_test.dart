@@ -25,7 +25,7 @@ import 'package:sales_management/core/services/pdf_service.dart';
 
 void main() {
   /// تحميل خط من القرص — `rootBundle` لا يعمل خارج تطبيق حيّ
-  pw.Font load(String name) => pw.Font.ttf(
+  pw.Font load(String name) => ArabicPdfFont(
         File('assets/fonts/$name').readAsBytesSync().buffer.asByteData(),
       );
 

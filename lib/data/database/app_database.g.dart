@@ -3735,6 +3735,323 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
   }
 }
 
+class $DepartmentsTable extends Departments
+    with TableInfo<$DepartmentsTable, Department> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DepartmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 60),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, name, sortOrder, createdAt, isDeleted];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'departments';
+  @override
+  VerificationContext validateIntegrity(Insertable<Department> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Department map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Department(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+    );
+  }
+
+  @override
+  $DepartmentsTable createAlias(String alias) {
+    return $DepartmentsTable(attachedDatabase, alias);
+  }
+}
+
+class Department extends DataClass implements Insertable<Department> {
+  /// المعرّف الأساسي
+  final int id;
+
+  /// اسم القسم — «مهندسون» · «فنيون» · «سواق»
+  ///
+  /// ⚠️ **بلا `.unique()` على مستوى العمود** رغم أن التكرار ممنوع: الحذف
+  ///   ناعم (القانون ٨)، فقيدٌ مطلق يمنع إعادة إنشاء قسمٍ حُذف بالاسم نفسه
+  ///   إلى الأبد. الفرادة تقع في **فهرس جزئي** على غير المحذوف — راجع
+  ///   `_createIndexes` في `app_database.dart`.
+  final String name;
+
+  /// ترتيب القسم في القائمة — الأصغر أولاً
+  final int sortOrder;
+
+  /// وقت الإنشاء
+  final DateTime createdAt;
+
+  /// حذف ناعم — القانون ٨
+  ///
+  /// قسمٌ حُذف يبقى موظفوه يشيرون إليه بـ`department_id`، فيُعرَضون تحت
+  /// «بلا قسم» بدل أن يختفوا أو يشيروا إلى معرّفٍ لا وجود له.
+  final bool isDeleted;
+  const Department(
+      {required this.id,
+      required this.name,
+      required this.sortOrder,
+      required this.createdAt,
+      required this.isDeleted});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    return map;
+  }
+
+  DepartmentsCompanion toCompanion(bool nullToAbsent) {
+    return DepartmentsCompanion(
+      id: Value(id),
+      name: Value(name),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+      isDeleted: Value(isDeleted),
+    );
+  }
+
+  factory Department.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Department(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+    };
+  }
+
+  Department copyWith(
+          {int? id,
+          String? name,
+          int? sortOrder,
+          DateTime? createdAt,
+          bool? isDeleted}) =>
+      Department(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        sortOrder: sortOrder ?? this.sortOrder,
+        createdAt: createdAt ?? this.createdAt,
+        isDeleted: isDeleted ?? this.isDeleted,
+      );
+  Department copyWithCompanion(DepartmentsCompanion data) {
+    return Department(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Department(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, sortOrder, createdAt, isDeleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Department &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt &&
+          other.isDeleted == this.isDeleted);
+}
+
+class DepartmentsCompanion extends UpdateCompanion<Department> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  final Value<bool> isDeleted;
+  const DepartmentsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+  });
+  DepartmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<Department> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? isDeleted,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+    });
+  }
+
+  DepartmentsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? name,
+      Value<int>? sortOrder,
+      Value<DateTime>? createdAt,
+      Value<bool>? isDeleted}) {
+    return DepartmentsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DepartmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $EmployeesTable extends Employees
     with TableInfo<$EmployeesTable, Employee> {
   @override
@@ -3820,16 +4137,30 @@ class $EmployeesTable extends Employees
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant(''));
-  static const VerificationMeta _isActiveMeta =
-      const VerificationMeta('isActive');
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
-  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
-      'is_active', aliasedName, false,
-      type: DriftSqlType.bool,
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(EmployeeStatus.active));
+  static const VerificationMeta _departmentIdMeta =
+      const VerificationMeta('departmentId');
+  @override
+  late final GeneratedColumn<int> departmentId = GeneratedColumn<int>(
+      'department_id', aliasedName, true,
+      type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
-      defaultValue: const Constant(true));
+          GeneratedColumn.constraintIsAlways('REFERENCES departments (id)'));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -3860,7 +4191,9 @@ class $EmployeesTable extends Employees
         hireDate,
         treasuryId,
         notes,
-        isActive,
+        status,
+        departmentId,
+        sortOrder,
         createdAt,
         isDeleted
       ];
@@ -3921,9 +4254,19 @@ class $EmployeesTable extends Employees
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
-    if (data.containsKey('is_active')) {
-      context.handle(_isActiveMeta,
-          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('department_id')) {
+      context.handle(
+          _departmentIdMeta,
+          departmentId.isAcceptableOrUnknown(
+              data['department_id']!, _departmentIdMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
     }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
@@ -3962,8 +4305,12 @@ class $EmployeesTable extends Employees
           .read(DriftSqlType.int, data['${effectivePrefix}treasury_id']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
-      isActive: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      departmentId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}department_id']),
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       isDeleted: attachedDatabase.typeMapping
@@ -3988,7 +4335,30 @@ class Employee extends DataClass implements Insertable<Employee> {
   final DateTime? hireDate;
   final int? treasuryId;
   final String notes;
-  final bool isActive;
+
+  /// حالة الموظف (Schema v8 — بلاغ المالك 2026-08-30)
+  ///
+  /// `active` حالي · `terminated` منتهية خدمته · `leave` في إجازة
+  ///
+  /// 🔑 **حلّ محلّ `is_active` ولم يُضَف بجواره.** كان العمود القديم يحمل
+  ///   حالتين (نشط/موقوف) بينما الواقع ثلاث، و«الموقوف» كانت تعني في
+  ///   الاستعمال «منتهية خدمته». وإبقاء العمودين معاً يُنتج **عمودين لمعنى
+  ///   واحد** يفترقان بأول كتابة تنسى أحدهما — وهو نمط ع-٤٠ حرفياً.
+  ///
+  ///   والترحيل v7→v8 يحوّل `is_active = 0` إلى `terminated`، فلا يضيع
+  ///   قرارُ إيقافٍ اتّخذه المالك سابقاً.
+  final String status;
+
+  /// القسم الذي ينتمي إليه (Schema v8) — `null` يعني «بلا قسم»
+  ///
+  /// اختياري عمداً: الشركة تعمل اليوم بلا أقسام، وفرضُ قسمٍ على كل موظف
+  /// عند الترقية يعني اختراع بيانات لا يعرفها أحد.
+  final int? departmentId;
+
+  /// ترتيب الموظف **داخل قسمه** (Schema v8) — الأصغر أولاً
+  ///
+  /// راجع رأس `departments_table.dart` لسبب الترتيب على مستويين.
+  final int sortOrder;
   final DateTime createdAt;
   final bool isDeleted;
   const Employee(
@@ -4002,7 +4372,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       this.hireDate,
       this.treasuryId,
       required this.notes,
-      required this.isActive,
+      required this.status,
+      this.departmentId,
+      required this.sortOrder,
       required this.createdAt,
       required this.isDeleted});
   @override
@@ -4022,7 +4394,11 @@ class Employee extends DataClass implements Insertable<Employee> {
       map['treasury_id'] = Variable<int>(treasuryId);
     }
     map['notes'] = Variable<String>(notes);
-    map['is_active'] = Variable<bool>(isActive);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || departmentId != null) {
+      map['department_id'] = Variable<int>(departmentId);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
@@ -4044,7 +4420,11 @@ class Employee extends DataClass implements Insertable<Employee> {
           ? const Value.absent()
           : Value(treasuryId),
       notes: Value(notes),
-      isActive: Value(isActive),
+      status: Value(status),
+      departmentId: departmentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(departmentId),
+      sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       isDeleted: Value(isDeleted),
     );
@@ -4064,7 +4444,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       hireDate: serializer.fromJson<DateTime?>(json['hireDate']),
       treasuryId: serializer.fromJson<int?>(json['treasuryId']),
       notes: serializer.fromJson<String>(json['notes']),
-      isActive: serializer.fromJson<bool>(json['isActive']),
+      status: serializer.fromJson<String>(json['status']),
+      departmentId: serializer.fromJson<int?>(json['departmentId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
@@ -4083,7 +4465,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       'hireDate': serializer.toJson<DateTime?>(hireDate),
       'treasuryId': serializer.toJson<int?>(treasuryId),
       'notes': serializer.toJson<String>(notes),
-      'isActive': serializer.toJson<bool>(isActive),
+      'status': serializer.toJson<String>(status),
+      'departmentId': serializer.toJson<int?>(departmentId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
@@ -4100,7 +4484,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           Value<DateTime?> hireDate = const Value.absent(),
           Value<int?> treasuryId = const Value.absent(),
           String? notes,
-          bool? isActive,
+          String? status,
+          Value<int?> departmentId = const Value.absent(),
+          int? sortOrder,
           DateTime? createdAt,
           bool? isDeleted}) =>
       Employee(
@@ -4114,7 +4500,10 @@ class Employee extends DataClass implements Insertable<Employee> {
         hireDate: hireDate.present ? hireDate.value : this.hireDate,
         treasuryId: treasuryId.present ? treasuryId.value : this.treasuryId,
         notes: notes ?? this.notes,
-        isActive: isActive ?? this.isActive,
+        status: status ?? this.status,
+        departmentId:
+            departmentId.present ? departmentId.value : this.departmentId,
+        sortOrder: sortOrder ?? this.sortOrder,
         createdAt: createdAt ?? this.createdAt,
         isDeleted: isDeleted ?? this.isDeleted,
       );
@@ -4134,7 +4523,11 @@ class Employee extends DataClass implements Insertable<Employee> {
       treasuryId:
           data.treasuryId.present ? data.treasuryId.value : this.treasuryId,
       notes: data.notes.present ? data.notes.value : this.notes,
-      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      status: data.status.present ? data.status.value : this.status,
+      departmentId: data.departmentId.present
+          ? data.departmentId.value
+          : this.departmentId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
     );
@@ -4153,7 +4546,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           ..write('hireDate: $hireDate, ')
           ..write('treasuryId: $treasuryId, ')
           ..write('notes: $notes, ')
-          ..write('isActive: $isActive, ')
+          ..write('status: $status, ')
+          ..write('departmentId: $departmentId, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -4172,7 +4567,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       hireDate,
       treasuryId,
       notes,
-      isActive,
+      status,
+      departmentId,
+      sortOrder,
       createdAt,
       isDeleted);
   @override
@@ -4189,7 +4586,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           other.hireDate == this.hireDate &&
           other.treasuryId == this.treasuryId &&
           other.notes == this.notes &&
-          other.isActive == this.isActive &&
+          other.status == this.status &&
+          other.departmentId == this.departmentId &&
+          other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.isDeleted == this.isDeleted);
 }
@@ -4205,7 +4604,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
   final Value<DateTime?> hireDate;
   final Value<int?> treasuryId;
   final Value<String> notes;
-  final Value<bool> isActive;
+  final Value<String> status;
+  final Value<int?> departmentId;
+  final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   final Value<bool> isDeleted;
   const EmployeesCompanion({
@@ -4219,7 +4620,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     this.hireDate = const Value.absent(),
     this.treasuryId = const Value.absent(),
     this.notes = const Value.absent(),
-    this.isActive = const Value.absent(),
+    this.status = const Value.absent(),
+    this.departmentId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
@@ -4234,7 +4637,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     this.hireDate = const Value.absent(),
     this.treasuryId = const Value.absent(),
     this.notes = const Value.absent(),
-    this.isActive = const Value.absent(),
+    this.status = const Value.absent(),
+    this.departmentId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
   }) : fullName = Value(fullName);
@@ -4249,7 +4654,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     Expression<DateTime>? hireDate,
     Expression<int>? treasuryId,
     Expression<String>? notes,
-    Expression<bool>? isActive,
+    Expression<String>? status,
+    Expression<int>? departmentId,
+    Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
     Expression<bool>? isDeleted,
   }) {
@@ -4264,7 +4671,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       if (hireDate != null) 'hire_date': hireDate,
       if (treasuryId != null) 'treasury_id': treasuryId,
       if (notes != null) 'notes': notes,
-      if (isActive != null) 'is_active': isActive,
+      if (status != null) 'status': status,
+      if (departmentId != null) 'department_id': departmentId,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
@@ -4281,7 +4690,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       Value<DateTime?>? hireDate,
       Value<int?>? treasuryId,
       Value<String>? notes,
-      Value<bool>? isActive,
+      Value<String>? status,
+      Value<int?>? departmentId,
+      Value<int>? sortOrder,
       Value<DateTime>? createdAt,
       Value<bool>? isDeleted}) {
     return EmployeesCompanion(
@@ -4295,7 +4706,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       hireDate: hireDate ?? this.hireDate,
       treasuryId: treasuryId ?? this.treasuryId,
       notes: notes ?? this.notes,
-      isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
+      departmentId: departmentId ?? this.departmentId,
+      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -4334,8 +4747,14 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
-    if (isActive.present) {
-      map['is_active'] = Variable<bool>(isActive.value);
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (departmentId.present) {
+      map['department_id'] = Variable<int>(departmentId.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -4359,7 +4778,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
           ..write('hireDate: $hireDate, ')
           ..write('treasuryId: $treasuryId, ')
           ..write('notes: $notes, ')
-          ..write('isActive: $isActive, ')
+          ..write('status: $status, ')
+          ..write('departmentId: $departmentId, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -12468,6 +12889,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $VoucherSequencesTable(this);
   late final $TreasuriesTable treasuries = $TreasuriesTable(this);
   late final $VouchersTable vouchers = $VouchersTable(this);
+  late final $DepartmentsTable departments = $DepartmentsTable(this);
   late final $EmployeesTable employees = $EmployeesTable(this);
   late final $CashAdvancesTable cashAdvances = $CashAdvancesTable(this);
   late final $CashAdvanceRepaymentsTable cashAdvanceRepayments =
@@ -12512,6 +12934,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         voucherSequences,
         treasuries,
         vouchers,
+        departments,
         employees,
         cashAdvances,
         cashAdvanceRepayments,
@@ -15322,6 +15745,255 @@ typedef $$VouchersTableProcessedTableManager = ProcessedTableManager<
     (Voucher, $$VouchersTableReferences),
     Voucher,
     PrefetchHooks Function({bool treasuryId, bool fiscalPeriodId})>;
+typedef $$DepartmentsTableCreateCompanionBuilder = DepartmentsCompanion
+    Function({
+  Value<int> id,
+  required String name,
+  Value<int> sortOrder,
+  Value<DateTime> createdAt,
+  Value<bool> isDeleted,
+});
+typedef $$DepartmentsTableUpdateCompanionBuilder = DepartmentsCompanion
+    Function({
+  Value<int> id,
+  Value<String> name,
+  Value<int> sortOrder,
+  Value<DateTime> createdAt,
+  Value<bool> isDeleted,
+});
+
+final class $$DepartmentsTableReferences
+    extends BaseReferences<_$AppDatabase, $DepartmentsTable, Department> {
+  $$DepartmentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$EmployeesTable, List<Employee>>
+      _employeesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.employees,
+              aliasName: $_aliasNameGenerator(
+                  db.departments.id, db.employees.departmentId));
+
+  $$EmployeesTableProcessedTableManager get employeesRefs {
+    final manager = $$EmployeesTableTableManager($_db, $_db.employees)
+        .filter((f) => f.departmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_employeesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$DepartmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $DepartmentsTable> {
+  $$DepartmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> employeesRefs(
+      Expression<bool> Function($$EmployeesTableFilterComposer f) f) {
+    final $$EmployeesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.departmentId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableFilterComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$DepartmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DepartmentsTable> {
+  $$DepartmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+}
+
+class $$DepartmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DepartmentsTable> {
+  $$DepartmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  Expression<T> employeesRefs<T extends Object>(
+      Expression<T> Function($$EmployeesTableAnnotationComposer a) f) {
+    final $$EmployeesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.departmentId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$DepartmentsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $DepartmentsTable,
+    Department,
+    $$DepartmentsTableFilterComposer,
+    $$DepartmentsTableOrderingComposer,
+    $$DepartmentsTableAnnotationComposer,
+    $$DepartmentsTableCreateCompanionBuilder,
+    $$DepartmentsTableUpdateCompanionBuilder,
+    (Department, $$DepartmentsTableReferences),
+    Department,
+    PrefetchHooks Function({bool employeesRefs})> {
+  $$DepartmentsTableTableManager(_$AppDatabase db, $DepartmentsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DepartmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DepartmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DepartmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+          }) =>
+              DepartmentsCompanion(
+            id: id,
+            name: name,
+            sortOrder: sortOrder,
+            createdAt: createdAt,
+            isDeleted: isDeleted,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String name,
+            Value<int> sortOrder = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+          }) =>
+              DepartmentsCompanion.insert(
+            id: id,
+            name: name,
+            sortOrder: sortOrder,
+            createdAt: createdAt,
+            isDeleted: isDeleted,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$DepartmentsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({employeesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (employeesRefs) db.employees],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (employeesRefs)
+                    await $_getPrefetchedData<Department, $DepartmentsTable,
+                            Employee>(
+                        currentTable: table,
+                        referencedTable: $$DepartmentsTableReferences
+                            ._employeesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$DepartmentsTableReferences(db, table, p0)
+                                .employeesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.departmentId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$DepartmentsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $DepartmentsTable,
+    Department,
+    $$DepartmentsTableFilterComposer,
+    $$DepartmentsTableOrderingComposer,
+    $$DepartmentsTableAnnotationComposer,
+    $$DepartmentsTableCreateCompanionBuilder,
+    $$DepartmentsTableUpdateCompanionBuilder,
+    (Department, $$DepartmentsTableReferences),
+    Department,
+    PrefetchHooks Function({bool employeesRefs})>;
 typedef $$EmployeesTableCreateCompanionBuilder = EmployeesCompanion Function({
   Value<int> id,
   required String fullName,
@@ -15333,7 +16005,9 @@ typedef $$EmployeesTableCreateCompanionBuilder = EmployeesCompanion Function({
   Value<DateTime?> hireDate,
   Value<int?> treasuryId,
   Value<String> notes,
-  Value<bool> isActive,
+  Value<String> status,
+  Value<int?> departmentId,
+  Value<int> sortOrder,
   Value<DateTime> createdAt,
   Value<bool> isDeleted,
 });
@@ -15348,7 +16022,9 @@ typedef $$EmployeesTableUpdateCompanionBuilder = EmployeesCompanion Function({
   Value<DateTime?> hireDate,
   Value<int?> treasuryId,
   Value<String> notes,
-  Value<bool> isActive,
+  Value<String> status,
+  Value<int?> departmentId,
+  Value<int> sortOrder,
   Value<DateTime> createdAt,
   Value<bool> isDeleted,
 });
@@ -15367,6 +16043,21 @@ final class $$EmployeesTableReferences
     final manager = $$TreasuriesTableTableManager($_db, $_db.treasuries)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_treasuryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $DepartmentsTable _departmentIdTable(_$AppDatabase db) =>
+      db.departments.createAlias(
+          $_aliasNameGenerator(db.employees.departmentId, db.departments.id));
+
+  $$DepartmentsTableProcessedTableManager? get departmentId {
+    final $_column = $_itemColumn<int>('department_id');
+    if ($_column == null) return null;
+    final manager = $$DepartmentsTableTableManager($_db, $_db.departments)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_departmentIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -15440,8 +16131,11 @@ class $$EmployeesTableFilterComposer
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<bool> get isActive => $composableBuilder(
-      column: $table.isActive, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -15461,6 +16155,26 @@ class $$EmployeesTableFilterComposer
             $$TreasuriesTableFilterComposer(
               $db: $db,
               $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$DepartmentsTableFilterComposer get departmentId {
+    final $$DepartmentsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.departmentId,
+        referencedTable: $db.departments,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$DepartmentsTableFilterComposer(
+              $db: $db,
+              $table: $db.departments,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -15549,8 +16263,11 @@ class $$EmployeesTableOrderingComposer
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<bool> get isActive => $composableBuilder(
-      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -15570,6 +16287,26 @@ class $$EmployeesTableOrderingComposer
             $$TreasuriesTableOrderingComposer(
               $db: $db,
               $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$DepartmentsTableOrderingComposer get departmentId {
+    final $$DepartmentsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.departmentId,
+        referencedTable: $db.departments,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$DepartmentsTableOrderingComposer(
+              $db: $db,
+              $table: $db.departments,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -15615,8 +16352,11 @@ class $$EmployeesTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
-  GeneratedColumn<bool> get isActive =>
-      $composableBuilder(column: $table.isActive, builder: (column) => column);
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -15636,6 +16376,26 @@ class $$EmployeesTableAnnotationComposer
             $$TreasuriesTableAnnotationComposer(
               $db: $db,
               $table: $db.treasuries,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$DepartmentsTableAnnotationComposer get departmentId {
+    final $$DepartmentsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.departmentId,
+        referencedTable: $db.departments,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$DepartmentsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.departments,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -15699,7 +16459,10 @@ class $$EmployeesTableTableManager extends RootTableManager<
     (Employee, $$EmployeesTableReferences),
     Employee,
     PrefetchHooks Function(
-        {bool treasuryId, bool cashAdvancesRefs, bool salaryPaymentsRefs})> {
+        {bool treasuryId,
+        bool departmentId,
+        bool cashAdvancesRefs,
+        bool salaryPaymentsRefs})> {
   $$EmployeesTableTableManager(_$AppDatabase db, $EmployeesTable table)
       : super(TableManagerState(
           db: db,
@@ -15721,7 +16484,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             Value<DateTime?> hireDate = const Value.absent(),
             Value<int?> treasuryId = const Value.absent(),
             Value<String> notes = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int?> departmentId = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
           }) =>
@@ -15736,7 +16501,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             hireDate: hireDate,
             treasuryId: treasuryId,
             notes: notes,
-            isActive: isActive,
+            status: status,
+            departmentId: departmentId,
+            sortOrder: sortOrder,
             createdAt: createdAt,
             isDeleted: isDeleted,
           ),
@@ -15751,7 +16518,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             Value<DateTime?> hireDate = const Value.absent(),
             Value<int?> treasuryId = const Value.absent(),
             Value<String> notes = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int?> departmentId = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
           }) =>
@@ -15766,7 +16535,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             hireDate: hireDate,
             treasuryId: treasuryId,
             notes: notes,
-            isActive: isActive,
+            status: status,
+            departmentId: departmentId,
+            sortOrder: sortOrder,
             createdAt: createdAt,
             isDeleted: isDeleted,
           ),
@@ -15778,6 +16549,7 @@ class $$EmployeesTableTableManager extends RootTableManager<
               .toList(),
           prefetchHooksCallback: (
               {treasuryId = false,
+              departmentId = false,
               cashAdvancesRefs = false,
               salaryPaymentsRefs = false}) {
             return PrefetchHooks(
@@ -15807,6 +16579,16 @@ class $$EmployeesTableTableManager extends RootTableManager<
                         $$EmployeesTableReferences._treasuryIdTable(db),
                     referencedColumn:
                         $$EmployeesTableReferences._treasuryIdTable(db).id,
+                  ) as T;
+                }
+                if (departmentId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.departmentId,
+                    referencedTable:
+                        $$EmployeesTableReferences._departmentIdTable(db),
+                    referencedColumn:
+                        $$EmployeesTableReferences._departmentIdTable(db).id,
                   ) as T;
                 }
 
@@ -15859,7 +16641,10 @@ typedef $$EmployeesTableProcessedTableManager = ProcessedTableManager<
     (Employee, $$EmployeesTableReferences),
     Employee,
     PrefetchHooks Function(
-        {bool treasuryId, bool cashAdvancesRefs, bool salaryPaymentsRefs})>;
+        {bool treasuryId,
+        bool departmentId,
+        bool cashAdvancesRefs,
+        bool salaryPaymentsRefs})>;
 typedef $$CashAdvancesTableCreateCompanionBuilder = CashAdvancesCompanion
     Function({
   Value<int> id,
@@ -20933,6 +21718,8 @@ class $AppDatabaseManager {
       $$TreasuriesTableTableManager(_db, _db.treasuries);
   $$VouchersTableTableManager get vouchers =>
       $$VouchersTableTableManager(_db, _db.vouchers);
+  $$DepartmentsTableTableManager get departments =>
+      $$DepartmentsTableTableManager(_db, _db.departments);
   $$EmployeesTableTableManager get employees =>
       $$EmployeesTableTableManager(_db, _db.employees);
   $$CashAdvancesTableTableManager get cashAdvances =>

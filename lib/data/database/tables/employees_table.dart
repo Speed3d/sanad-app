@@ -23,6 +23,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:drift/drift.dart';
+import '../../../core/constants/employee_status.dart';
+import 'departments_table.dart';
 import 'treasuries_table.dart';
 import 'payroll_periods_table.dart';
 
@@ -80,9 +82,34 @@ class Employees extends Table {
   // ملاحظات
   TextColumn get notes => text().withDefault(const Constant(''))();
 
-  // هل الموظف نشط؟
-  BoolColumn get isActive =>
-      boolean().named('is_active').withDefault(const Constant(true))();
+  /// حالة الموظف (Schema v8 — بلاغ المالك 2026-08-30)
+  ///
+  /// `active` حالي · `terminated` منتهية خدمته · `leave` في إجازة
+  ///
+  /// 🔑 **حلّ محلّ `is_active` ولم يُضَف بجواره.** كان العمود القديم يحمل
+  ///   حالتين (نشط/موقوف) بينما الواقع ثلاث، و«الموقوف» كانت تعني في
+  ///   الاستعمال «منتهية خدمته». وإبقاء العمودين معاً يُنتج **عمودين لمعنى
+  ///   واحد** يفترقان بأول كتابة تنسى أحدهما — وهو نمط ع-٤٠ حرفياً.
+  ///
+  ///   والترحيل v7→v8 يحوّل `is_active = 0` إلى `terminated`، فلا يضيع
+  ///   قرارُ إيقافٍ اتّخذه المالك سابقاً.
+  TextColumn get status =>
+      text().withDefault(const Constant(EmployeeStatus.active))();
+
+  /// القسم الذي ينتمي إليه (Schema v8) — `null` يعني «بلا قسم»
+  ///
+  /// اختياري عمداً: الشركة تعمل اليوم بلا أقسام، وفرضُ قسمٍ على كل موظف
+  /// عند الترقية يعني اختراع بيانات لا يعرفها أحد.
+  IntColumn get departmentId => integer()
+      .named('department_id')
+      .nullable()
+      .references(Departments, #id)();
+
+  /// ترتيب الموظف **داخل قسمه** (Schema v8) — الأصغر أولاً
+  ///
+  /// راجع رأس `departments_table.dart` لسبب الترتيب على مستويين.
+  IntColumn get sortOrder =>
+      integer().named('sort_order').withDefault(const Constant(0))();
 
   // وقت الإنشاء
   DateTimeColumn get createdAt =>
@@ -96,9 +123,13 @@ class Employees extends Table {
   ///
   /// حصر العملة في القيمتين المعروفتين: قيمة ثالثة تعني راتباً لا يعرف
   /// `PayrollCalculator` كيف يحوّله إلى دينار، فيصمت أو يُخطئ.
+  ///
+  /// وحصر الحالة في الثلاث المعروفة (v8): قيمةٌ رابعة تجعل الموظف يختفي من
+  /// كل فلتر بلا رسالة — الحارس في القاعدة يمنع وصولها أصلاً.
   @override
   List<String> get customConstraints => [
         "CHECK (salary_currency IN ('IQD', 'USD'))",
+        "CHECK (status IN ('active', 'terminated', 'leave'))",
       ];
 }
 

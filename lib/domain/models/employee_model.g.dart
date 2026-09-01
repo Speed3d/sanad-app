@@ -18,7 +18,11 @@ _$EmployeeModelImpl _$$EmployeeModelImplFromJson(Map<String, dynamic> json) =>
           : DateTime.parse(json['hireDate'] as String),
       treasuryId: (json['treasuryId'] as num?)?.toInt(),
       notes: json['notes'] as String? ?? '',
-      isActive: json['isActive'] as bool? ?? true,
+      position: json['position'] as String? ?? '',
+      salaryCurrency: json['salaryCurrency'] as String? ?? 'IQD',
+      status: json['status'] as String? ?? EmployeeStatus.active,
+      departmentId: (json['departmentId'] as num?)?.toInt(),
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -34,7 +38,31 @@ Map<String, dynamic> _$$EmployeeModelImplToJson(_$EmployeeModelImpl instance) =>
       'hireDate': instance.hireDate?.toIso8601String(),
       'treasuryId': instance.treasuryId,
       'notes': instance.notes,
-      'isActive': instance.isActive,
+      'position': instance.position,
+      'salaryCurrency': instance.salaryCurrency,
+      'status': instance.status,
+      'departmentId': instance.departmentId,
+      'sortOrder': instance.sortOrder,
+      'createdAt': instance.createdAt?.toIso8601String(),
+    };
+
+_$DepartmentModelImpl _$$DepartmentModelImplFromJson(
+        Map<String, dynamic> json) =>
+    _$DepartmentModelImpl(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+    );
+
+Map<String, dynamic> _$$DepartmentModelImplToJson(
+        _$DepartmentModelImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'sortOrder': instance.sortOrder,
       'createdAt': instance.createdAt?.toIso8601String(),
     };
 

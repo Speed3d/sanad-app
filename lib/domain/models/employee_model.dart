@@ -1,13 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // employee_model.dart — نماذج الموظف والسلفة والراتب في طبقة الـ Domain
 //
-// ثلاثة نماذج متشابكة:
+// أربعة نماذج متشابكة:
+//   DepartmentModel    — قسم الموظفين (Schema v8)
 //   EmployeeModel      — بيانات الموظف الأساسية
 //   CashAdvanceModel   — سلفة ممنوحة لموظف أو خارجي
 //   SalaryPaymentModel — دفعة راتب لموظف
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../core/constants/employee_status.dart';
 
 part 'employee_model.freezed.dart';
 part 'employee_model.g.dart';
@@ -40,8 +43,32 @@ abstract class EmployeeModel with _$EmployeeModel {
     /// ملاحظات
     @Default('') String notes,
 
-    /// هل الموظف نشط؟
-    @Default(true) bool isActive,
+    /// الصفة الوظيفية — مهندس · سائق · محاسب
+    ///
+    /// 🔴 **كانت ساقطة من هذا النموذج** رغم وجودها في الجدول منذ v7: طبقة
+    ///   الرواتب تقرأها من صفّ Drift مباشرةً، فبقيت شاشة الموظفين عاجزة عن
+    ///   عرض صفة أيّ موظف. نمط ع-٥٠: الرقم يُحسَب صحيحاً ويسقط في المحطّة
+    ///   الوسطى لأن طرفيها سليمان.
+    @Default('') String position,
+
+    /// عملة الراتب: 'IQD' | 'USD'
+    ///
+    /// 🔴 **كانت ساقطة أيضاً** — فكانت البطاقة تكتب «الراتب: ٥٠٠ د.ع»
+    ///   لموظفٍ راتبه ٥٠٠ **دولار**، وتجمع الاثنين في مجموع واحد. راجع
+    ///   ع-٥٣.
+    @Default('IQD') String salaryCurrency,
+
+    /// حالة الموظف (Schema v8) — راجع [EmployeeStatus]
+    ///
+    /// حلّت محلّ `isActive` ولم تُضَف بجوارها: عمودان لمعنى واحد يفترقان
+    /// بأول كتابة تنسى أحدهما (نمط ع-٤٠).
+    @Default(EmployeeStatus.active) String status,
+
+    /// القسم — `null` يعني «بلا قسم»
+    int? departmentId,
+
+    /// ترتيب الموظف داخل قسمه — الأصغر أولاً
+    @Default(0) int sortOrder,
 
     /// تاريخ الإنشاء
     DateTime? createdAt,
@@ -49,6 +76,27 @@ abstract class EmployeeModel with _$EmployeeModel {
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) =>
       _$EmployeeModelFromJson(json);
+}
+
+/// نموذج قسم الموظفين (Schema v8)
+@freezed
+abstract class DepartmentModel with _$DepartmentModel {
+  const factory DepartmentModel({
+    /// المعرّف الفريد
+    required int id,
+
+    /// اسم القسم — «مهندسون» · «فنيون» · «سواق»
+    required String name,
+
+    /// ترتيب القسم في القائمة — الأصغر أولاً
+    @Default(0) int sortOrder,
+
+    /// تاريخ الإنشاء
+    DateTime? createdAt,
+  }) = _DepartmentModel;
+
+  factory DepartmentModel.fromJson(Map<String, dynamic> json) =>
+      _$DepartmentModelFromJson(json);
 }
 
 /// نموذج السلفة (Cash Advance)

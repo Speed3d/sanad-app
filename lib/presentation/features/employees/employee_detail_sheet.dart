@@ -132,7 +132,7 @@ class _EmployeeDetailSheetState
       if (disable == true && mounted) {
         final ok = await ref
             .read(employeeNotifierProvider.notifier)
-            .setEmployeeActive(emp.id, isActive: false);
+            .setStatus(emp.id, EmployeeStatus.terminated);
         if (ok && mounted) Navigator.of(context).pop();
       }
       return;
@@ -316,14 +316,21 @@ class _EmployeeDetailSheetState
                           ),
                         ),
                       const SizedBox(height: 4),
+                      // شارة الحالة الثلاثية (Schema v8) — التسمية من
+                      // `EmployeeStatus` لا مكتوبة هنا: ترجمةٌ منسوخة في
+                      // ثلاث شاشات تُصحَّح في واحدة وتُنسى في اثنتين (ع-٤٧)
                       _SmallBadge(
-                        label: emp.isActive ? 'نشط' : 'موقوف',
-                        color: emp.isActive
-                            ? Colors.green.shade100
-                            : theme.colorScheme.errorContainer,
-                        textColor: emp.isActive
-                            ? Colors.green.shade800
-                            : theme.colorScheme.onErrorContainer,
+                        label: EmployeeStatus.label(emp.status),
+                        color: switch (emp.status) {
+                          EmployeeStatus.active => Colors.green.shade100,
+                          EmployeeStatus.leave => Colors.amber.shade100,
+                          _ => theme.colorScheme.errorContainer,
+                        },
+                        textColor: switch (emp.status) {
+                          EmployeeStatus.active => Colors.green.shade800,
+                          EmployeeStatus.leave => Colors.amber.shade900,
+                          _ => theme.colorScheme.onErrorContainer,
+                        },
                       ),
                     ],
                   ),
@@ -336,15 +343,17 @@ class _EmployeeDetailSheetState
                     switch (action) {
                       case 'edit':
                         await _showEditDialog();
-                      case 'toggle':
-                        await ref
-                            .read(employeeNotifierProvider.notifier)
-                            .toggleActive(
-                              emp.id,
-                              isActive: !emp.isActive,
-                            );
+                      case 'dept':
+                        await _showAssignDepartmentDialog(context, ref, emp);
                       case 'delete':
                         await _confirmDelete();
+                      // بقيّة الخيارات حالات الموظف الثلاث
+                      default:
+                        if (EmployeeStatus.all.contains(action)) {
+                          await ref
+                              .read(employeeNotifierProvider.notifier)
+                              .setStatus(emp.id, action);
+                        }
                     }
                   },
                   itemBuilder: (_) => [
@@ -358,21 +367,40 @@ class _EmployeeDetailSheetState
                         ],
                       ),
                     ),
-                    PopupMenuItem(
-                      value: 'toggle',
+                    // نقل بين الأقسام **بابه هنا** لا بالسحب: قرارٌ إداري
+                    // يُتَّخذ بوعي لا أثرٌ جانبيّ لسحبةٍ أخطأت هدفها
+                    const PopupMenuItem(
+                      value: 'dept',
                       child: Row(
                         children: [
-                          Icon(
-                            emp.isActive
-                                ? Icons.pause_circle_outline
-                                : Icons.play_circle_outline,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(emp.isActive ? 'إيقاف' : 'تفعيل'),
+                          Icon(Icons.category_outlined, size: 18),
+                          SizedBox(width: 10),
+                          Text('نقل إلى قسم…'),
                         ],
                       ),
                     ),
+                    const PopupMenuDivider(),
+                    // ⚠️ **الحالات الثلاث معروضة كلها لا مبدّلٌ ثنائي**:
+                    //   المبدّل يفترض حالتين، والواقع ثلاث — و«التالي» في
+                    //   دورةٍ ثلاثية لا يُخمَّن. والحالة الحالية معطَّلة
+                    //   ومعلَّمة فيُعرف موضعُه قبل أن يختار.
+                    for (final s in EmployeeStatus.all)
+                      PopupMenuItem(
+                        value: s,
+                        enabled: s != emp.status,
+                        child: Row(
+                          children: [
+                            Icon(
+                              s == emp.status
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(EmployeeStatus.label(s)),
+                          ],
+                        ),
+                      ),
                     const PopupMenuDivider(),
                     PopupMenuItem(
                       value: 'delete',

@@ -13,6 +13,7 @@
 
 import 'package:drift/drift.dart';
 
+import '../../core/constants/employee_status.dart';
 import '../../core/services/balance_guard.dart';
 import '../../core/services/fiscal_period_guard.dart';
 import '../../core/services/payroll_calculator.dart';
@@ -64,12 +65,20 @@ class PayrollImportResult {
   /// فروق بين الصافي المحسوب والمذكور في الملف — تُعرَض ولا تمنع
   final List<String> netMismatches;
 
+  /// أسماء من **انتهت خدمتهم** فلم تُدرَج صفوفهم (Schema v8)
+  ///
+  /// ⚠️ **تُعرَض ولا تُبتلَع.** استبعادٌ صامت لسطر راتب هو نصف العطل الذي
+  ///   طاردناه في ع-٣٣: عمليةٌ لم تقع والمالك يظنّها وقعت. وقد يكون
+  ///   المحاسب محقّاً — فيُعيد المالك حالة الموظف ويستورد ثانيةً.
+  final List<String> skippedTerminated;
+
   const PayrollImportResult({
     required this.periodId,
     required this.added,
     required this.updated,
     required this.employeesCreated,
     required this.netMismatches,
+    this.skippedTerminated = const [],
   });
 }
 
@@ -363,9 +372,32 @@ class PayrollRepository
     var updated = 0;
     var created = 0;
     final mismatches = <String>[];
+    final skipped = <String>[];
 
     for (final resolved in rows) {
       final r = resolved.row;
+
+      // ── 0. منتهي الخدمة لا يدخل كشفاً جديداً (Schema v8) ─────────────
+      //
+      // 🔴 **الوعد كان مكتوباً ولا حارس يحقّقه.** رسالة حارس الحذف تقول منذ
+      //   الدفعة ب: «عطّله بدل ذلك — يبقى سجلّه ولا يظهر في كشوف الرواتب
+      //   الجديدة». و`is_active` لم يكن يقرؤه **أي** مسار رواتب: فالتعطيل
+      //   كان يغيّر شارةً على الشاشة ولا شيء غيرها (نمط ع-٠٦، لكن في ثوب
+      //   أخطر: وعدٌ صريح للمالك لا يقع).
+      //
+      // ⚠️ **والاستبعاد هنا لا في المطابقة**: إخراجه من مرشّحي المطابقة
+      //   كان يجعل اسمه في الملف يبدو **موظفاً جديداً**، فيُنشَأ نسخةً
+      //   ثانية بسلفه وتاريخه المفقود. المطابقة تقع، ثم يُستبعَد الصفّ
+      //   ويُقال ذلك صراحةً.
+      if (resolved.employeeId != null) {
+        final existingEmp =
+            await _db.employeesDao.getEmployeeById(resolved.employeeId!);
+        if (existingEmp != null &&
+            !EmployeeStatus.joinsNewPayroll(existingEmp.status)) {
+          skipped.add(existingEmp.fullName);
+          continue;
+        }
+      }
 
       // ── 1. الموظف: قائم أم يُنشأ بموافقة صريحة ──────────────────────
       int employeeId;
@@ -482,6 +514,7 @@ class PayrollRepository
       updated: updated,
       employeesCreated: created,
       netMismatches: mismatches,
+      skippedTerminated: skipped,
     );
   }
 

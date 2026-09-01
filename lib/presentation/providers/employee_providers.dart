@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/auth/permissions.dart';
+import '../../core/constants/employee_status.dart';
 import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
@@ -40,8 +41,23 @@ EmployeeModel _mapEmployee(Employee e) => EmployeeModel(
       hireDate: e.hireDate,
       treasuryId: e.treasuryId,
       notes: e.notes,
-      isActive: e.isActive,
+      // 🔴 `position` و`salaryCurrency` **كانتا ساقطتين هنا** منذ v7: طبقة
+      //   الرواتب تقرأهما من صفّ Drift مباشرةً، فبقيت شاشة الموظفين عاجزة
+      //   عن عرض الصفة، وتكتب «د.ع» تحت راتبٍ بالدولار (ع-٥٣). نمط ع-٥٠:
+      //   الرقم صحيح في طرفيه ويسقط في المحطّة الوسطى.
+      position: e.position,
+      salaryCurrency: e.salaryCurrency,
+      status: e.status,
+      departmentId: e.departmentId,
+      sortOrder: e.sortOrder,
       createdAt: e.createdAt,
+    );
+
+DepartmentModel _mapDepartment(Department d) => DepartmentModel(
+      id: d.id,
+      name: d.name,
+      sortOrder: d.sortOrder,
+      createdAt: d.createdAt,
     );
 
 CashAdvanceModel _mapAdvance(CashAdvance a) => CashAdvanceModel(
@@ -81,6 +97,16 @@ Stream<List<EmployeeModel>> allEmployees(Ref ref) {
   return db.employeesDao
       .watchAllEmployees()
       .map((list) => list.map(_mapEmployee).toList());
+}
+
+/// أقسام الموظفين مرتَّبة — Reactive Stream (Schema v8)
+@riverpod
+Stream<List<DepartmentModel>> allDepartments(Ref ref) {
+  return ref
+      .watch(appDatabaseProvider)
+      .employeesDao
+      .watchDepartments()
+      .map((list) => list.map(_mapDepartment).toList());
 }
 
 /// Stream تفاعلي للسلف الممنوحة لموظف محدد
@@ -235,14 +261,86 @@ class EmployeeNotifier extends _$EmployeeNotifier {
     }
   }
 
-  // ── تفعيل / إيقاف موظف ─────────────────────────────────────────────────
+  // ── حالة الموظف (Schema v8) ────────────────────────────────────────────
 
-  Future<bool> toggleActive(int id, {required bool isActive}) async {
+  /// تغيير حالة الموظف — حالي · منتهية خدمته · في إجازة
+  ///
+  /// ⚠️ **المنع بلا بديل يُهجّر الخطر لا يُزيله** (درس ع-٣٢): مالكٌ مُنع من
+  ///   حذف موظفٍ انتهت خدمته سيجد طريقاً آخر — يُعيد تسميته أو يحذف سطوره.
+  ///   وتغيير الحالة بابٌ مشروع: يبقى السجلّ والتقارير، ولا يدخل صاحبه
+  ///   كشوف الرواتب الجديدة.
+  Future<bool> setStatus(int id, String status) async {
     state = const AsyncLoading();
     try {
-      await _db.employeesDao.setEmployeeActive(id, isActive: isActive);
-      state = AsyncData(isActive ? 'تم تفعيل الموظف ✓' : 'تم إيقاف الموظف ✓');
+      await _db.employeesDao.setEmployeeStatus(id, status);
+      state = AsyncData('الحالة الآن: ${EmployeeStatus.label(status)} ✓');
       return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  // ── الأقسام والترتيب اليدوي (Schema v8) ────────────────────────────────
+
+  Future<bool> addDepartment(String name) => _guarded(
+        () => _db.employeesDao.insertDepartment(name),
+        'أُضيف القسم ✓',
+      );
+
+  Future<bool> renameDepartment(int id, String name) => _guarded(
+        () => _db.employeesDao.renameDepartment(id, name),
+        'أُعيدت التسمية ✓',
+      );
+
+  /// حذف قسم — الرسالة تقول **كم موظفاً** صار بلا قسم
+  Future<bool> removeDepartment(int id) async {
+    state = const AsyncLoading();
+    try {
+      final moved = await _db.employeesDao.deleteDepartment(id);
+      state = AsyncData(moved == 0
+          ? 'حُذف القسم ✓'
+          : 'حُذف القسم · صار $moved موظفاً بلا قسم ✓');
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> reorderDepartments(List<int> ids) => _guarded(
+        () => _db.employeesDao.reorderDepartments(ids),
+        'حُفظ ترتيب الأقسام ✓',
+      );
+
+  Future<bool> assignDepartment(int employeeId, int? departmentId) => _guarded(
+        () => _db.employeesDao.assignDepartment(employeeId, departmentId),
+        'نُقل الموظف ✓',
+      );
+
+  Future<bool> reorderEmployees(List<int> ids) => _guarded(
+        () => _db.employeesDao.reorderEmployees(ids),
+        'حُفظ الترتيب ✓',
+      );
+
+  /// تنفيذ عملية مع عرض رسالة الحارس العربية كما كُتبت
+  ///
+  /// الصمت هنا هو عين ع-٢٥: حارسٌ يرفض بحقّ ولا أحد يعرض رسالته.
+  Future<bool> _guarded(Future<void> Function() action, String success) async {
+    state = const AsyncLoading();
+    try {
+      await action();
+      state = AsyncData(success);
+      return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;
@@ -265,23 +363,6 @@ class EmployeeNotifier extends _$EmployeeNotifier {
       // رسالة الحارس عربية جاهزة للعرض كما هي
       state = AsyncError(e.message, st);
       return false;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      return false;
-    }
-  }
-
-  /// تعطيل موظف — البديل المحروس عن الحذف
-  ///
-  /// ⚠️ **المنع بلا بديل يُهجّر الخطر لا يُزيله** (درس ع-٣٢): مالكٌ مُنع من
-  ///   حذف موظفٍ انتهت خدمته سيجد طريقاً آخر — يُعيد تسميته أو يحذف سطوره.
-  ///   فالتعطيل بابٌ مشروع: يبقى السجلّ والتقارير، ولا يظهر في كشوف الرواتب.
-  Future<bool> setEmployeeActive(int id, {required bool isActive}) async {
-    state = const AsyncLoading();
-    try {
-      await _db.employeesDao.setEmployeeActive(id, isActive: isActive);
-      state = AsyncData(isActive ? 'تم تفعيل الموظف ✓' : 'تم تعطيل الموظف ✓');
-      return true;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;
