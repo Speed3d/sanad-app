@@ -58,29 +58,18 @@ void main() {
     purgeCodeHash = await auth.hashPassword(kPurgeCode);
   });
 
-  /// كل جداول القاعدة العشرين — مصدر الحقيقة لاختبار «لا جدول منسيّ»
-  const allTables = <String>[
-    'users',
-    'app_settings',
-    'app_blobs',
-    'fiscal_periods',
-    'voucher_sequences',
-    'treasuries',
-    'vouchers',
-    'employees',
-    'cash_advances',
-    'cash_advance_repayments',
-    'payroll_periods',
-    'salary_payments',
-    'contractors',
-    'partners',
-    'advances',
-    'advance_lines',
-    'item_types',
-    'attachments',
-    'exchange_rates',
-    'audit_log',
-  ];
+  /// كل جداول القاعدة — **مقروءةً من القاعدة نفسها لا مكتوبةً بيد**
+  ///
+  /// 🔴 **كانت قائمة ثابتة بعشرين اسماً، فتقادمت بصمت** (كُشف 2026-09-01):
+  ///   أُضيف جدول `departments` في Schema v8 ولم يُضَف إلى `factoryReset`،
+  ///   فكان التصفير يمحو كادر الشركة كلّه ويُبقي الأقسام. والحارس الذي
+  ///   وُضع ليمنع هذا **مرّ ناجحاً** لأنه لا يعرف بالجدول أصلاً.
+  ///
+  /// وهي عين العلّة التي أنتجت ع-٤٧ (ستّ شرائح فلترة من سبع عشرة) وعطل
+  /// ب-١ (قوائم البنود الثابتة): **قائمةٌ تعكس مجموعةً في الكود تُشتقّ منها
+  /// لا تُنسخ عنها**. و`db.allTables` مصدرها المولِّد نفسه، فلا تتخلّف أبداً.
+  List<String> tablesOf(AppDatabase database) =>
+      database.allTables.map((t) => t.actualTableName).toList();
 
   Future<int> countOf(String table) async {
     final row =
@@ -137,10 +126,15 @@ void main() {
 
     // ⚠️ الثلاثة **مرتبطون بالخزينة** عمداً — هذا هو ما يجعل الترتيب الخاطئ
     //    يفشل. بلا الربط يمرّ حذف الخزائن قبلهم بلا شكوى.
+    //
+    // والموظف **مرتبط بقسم** كذلك (Schema v8): بلا الربط يمرّ حذف الأقسام
+    // قبل الموظفين بلا شكوى، فلا يُختبَر الترتيب الذي يحرسه ع-٠٩.
+    final departmentId = await db.employeesDao.insertDepartment('مهندسون');
     await db.into(db.employees).insert(
           EmployeesCompanion.insert(
             fullName: 'حسن محمد',
             treasuryId: Value(treasuryId),
+            departmentId: Value(departmentId),
           ),
         );
     await db.into(db.contractors).insert(
@@ -260,8 +254,16 @@ void main() {
 
   // ══════════════════════════════════════════════════════════════════════
   group('تصفير المصنع — المحو', () {
-    test('⭐⭐ لا جدول منسيّ — العشرون كلها تُمحى أو تُعاد بذرها', () async {
+    test('⭐⭐⭐ لا جدول منسيّ — كل جداول القاعدة تُمحى أو تُعاد بذرها',
+        () async {
+      final allTables = tablesOf(db);
+
       // الشرط المسبق: كل جدول فيه صفّ فعلاً، وإلا لم يُثبت الاختبار شيئاً
+      //
+      // ⚠️ **وهو الشرط الذي يجعل الاشتقاق من القاعدة مفيداً**: جدولٌ جديد
+      //   يظهر هنا تلقائياً، فيفشل الاختبار **قبل** أن يصل العطل للمالك —
+      //   يقول أوّلاً «لم يُزرع» فيُضطرّ كاتبه إلى زرعه، ثم يقول «لم يُمحَ»
+      //   إن نُسي في `factoryReset`.
       for (final t in allTables) {
         expect(await countOf(t), greaterThan(0),
             reason: 'الشرط المسبق: الجدول $t يجب أن يُزرع قبل التصفير');

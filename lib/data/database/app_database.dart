@@ -798,7 +798,7 @@ class AppDatabase extends _$AppDatabase {
   /// البنود الاثنان والعشرون. بدونه تبدأ القاعدة **فارغة تماماً** فلا يجد
   /// التطبيق حتى العملة الأساسية.
   ///
-  /// 📌 `user_version` في SQLite لا يُمَسّ — القاعدة تبقى على Schema v7 فلا
+  /// 📌 `user_version` في SQLite لا يُمَسّ — القاعدة تبقى على Schema v8 فلا
   ///   يُعاد تشغيل أي ترحيل.
   ///
   /// يُعيد عدّادات ما مُحي، ليعرضها المستدعي على المالك.
@@ -830,6 +830,15 @@ class AppDatabase extends _$AppDatabase {
       await delete(contractors).go();
       await delete(partners).go();
       await delete(treasuries).go();
+
+      // ⚠️ **الأقسام بعد الموظفين** (Schema v8): `employees.department_id`
+      //   يشير إليها، وحذفها قبلهم يرمي `FOREIGN KEY constraint failed`.
+      //
+      // 🔴 **وقد نُسي هذا السطر عند إضافة الجدول** (كُشف 2026-09-01): فكان
+      //   تصفير المصنع يمحو كادر الشركة كلّه ويُبقي الأقسام — «مهندسون»
+      //   و«فنيون» تظهران في قاعدةٍ لا موظف فيها. وهو **رابع** عطل من
+      //   عائلة «كل باب حذفٍ يعرف مكاناً ويجهل الباقي» (ع-٢٨ · ع-٣١ · ع-٣٣).
+      await delete(departments).go();
 
       // ── ٣) ما لا يرتبط بشيء ──────────────────────────────────────────
       await delete(itemTypes).go();

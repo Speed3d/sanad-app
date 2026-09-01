@@ -83,6 +83,7 @@ abstract final class AuditLabels {
     'vouchers': 'السندات',
     'treasuries': 'الخزائن',
     'employees': 'الموظفون',
+    'departments': 'أقسام الموظفين', // Schema v8
     // ⚠️ التمييز مقصود: `cash_advances` سلفة **موظف** و`advances` سلفة
     //   **مشروع**. اللفظ العربي واحد، والخلط بينهما كلّفنا أعطالاً.
     'cash_advances': 'سلف الموظفين',
