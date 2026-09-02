@@ -187,7 +187,8 @@ Future<void> _openEditDialog(
             icon: const Icon(Icons.beach_access_outlined, size: 16),
             label: const Text('تسجيل إجازة'),
           ),
-          const Spacer(),
+          // ⚠️ لا `Spacer` — `actions` هي `OverflowBar` لا `Row` (راجع
+          //   الشرح في `payroll_import_screen`)
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('إلغاء'),

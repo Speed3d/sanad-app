@@ -536,17 +536,19 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
             ],
           ),
         ),
+        // ⚠️ **لا `Spacer` هنا**: `actions` تُبنى داخل `OverflowBar` لا
+        //   `Row`، و`Spacer` امتدادٌ لـ`Expanded` فيرمي الإطار
+        //   `Incorrect use of ParentDataWidget`. والـ`OverflowBar` ترتّب
+        //   الأزرار وتُنزلها سطراً حين تضيق — فلا حاجة إلى فاصلٍ يدوي.
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('إلغاء الاستيراد'),
           ),
-          const Spacer(),
           OutlinedButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('اعتمد الملف كما هو'),
           ),
-          const SizedBox(width: 8),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('طبّق حساب البرنامج'),
@@ -1122,7 +1124,12 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
   }
 }
 
-/// شارة أيام في حوار التعارض — الرقم بارزاً ومصدره تحته
+/// شارة أيام في حوار التعارض — «الملف ٣٠» في سطر واحد
+///
+/// ⚠️ **سطرٌ واحد لا عمودان**: الرقم فوق تسميته كان يتجاوز ارتفاع
+///   `ListTile.trailing` بـ**بكسلين** فيرمي `RenderFlex overflowed` —
+///   وهو ع-٢٣ بعينه (جدولٌ تجاوز عرضه ببكسلين بسبب حدّه). والارتفاع في
+///   `trailing` مقيَّد، فأيّ عمودٍ فيه مرشَّح للتجاوز.
 class _DaysChip extends StatelessWidget {
   const _DaysChip({
     required this.label,
@@ -1136,26 +1143,28 @@ class _DaysChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(
+            text: '$label ',
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
           ),
-          child: Text(
-            '$days',
+          TextSpan(
+            text: '$days',
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w800,
               color: color,
             ),
           ),
-        ),
-        Text(label, style: const TextStyle(fontSize: 9.5, color: Colors.grey)),
-      ],
+        ]),
+      ),
     );
   }
 }
