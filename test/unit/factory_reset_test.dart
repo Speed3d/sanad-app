@@ -130,13 +130,24 @@ void main() {
     // والموظف **مرتبط بقسم** كذلك (Schema v8): بلا الربط يمرّ حذف الأقسام
     // قبل الموظفين بلا شكوى، فلا يُختبَر الترتيب الذي يحرسه ع-٠٩.
     final departmentId = await db.employeesDao.insertDepartment('مهندسون');
-    await db.into(db.employees).insert(
+    final seededEmployee = await db.into(db.employees).insert(
           EmployeesCompanion.insert(
             fullName: 'حسن محمد',
             treasuryId: Value(treasuryId),
             departmentId: Value(departmentId),
           ),
         );
+
+    // إجازة (Schema v9) — **بعد** الموظف: `employee_leaves` ابنته، وزرعُها
+    // قبله يرمي `FOREIGN KEY constraint failed`. وهو الترتيب نفسه الذي
+    // يحرسه هذا الملف في الحذف، معكوساً.
+    await db.employeesDao.insertLeave(
+      EmployeeLeavesCompanion.insert(
+        employeeId: seededEmployee,
+        fromDate: DateTime(2026, 3, 1),
+        toDate: DateTime(2026, 3, 5),
+      ),
+    );
     await db.into(db.contractors).insert(
           ContractorsCompanion.insert(
             name: 'مقاول البصرة',

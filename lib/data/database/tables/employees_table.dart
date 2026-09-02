@@ -111,6 +111,36 @@ class Employees extends Table {
   IntColumn get sortOrder =>
       integer().named('sort_order').withDefault(const Constant(0))();
 
+  // ── إنهاء الخدمة (Schema v9 — طلب المالك 2026-09-02) ───────────────────
+  //
+  // 🔑 **لماذا تاريخٌ صريح لا `status` وحدها؟**
+  //   `status = 'terminated'` تقول **أنه** انتهى ولا تقول **متى**. والراتب
+  //   يحتاج المتى: من أُنهيت خدمته في ٢٦ آب يستحقّ ستّة وعشرين يوماً من
+  //   آب — لا شهراً كاملاً ولا صفراً.
+  //
+  // ⚠️ **والحساب كان جاهزاً ومعطَّلاً**: `PayrollCalculator.eligibleDays`
+  //   تستقبل `terminationDate` منذ المرحلة الأولى وتحسبها حساباً صحيحاً
+  //   محروساً بالاختبارات — **ولا عمود في القاعدة يحملها ولا مستدعٍ
+  //   يمرّرها**. نمط ع-٠٦ في أنقى صوره: منطقٌ سليم بلا نصفه الآخر.
+
+  /// تاريخ إنهاء الخدمة — `null` للموظف على رأس عمله
+  ///
+  /// يدخل حساب الراتب مباشرةً: يُقصّ شهر الإنهاء عند هذا اليوم **شاملاً
+  /// إيّاه** (قرار المالك 2026-09-02)، وتصير الشهور التالية صفراً.
+  DateTimeColumn get terminationDate =>
+      dateTime().named('termination_date').nullable()();
+
+  /// سند إنهاء الخدمة — «بموجب الكتاب المرقّم ٣٤٥ في ٢٠٢٦/٨/٢٦»
+  ///
+  /// قرارٌ إداري يُنقص راتباً يجب أن يُعرَف **مستنده** بعد سنة، وإلا صار
+  /// الفرق في الكشف بلا تفسير.
+  TextColumn get terminationReference =>
+      text().named('termination_reference').withDefault(const Constant(''))();
+
+  /// ملاحظات إنهاء الخدمة
+  TextColumn get terminationNotes =>
+      text().named('termination_notes').withDefault(const Constant(''))();
+
   // وقت الإنشاء
   DateTimeColumn get createdAt =>
       dateTime().named('created_at').withDefault(currentDateAndTime)();

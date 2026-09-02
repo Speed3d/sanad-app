@@ -43,5 +43,40 @@ abstract final class EmployeeStatus {
   /// هل يدخل هذا الموظف كشوف الرواتب الجديدة؟
   ///
   /// منتهي الخدمة وحده يُستبعَد — راجع [leave] لسبب بقاء المُجاز.
+  ///
+  /// ⚠️ **لا تستعملها لكشف شهرٍ بعينه** — استعمل [joinsPayrollMonth].
+  ///   هذه تجيب سؤالاً عاماً («هل هو على رأس عمله اليوم؟») لا سؤال الكشف.
   static bool joinsNewPayroll(String status) => status != terminated;
+
+  /// هل يدخل هذا الموظف كشف شهرٍ **بعينه**؟ (Schema v9)
+  ///
+  /// 🔴 **ما كان معطوباً (طلب المالك 2026-09-02):** كانت القاعدة
+  ///   `status != terminated` وحدها، فمن أُنهيت خدمته في ٢٤ تموز **يُستبعَد
+  ///   من كشف تموز نفسه** — أي يُحرَم راتب واحدٍ وعشرين يوماً عملها فعلاً.
+  ///
+  ///   والقاعدة كانت صحيحة يوم كُتبت: لم يكن في القاعدة تاريخُ إنهاء أصلاً،
+  ///   فكل ما تعرفه أنه «انتهى» بلا «متى». وهذا **درس ع-٢٩ حرفياً**: حارسٌ
+  ///   صحيح يصير خاطئاً حين يتغيّر ما حوله — فحين صار «متى» معلوماً، صار
+  ///   الاستبعاد المطلق ظلماً.
+  ///
+  /// **القاعدة الآن:** يُستبعَد فقط إن كانت خدمته انتهت **قبل بداية الشهر**.
+  ///
+  /// [terminationDate] `null` مع حالة «منتهية خدمته» ⇒ يُستبعَد كالسابق:
+  /// هي حال الموظفين الذين رحّلهم الإصدار الثامن من `is_active = 0` بلا
+  /// تاريخ، ومعناها «انتهت خدمته قديماً». وافتراضُ تاريخٍ لهم يُعيد رواتب
+  /// شهورٍ مضت.
+  static bool joinsPayrollMonth({
+    required String status,
+    required DateTime? terminationDate,
+    required int year,
+    required int month,
+  }) {
+    if (status != terminated) return true;
+    if (terminationDate == null) return false;
+
+    final firstOfMonth = DateTime(year, month, 1);
+    final end = DateTime(
+        terminationDate.year, terminationDate.month, terminationDate.day);
+    return !end.isBefore(firstOfMonth);
+  }
 }

@@ -45,8 +45,7 @@ final allDepartmentsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllDepartmentsRef = AutoDisposeStreamProviderRef<List<DepartmentModel>>;
-String _$advancesByEmployeeHash() =>
-    r'18201a85a5c32e62a78d0fbe0a48f4f70cd60dd6';
+String _$employeeLeavesHash() => r'c26930bb382967b6bf9a7ba76e4c809f5e56528c';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -70,24 +69,185 @@ class _SystemHash {
 }
 
 /// Stream تفاعلي للسلف الممنوحة لموظف محدد
+/// إجازات موظف — الأحدث أولاً (Schema v9)
 ///
-/// Copied from [advancesByEmployee].
+/// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+/// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+///
+/// Copied from [employeeLeaves].
+@ProviderFor(employeeLeaves)
+const employeeLeavesProvider = EmployeeLeavesFamily();
+
+/// Stream تفاعلي للسلف الممنوحة لموظف محدد
+/// إجازات موظف — الأحدث أولاً (Schema v9)
+///
+/// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+/// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+///
+/// Copied from [employeeLeaves].
+class EmployeeLeavesFamily extends Family<AsyncValue<List<EmployeeLeave>>> {
+  /// Stream تفاعلي للسلف الممنوحة لموظف محدد
+  /// إجازات موظف — الأحدث أولاً (Schema v9)
+  ///
+  /// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+  /// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+  ///
+  /// Copied from [employeeLeaves].
+  const EmployeeLeavesFamily();
+
+  /// Stream تفاعلي للسلف الممنوحة لموظف محدد
+  /// إجازات موظف — الأحدث أولاً (Schema v9)
+  ///
+  /// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+  /// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+  ///
+  /// Copied from [employeeLeaves].
+  EmployeeLeavesProvider call(
+    int employeeId,
+  ) {
+    return EmployeeLeavesProvider(
+      employeeId,
+    );
+  }
+
+  @override
+  EmployeeLeavesProvider getProviderOverride(
+    covariant EmployeeLeavesProvider provider,
+  ) {
+    return call(
+      provider.employeeId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'employeeLeavesProvider';
+}
+
+/// Stream تفاعلي للسلف الممنوحة لموظف محدد
+/// إجازات موظف — الأحدث أولاً (Schema v9)
+///
+/// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+/// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+///
+/// Copied from [employeeLeaves].
+class EmployeeLeavesProvider
+    extends AutoDisposeStreamProvider<List<EmployeeLeave>> {
+  /// Stream تفاعلي للسلف الممنوحة لموظف محدد
+  /// إجازات موظف — الأحدث أولاً (Schema v9)
+  ///
+  /// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+  /// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+  ///
+  /// Copied from [employeeLeaves].
+  EmployeeLeavesProvider(
+    int employeeId,
+  ) : this._internal(
+          (ref) => employeeLeaves(
+            ref as EmployeeLeavesRef,
+            employeeId,
+          ),
+          from: employeeLeavesProvider,
+          name: r'employeeLeavesProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$employeeLeavesHash,
+          dependencies: EmployeeLeavesFamily._dependencies,
+          allTransitiveDependencies:
+              EmployeeLeavesFamily._allTransitiveDependencies,
+          employeeId: employeeId,
+        );
+
+  EmployeeLeavesProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.employeeId,
+  }) : super.internal();
+
+  final int employeeId;
+
+  @override
+  Override overrideWith(
+    Stream<List<EmployeeLeave>> Function(EmployeeLeavesRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: EmployeeLeavesProvider._internal(
+        (ref) => create(ref as EmployeeLeavesRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        employeeId: employeeId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<List<EmployeeLeave>> createElement() {
+    return _EmployeeLeavesProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EmployeeLeavesProvider && other.employeeId == employeeId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, employeeId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin EmployeeLeavesRef on AutoDisposeStreamProviderRef<List<EmployeeLeave>> {
+  /// The parameter `employeeId` of this provider.
+  int get employeeId;
+}
+
+class _EmployeeLeavesProviderElement
+    extends AutoDisposeStreamProviderElement<List<EmployeeLeave>>
+    with EmployeeLeavesRef {
+  _EmployeeLeavesProviderElement(super.provider);
+
+  @override
+  int get employeeId => (origin as EmployeeLeavesProvider).employeeId;
+}
+
+String _$advancesByEmployeeHash() =>
+    r'18201a85a5c32e62a78d0fbe0a48f4f70cd60dd6';
+
+/// See also [advancesByEmployee].
 @ProviderFor(advancesByEmployee)
 const advancesByEmployeeProvider = AdvancesByEmployeeFamily();
 
-/// Stream تفاعلي للسلف الممنوحة لموظف محدد
-///
-/// Copied from [advancesByEmployee].
+/// See also [advancesByEmployee].
 class AdvancesByEmployeeFamily
     extends Family<AsyncValue<List<CashAdvanceModel>>> {
-  /// Stream تفاعلي للسلف الممنوحة لموظف محدد
-  ///
-  /// Copied from [advancesByEmployee].
+  /// See also [advancesByEmployee].
   const AdvancesByEmployeeFamily();
 
-  /// Stream تفاعلي للسلف الممنوحة لموظف محدد
-  ///
-  /// Copied from [advancesByEmployee].
+  /// See also [advancesByEmployee].
   AdvancesByEmployeeProvider call(
     int employeeId,
   ) {
@@ -120,14 +280,10 @@ class AdvancesByEmployeeFamily
   String? get name => r'advancesByEmployeeProvider';
 }
 
-/// Stream تفاعلي للسلف الممنوحة لموظف محدد
-///
-/// Copied from [advancesByEmployee].
+/// See also [advancesByEmployee].
 class AdvancesByEmployeeProvider
     extends AutoDisposeStreamProvider<List<CashAdvanceModel>> {
-  /// Stream تفاعلي للسلف الممنوحة لموظف محدد
-  ///
-  /// Copied from [advancesByEmployee].
+  /// See also [advancesByEmployee].
   AdvancesByEmployeeProvider(
     int employeeId,
   ) : this._internal(
@@ -829,7 +985,7 @@ class _PendingAdvancesAmountProviderElement
   int get employeeId => (origin as PendingAdvancesAmountProvider).employeeId;
 }
 
-String _$employeeNotifierHash() => r'0fe7fd230e4ad018a9858a0452ac5d6b36624ae5';
+String _$employeeNotifierHash() => r'3d14d7ac0ac28b798c71d7f577cb8e3f347137e8';
 
 /// Notifier لإدارة عمليات الموظفين (إضافة / تعديل / حذف / تفعيل)
 ///

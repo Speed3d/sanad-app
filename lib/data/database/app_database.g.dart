@@ -4161,6 +4161,28 @@ class $EmployeesTable extends Employees
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _terminationDateMeta =
+      const VerificationMeta('terminationDate');
+  @override
+  late final GeneratedColumn<DateTime> terminationDate =
+      GeneratedColumn<DateTime>('termination_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _terminationReferenceMeta =
+      const VerificationMeta('terminationReference');
+  @override
+  late final GeneratedColumn<String> terminationReference =
+      GeneratedColumn<String>('termination_reference', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant(''));
+  static const VerificationMeta _terminationNotesMeta =
+      const VerificationMeta('terminationNotes');
+  @override
+  late final GeneratedColumn<String> terminationNotes = GeneratedColumn<String>(
+      'termination_notes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -4194,6 +4216,9 @@ class $EmployeesTable extends Employees
         status,
         departmentId,
         sortOrder,
+        terminationDate,
+        terminationReference,
+        terminationNotes,
         createdAt,
         isDeleted
       ];
@@ -4268,6 +4293,24 @@ class $EmployeesTable extends Employees
       context.handle(_sortOrderMeta,
           sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
     }
+    if (data.containsKey('termination_date')) {
+      context.handle(
+          _terminationDateMeta,
+          terminationDate.isAcceptableOrUnknown(
+              data['termination_date']!, _terminationDateMeta));
+    }
+    if (data.containsKey('termination_reference')) {
+      context.handle(
+          _terminationReferenceMeta,
+          terminationReference.isAcceptableOrUnknown(
+              data['termination_reference']!, _terminationReferenceMeta));
+    }
+    if (data.containsKey('termination_notes')) {
+      context.handle(
+          _terminationNotesMeta,
+          terminationNotes.isAcceptableOrUnknown(
+              data['termination_notes']!, _terminationNotesMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -4311,6 +4354,13 @@ class $EmployeesTable extends Employees
           .read(DriftSqlType.int, data['${effectivePrefix}department_id']),
       sortOrder: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      terminationDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}termination_date']),
+      terminationReference: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}termination_reference'])!,
+      terminationNotes: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}termination_notes'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       isDeleted: attachedDatabase.typeMapping
@@ -4359,6 +4409,21 @@ class Employee extends DataClass implements Insertable<Employee> {
   ///
   /// راجع رأس `departments_table.dart` لسبب الترتيب على مستويين.
   final int sortOrder;
+
+  /// تاريخ إنهاء الخدمة — `null` للموظف على رأس عمله
+  ///
+  /// يدخل حساب الراتب مباشرةً: يُقصّ شهر الإنهاء عند هذا اليوم **شاملاً
+  /// إيّاه** (قرار المالك 2026-09-02)، وتصير الشهور التالية صفراً.
+  final DateTime? terminationDate;
+
+  /// سند إنهاء الخدمة — «بموجب الكتاب المرقّم ٣٤٥ في ٢٠٢٦/٨/٢٦»
+  ///
+  /// قرارٌ إداري يُنقص راتباً يجب أن يُعرَف **مستنده** بعد سنة، وإلا صار
+  /// الفرق في الكشف بلا تفسير.
+  final String terminationReference;
+
+  /// ملاحظات إنهاء الخدمة
+  final String terminationNotes;
   final DateTime createdAt;
   final bool isDeleted;
   const Employee(
@@ -4375,6 +4440,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       required this.status,
       this.departmentId,
       required this.sortOrder,
+      this.terminationDate,
+      required this.terminationReference,
+      required this.terminationNotes,
       required this.createdAt,
       required this.isDeleted});
   @override
@@ -4399,6 +4467,11 @@ class Employee extends DataClass implements Insertable<Employee> {
       map['department_id'] = Variable<int>(departmentId);
     }
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || terminationDate != null) {
+      map['termination_date'] = Variable<DateTime>(terminationDate);
+    }
+    map['termination_reference'] = Variable<String>(terminationReference);
+    map['termination_notes'] = Variable<String>(terminationNotes);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
@@ -4425,6 +4498,11 @@ class Employee extends DataClass implements Insertable<Employee> {
           ? const Value.absent()
           : Value(departmentId),
       sortOrder: Value(sortOrder),
+      terminationDate: terminationDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(terminationDate),
+      terminationReference: Value(terminationReference),
+      terminationNotes: Value(terminationNotes),
       createdAt: Value(createdAt),
       isDeleted: Value(isDeleted),
     );
@@ -4447,6 +4525,10 @@ class Employee extends DataClass implements Insertable<Employee> {
       status: serializer.fromJson<String>(json['status']),
       departmentId: serializer.fromJson<int?>(json['departmentId']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      terminationDate: serializer.fromJson<DateTime?>(json['terminationDate']),
+      terminationReference:
+          serializer.fromJson<String>(json['terminationReference']),
+      terminationNotes: serializer.fromJson<String>(json['terminationNotes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
@@ -4468,6 +4550,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       'status': serializer.toJson<String>(status),
       'departmentId': serializer.toJson<int?>(departmentId),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'terminationDate': serializer.toJson<DateTime?>(terminationDate),
+      'terminationReference': serializer.toJson<String>(terminationReference),
+      'terminationNotes': serializer.toJson<String>(terminationNotes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
     };
@@ -4487,6 +4572,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           String? status,
           Value<int?> departmentId = const Value.absent(),
           int? sortOrder,
+          Value<DateTime?> terminationDate = const Value.absent(),
+          String? terminationReference,
+          String? terminationNotes,
           DateTime? createdAt,
           bool? isDeleted}) =>
       Employee(
@@ -4504,6 +4592,11 @@ class Employee extends DataClass implements Insertable<Employee> {
         departmentId:
             departmentId.present ? departmentId.value : this.departmentId,
         sortOrder: sortOrder ?? this.sortOrder,
+        terminationDate: terminationDate.present
+            ? terminationDate.value
+            : this.terminationDate,
+        terminationReference: terminationReference ?? this.terminationReference,
+        terminationNotes: terminationNotes ?? this.terminationNotes,
         createdAt: createdAt ?? this.createdAt,
         isDeleted: isDeleted ?? this.isDeleted,
       );
@@ -4528,6 +4621,15 @@ class Employee extends DataClass implements Insertable<Employee> {
           ? data.departmentId.value
           : this.departmentId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      terminationDate: data.terminationDate.present
+          ? data.terminationDate.value
+          : this.terminationDate,
+      terminationReference: data.terminationReference.present
+          ? data.terminationReference.value
+          : this.terminationReference,
+      terminationNotes: data.terminationNotes.present
+          ? data.terminationNotes.value
+          : this.terminationNotes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
     );
@@ -4549,6 +4651,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           ..write('status: $status, ')
           ..write('departmentId: $departmentId, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('terminationDate: $terminationDate, ')
+          ..write('terminationReference: $terminationReference, ')
+          ..write('terminationNotes: $terminationNotes, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -4570,6 +4675,9 @@ class Employee extends DataClass implements Insertable<Employee> {
       status,
       departmentId,
       sortOrder,
+      terminationDate,
+      terminationReference,
+      terminationNotes,
       createdAt,
       isDeleted);
   @override
@@ -4589,6 +4697,9 @@ class Employee extends DataClass implements Insertable<Employee> {
           other.status == this.status &&
           other.departmentId == this.departmentId &&
           other.sortOrder == this.sortOrder &&
+          other.terminationDate == this.terminationDate &&
+          other.terminationReference == this.terminationReference &&
+          other.terminationNotes == this.terminationNotes &&
           other.createdAt == this.createdAt &&
           other.isDeleted == this.isDeleted);
 }
@@ -4607,6 +4718,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
   final Value<String> status;
   final Value<int?> departmentId;
   final Value<int> sortOrder;
+  final Value<DateTime?> terminationDate;
+  final Value<String> terminationReference;
+  final Value<String> terminationNotes;
   final Value<DateTime> createdAt;
   final Value<bool> isDeleted;
   const EmployeesCompanion({
@@ -4623,6 +4737,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     this.status = const Value.absent(),
     this.departmentId = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.terminationDate = const Value.absent(),
+    this.terminationReference = const Value.absent(),
+    this.terminationNotes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
   });
@@ -4640,6 +4757,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     this.status = const Value.absent(),
     this.departmentId = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.terminationDate = const Value.absent(),
+    this.terminationReference = const Value.absent(),
+    this.terminationNotes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
   }) : fullName = Value(fullName);
@@ -4657,6 +4777,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     Expression<String>? status,
     Expression<int>? departmentId,
     Expression<int>? sortOrder,
+    Expression<DateTime>? terminationDate,
+    Expression<String>? terminationReference,
+    Expression<String>? terminationNotes,
     Expression<DateTime>? createdAt,
     Expression<bool>? isDeleted,
   }) {
@@ -4674,6 +4797,10 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       if (status != null) 'status': status,
       if (departmentId != null) 'department_id': departmentId,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (terminationDate != null) 'termination_date': terminationDate,
+      if (terminationReference != null)
+        'termination_reference': terminationReference,
+      if (terminationNotes != null) 'termination_notes': terminationNotes,
       if (createdAt != null) 'created_at': createdAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
     });
@@ -4693,6 +4820,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       Value<String>? status,
       Value<int?>? departmentId,
       Value<int>? sortOrder,
+      Value<DateTime?>? terminationDate,
+      Value<String>? terminationReference,
+      Value<String>? terminationNotes,
       Value<DateTime>? createdAt,
       Value<bool>? isDeleted}) {
     return EmployeesCompanion(
@@ -4709,6 +4839,9 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
       status: status ?? this.status,
       departmentId: departmentId ?? this.departmentId,
       sortOrder: sortOrder ?? this.sortOrder,
+      terminationDate: terminationDate ?? this.terminationDate,
+      terminationReference: terminationReference ?? this.terminationReference,
+      terminationNotes: terminationNotes ?? this.terminationNotes,
       createdAt: createdAt ?? this.createdAt,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -4756,6 +4889,16 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (terminationDate.present) {
+      map['termination_date'] = Variable<DateTime>(terminationDate.value);
+    }
+    if (terminationReference.present) {
+      map['termination_reference'] =
+          Variable<String>(terminationReference.value);
+    }
+    if (terminationNotes.present) {
+      map['termination_notes'] = Variable<String>(terminationNotes.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4781,6 +4924,484 @@ class EmployeesCompanion extends UpdateCompanion<Employee> {
           ..write('status: $status, ')
           ..write('departmentId: $departmentId, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('terminationDate: $terminationDate, ')
+          ..write('terminationReference: $terminationReference, ')
+          ..write('terminationNotes: $terminationNotes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EmployeeLeavesTable extends EmployeeLeaves
+    with TableInfo<$EmployeeLeavesTable, EmployeeLeave> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EmployeeLeavesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _employeeIdMeta =
+      const VerificationMeta('employeeId');
+  @override
+  late final GeneratedColumn<int> employeeId = GeneratedColumn<int>(
+      'employee_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES employees (id)'));
+  static const VerificationMeta _fromDateMeta =
+      const VerificationMeta('fromDate');
+  @override
+  late final GeneratedColumn<DateTime> fromDate = GeneratedColumn<DateTime>(
+      'from_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _toDateMeta = const VerificationMeta('toDate');
+  @override
+  late final GeneratedColumn<DateTime> toDate = GeneratedColumn<DateTime>(
+      'to_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(LeaveKind.paid));
+  static const VerificationMeta _referenceMeta =
+      const VerificationMeta('reference');
+  @override
+  late final GeneratedColumn<String> reference = GeneratedColumn<String>(
+      'reference', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        employeeId,
+        fromDate,
+        toDate,
+        kind,
+        reference,
+        notes,
+        createdAt,
+        isDeleted
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'employee_leaves';
+  @override
+  VerificationContext validateIntegrity(Insertable<EmployeeLeave> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+          _employeeIdMeta,
+          employeeId.isAcceptableOrUnknown(
+              data['employee_id']!, _employeeIdMeta));
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('from_date')) {
+      context.handle(_fromDateMeta,
+          fromDate.isAcceptableOrUnknown(data['from_date']!, _fromDateMeta));
+    } else if (isInserting) {
+      context.missing(_fromDateMeta);
+    }
+    if (data.containsKey('to_date')) {
+      context.handle(_toDateMeta,
+          toDate.isAcceptableOrUnknown(data['to_date']!, _toDateMeta));
+    } else if (isInserting) {
+      context.missing(_toDateMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    }
+    if (data.containsKey('reference')) {
+      context.handle(_referenceMeta,
+          reference.isAcceptableOrUnknown(data['reference']!, _referenceMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EmployeeLeave map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EmployeeLeave(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      employeeId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}employee_id'])!,
+      fromDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}from_date'])!,
+      toDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}to_date'])!,
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      reference: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reference'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+    );
+  }
+
+  @override
+  $EmployeeLeavesTable createAlias(String alias) {
+    return $EmployeeLeavesTable(attachedDatabase, alias);
+  }
+}
+
+class EmployeeLeave extends DataClass implements Insertable<EmployeeLeave> {
+  final int id;
+
+  /// الموظف صاحب الإجازة
+  final int employeeId;
+
+  /// أول يوم إجازة **شاملاً إيّاه**
+  final DateTime fromDate;
+
+  /// آخر يوم إجازة **شاملاً إيّاه**
+  ///
+  /// ⚠️ الشمول مقصود ومطابق لقرار المالك في إنهاء الخدمة (٤ إلى ٢٤ = ٢١
+  ///   يوماً): قاعدةُ عدٍّ واحدة في البرنامج كلّه أسلمُ من قاعدتين تختلفان
+  ///   بيومٍ فيُصبح الفرق راتباً.
+  final DateTime toDate;
+
+  /// `paid` أو `unpaid` — راجع [LeaveKind]
+  final String kind;
+
+  /// سند الإجازة — «بموجب الكتاب المرقّم…»
+  final String reference;
+  final String notes;
+  final DateTime createdAt;
+
+  /// حذف ناعم — القانون ٨
+  ///
+  /// وإجازةٌ حُذفت **تُغيّر راتباً مضى**، فبقاء أثرها ضروري لتفسير الفرق.
+  final bool isDeleted;
+  const EmployeeLeave(
+      {required this.id,
+      required this.employeeId,
+      required this.fromDate,
+      required this.toDate,
+      required this.kind,
+      required this.reference,
+      required this.notes,
+      required this.createdAt,
+      required this.isDeleted});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['employee_id'] = Variable<int>(employeeId);
+    map['from_date'] = Variable<DateTime>(fromDate);
+    map['to_date'] = Variable<DateTime>(toDate);
+    map['kind'] = Variable<String>(kind);
+    map['reference'] = Variable<String>(reference);
+    map['notes'] = Variable<String>(notes);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    return map;
+  }
+
+  EmployeeLeavesCompanion toCompanion(bool nullToAbsent) {
+    return EmployeeLeavesCompanion(
+      id: Value(id),
+      employeeId: Value(employeeId),
+      fromDate: Value(fromDate),
+      toDate: Value(toDate),
+      kind: Value(kind),
+      reference: Value(reference),
+      notes: Value(notes),
+      createdAt: Value(createdAt),
+      isDeleted: Value(isDeleted),
+    );
+  }
+
+  factory EmployeeLeave.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EmployeeLeave(
+      id: serializer.fromJson<int>(json['id']),
+      employeeId: serializer.fromJson<int>(json['employeeId']),
+      fromDate: serializer.fromJson<DateTime>(json['fromDate']),
+      toDate: serializer.fromJson<DateTime>(json['toDate']),
+      kind: serializer.fromJson<String>(json['kind']),
+      reference: serializer.fromJson<String>(json['reference']),
+      notes: serializer.fromJson<String>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'employeeId': serializer.toJson<int>(employeeId),
+      'fromDate': serializer.toJson<DateTime>(fromDate),
+      'toDate': serializer.toJson<DateTime>(toDate),
+      'kind': serializer.toJson<String>(kind),
+      'reference': serializer.toJson<String>(reference),
+      'notes': serializer.toJson<String>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+    };
+  }
+
+  EmployeeLeave copyWith(
+          {int? id,
+          int? employeeId,
+          DateTime? fromDate,
+          DateTime? toDate,
+          String? kind,
+          String? reference,
+          String? notes,
+          DateTime? createdAt,
+          bool? isDeleted}) =>
+      EmployeeLeave(
+        id: id ?? this.id,
+        employeeId: employeeId ?? this.employeeId,
+        fromDate: fromDate ?? this.fromDate,
+        toDate: toDate ?? this.toDate,
+        kind: kind ?? this.kind,
+        reference: reference ?? this.reference,
+        notes: notes ?? this.notes,
+        createdAt: createdAt ?? this.createdAt,
+        isDeleted: isDeleted ?? this.isDeleted,
+      );
+  EmployeeLeave copyWithCompanion(EmployeeLeavesCompanion data) {
+    return EmployeeLeave(
+      id: data.id.present ? data.id.value : this.id,
+      employeeId:
+          data.employeeId.present ? data.employeeId.value : this.employeeId,
+      fromDate: data.fromDate.present ? data.fromDate.value : this.fromDate,
+      toDate: data.toDate.present ? data.toDate.value : this.toDate,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      reference: data.reference.present ? data.reference.value : this.reference,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeLeave(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('fromDate: $fromDate, ')
+          ..write('toDate: $toDate, ')
+          ..write('kind: $kind, ')
+          ..write('reference: $reference, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, employeeId, fromDate, toDate, kind,
+      reference, notes, createdAt, isDeleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EmployeeLeave &&
+          other.id == this.id &&
+          other.employeeId == this.employeeId &&
+          other.fromDate == this.fromDate &&
+          other.toDate == this.toDate &&
+          other.kind == this.kind &&
+          other.reference == this.reference &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.isDeleted == this.isDeleted);
+}
+
+class EmployeeLeavesCompanion extends UpdateCompanion<EmployeeLeave> {
+  final Value<int> id;
+  final Value<int> employeeId;
+  final Value<DateTime> fromDate;
+  final Value<DateTime> toDate;
+  final Value<String> kind;
+  final Value<String> reference;
+  final Value<String> notes;
+  final Value<DateTime> createdAt;
+  final Value<bool> isDeleted;
+  const EmployeeLeavesCompanion({
+    this.id = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.fromDate = const Value.absent(),
+    this.toDate = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.reference = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+  });
+  EmployeeLeavesCompanion.insert({
+    this.id = const Value.absent(),
+    required int employeeId,
+    required DateTime fromDate,
+    required DateTime toDate,
+    this.kind = const Value.absent(),
+    this.reference = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+  })  : employeeId = Value(employeeId),
+        fromDate = Value(fromDate),
+        toDate = Value(toDate);
+  static Insertable<EmployeeLeave> custom({
+    Expression<int>? id,
+    Expression<int>? employeeId,
+    Expression<DateTime>? fromDate,
+    Expression<DateTime>? toDate,
+    Expression<String>? kind,
+    Expression<String>? reference,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? isDeleted,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (fromDate != null) 'from_date': fromDate,
+      if (toDate != null) 'to_date': toDate,
+      if (kind != null) 'kind': kind,
+      if (reference != null) 'reference': reference,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+    });
+  }
+
+  EmployeeLeavesCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? employeeId,
+      Value<DateTime>? fromDate,
+      Value<DateTime>? toDate,
+      Value<String>? kind,
+      Value<String>? reference,
+      Value<String>? notes,
+      Value<DateTime>? createdAt,
+      Value<bool>? isDeleted}) {
+    return EmployeeLeavesCompanion(
+      id: id ?? this.id,
+      employeeId: employeeId ?? this.employeeId,
+      fromDate: fromDate ?? this.fromDate,
+      toDate: toDate ?? this.toDate,
+      kind: kind ?? this.kind,
+      reference: reference ?? this.reference,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<int>(employeeId.value);
+    }
+    if (fromDate.present) {
+      map['from_date'] = Variable<DateTime>(fromDate.value);
+    }
+    if (toDate.present) {
+      map['to_date'] = Variable<DateTime>(toDate.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (reference.present) {
+      map['reference'] = Variable<String>(reference.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeLeavesCompanion(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('fromDate: $fromDate, ')
+          ..write('toDate: $toDate, ')
+          ..write('kind: $kind, ')
+          ..write('reference: $reference, ')
+          ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted')
           ..write(')'))
@@ -12891,6 +13512,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VouchersTable vouchers = $VouchersTable(this);
   late final $DepartmentsTable departments = $DepartmentsTable(this);
   late final $EmployeesTable employees = $EmployeesTable(this);
+  late final $EmployeeLeavesTable employeeLeaves = $EmployeeLeavesTable(this);
   late final $CashAdvancesTable cashAdvances = $CashAdvancesTable(this);
   late final $CashAdvanceRepaymentsTable cashAdvanceRepayments =
       $CashAdvanceRepaymentsTable(this);
@@ -12936,6 +13558,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         vouchers,
         departments,
         employees,
+        employeeLeaves,
         cashAdvances,
         cashAdvanceRepayments,
         payrollPeriods,
@@ -16008,6 +16631,9 @@ typedef $$EmployeesTableCreateCompanionBuilder = EmployeesCompanion Function({
   Value<String> status,
   Value<int?> departmentId,
   Value<int> sortOrder,
+  Value<DateTime?> terminationDate,
+  Value<String> terminationReference,
+  Value<String> terminationNotes,
   Value<DateTime> createdAt,
   Value<bool> isDeleted,
 });
@@ -16025,6 +16651,9 @@ typedef $$EmployeesTableUpdateCompanionBuilder = EmployeesCompanion Function({
   Value<String> status,
   Value<int?> departmentId,
   Value<int> sortOrder,
+  Value<DateTime?> terminationDate,
+  Value<String> terminationReference,
+  Value<String> terminationNotes,
   Value<DateTime> createdAt,
   Value<bool> isDeleted,
 });
@@ -16061,6 +16690,21 @@ final class $$EmployeesTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$EmployeeLeavesTable, List<EmployeeLeave>>
+      _employeeLeavesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.employeeLeaves,
+              aliasName: $_aliasNameGenerator(
+                  db.employees.id, db.employeeLeaves.employeeId));
+
+  $$EmployeeLeavesTableProcessedTableManager get employeeLeavesRefs {
+    final manager = $$EmployeeLeavesTableTableManager($_db, $_db.employeeLeaves)
+        .filter((f) => f.employeeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_employeeLeavesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
   }
 
   static MultiTypedResultKey<$CashAdvancesTable, List<CashAdvance>>
@@ -16137,6 +16781,18 @@ class $$EmployeesTableFilterComposer
   ColumnFilters<int> get sortOrder => $composableBuilder(
       column: $table.sortOrder, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<DateTime> get terminationDate => $composableBuilder(
+      column: $table.terminationDate,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get terminationReference => $composableBuilder(
+      column: $table.terminationReference,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get terminationNotes => $composableBuilder(
+      column: $table.terminationNotes,
+      builder: (column) => ColumnFilters(column));
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
@@ -16181,6 +16837,27 @@ class $$EmployeesTableFilterComposer
                   $removeJoinBuilderFromRootComposer,
             ));
     return composer;
+  }
+
+  Expression<bool> employeeLeavesRefs(
+      Expression<bool> Function($$EmployeeLeavesTableFilterComposer f) f) {
+    final $$EmployeeLeavesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.employeeLeaves,
+        getReferencedColumn: (t) => t.employeeId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeeLeavesTableFilterComposer(
+              $db: $db,
+              $table: $db.employeeLeaves,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
   }
 
   Expression<bool> cashAdvancesRefs(
@@ -16268,6 +16945,18 @@ class $$EmployeesTableOrderingComposer
 
   ColumnOrderings<int> get sortOrder => $composableBuilder(
       column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get terminationDate => $composableBuilder(
+      column: $table.terminationDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get terminationReference => $composableBuilder(
+      column: $table.terminationReference,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get terminationNotes => $composableBuilder(
+      column: $table.terminationNotes,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -16358,6 +17047,15 @@ class $$EmployeesTableAnnotationComposer
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get terminationDate => $composableBuilder(
+      column: $table.terminationDate, builder: (column) => column);
+
+  GeneratedColumn<String> get terminationReference => $composableBuilder(
+      column: $table.terminationReference, builder: (column) => column);
+
+  GeneratedColumn<String> get terminationNotes => $composableBuilder(
+      column: $table.terminationNotes, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -16402,6 +17100,27 @@ class $$EmployeesTableAnnotationComposer
                   $removeJoinBuilderFromRootComposer,
             ));
     return composer;
+  }
+
+  Expression<T> employeeLeavesRefs<T extends Object>(
+      Expression<T> Function($$EmployeeLeavesTableAnnotationComposer a) f) {
+    final $$EmployeeLeavesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.employeeLeaves,
+        getReferencedColumn: (t) => t.employeeId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeeLeavesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.employeeLeaves,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
   }
 
   Expression<T> cashAdvancesRefs<T extends Object>(
@@ -16461,6 +17180,7 @@ class $$EmployeesTableTableManager extends RootTableManager<
     PrefetchHooks Function(
         {bool treasuryId,
         bool departmentId,
+        bool employeeLeavesRefs,
         bool cashAdvancesRefs,
         bool salaryPaymentsRefs})> {
   $$EmployeesTableTableManager(_$AppDatabase db, $EmployeesTable table)
@@ -16487,6 +17207,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<int?> departmentId = const Value.absent(),
             Value<int> sortOrder = const Value.absent(),
+            Value<DateTime?> terminationDate = const Value.absent(),
+            Value<String> terminationReference = const Value.absent(),
+            Value<String> terminationNotes = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
           }) =>
@@ -16504,6 +17227,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             status: status,
             departmentId: departmentId,
             sortOrder: sortOrder,
+            terminationDate: terminationDate,
+            terminationReference: terminationReference,
+            terminationNotes: terminationNotes,
             createdAt: createdAt,
             isDeleted: isDeleted,
           ),
@@ -16521,6 +17247,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<int?> departmentId = const Value.absent(),
             Value<int> sortOrder = const Value.absent(),
+            Value<DateTime?> terminationDate = const Value.absent(),
+            Value<String> terminationReference = const Value.absent(),
+            Value<String> terminationNotes = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
           }) =>
@@ -16538,6 +17267,9 @@ class $$EmployeesTableTableManager extends RootTableManager<
             status: status,
             departmentId: departmentId,
             sortOrder: sortOrder,
+            terminationDate: terminationDate,
+            terminationReference: terminationReference,
+            terminationNotes: terminationNotes,
             createdAt: createdAt,
             isDeleted: isDeleted,
           ),
@@ -16550,11 +17282,13 @@ class $$EmployeesTableTableManager extends RootTableManager<
           prefetchHooksCallback: (
               {treasuryId = false,
               departmentId = false,
+              employeeLeavesRefs = false,
               cashAdvancesRefs = false,
               salaryPaymentsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
+                if (employeeLeavesRefs) db.employeeLeaves,
                 if (cashAdvancesRefs) db.cashAdvances,
                 if (salaryPaymentsRefs) db.salaryPayments
               ],
@@ -16596,6 +17330,19 @@ class $$EmployeesTableTableManager extends RootTableManager<
               },
               getPrefetchedDataCallback: (items) async {
                 return [
+                  if (employeeLeavesRefs)
+                    await $_getPrefetchedData<Employee, $EmployeesTable,
+                            EmployeeLeave>(
+                        currentTable: table,
+                        referencedTable: $$EmployeesTableReferences
+                            ._employeeLeavesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$EmployeesTableReferences(db, table, p0)
+                                .employeeLeavesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.employeeId == item.id),
+                        typedResults: items),
                   if (cashAdvancesRefs)
                     await $_getPrefetchedData<Employee, $EmployeesTable,
                             CashAdvance>(
@@ -16643,8 +17390,340 @@ typedef $$EmployeesTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function(
         {bool treasuryId,
         bool departmentId,
+        bool employeeLeavesRefs,
         bool cashAdvancesRefs,
         bool salaryPaymentsRefs})>;
+typedef $$EmployeeLeavesTableCreateCompanionBuilder = EmployeeLeavesCompanion
+    Function({
+  Value<int> id,
+  required int employeeId,
+  required DateTime fromDate,
+  required DateTime toDate,
+  Value<String> kind,
+  Value<String> reference,
+  Value<String> notes,
+  Value<DateTime> createdAt,
+  Value<bool> isDeleted,
+});
+typedef $$EmployeeLeavesTableUpdateCompanionBuilder = EmployeeLeavesCompanion
+    Function({
+  Value<int> id,
+  Value<int> employeeId,
+  Value<DateTime> fromDate,
+  Value<DateTime> toDate,
+  Value<String> kind,
+  Value<String> reference,
+  Value<String> notes,
+  Value<DateTime> createdAt,
+  Value<bool> isDeleted,
+});
+
+final class $$EmployeeLeavesTableReferences
+    extends BaseReferences<_$AppDatabase, $EmployeeLeavesTable, EmployeeLeave> {
+  $$EmployeeLeavesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $EmployeesTable _employeeIdTable(_$AppDatabase db) =>
+      db.employees.createAlias(
+          $_aliasNameGenerator(db.employeeLeaves.employeeId, db.employees.id));
+
+  $$EmployeesTableProcessedTableManager get employeeId {
+    final $_column = $_itemColumn<int>('employee_id')!;
+
+    final manager = $$EmployeesTableTableManager($_db, $_db.employees)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_employeeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$EmployeeLeavesTableFilterComposer
+    extends Composer<_$AppDatabase, $EmployeeLeavesTable> {
+  $$EmployeeLeavesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get fromDate => $composableBuilder(
+      column: $table.fromDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get toDate => $composableBuilder(
+      column: $table.toDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reference => $composableBuilder(
+      column: $table.reference, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
+  $$EmployeesTableFilterComposer get employeeId {
+    final $$EmployeesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.employeeId,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableFilterComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$EmployeeLeavesTableOrderingComposer
+    extends Composer<_$AppDatabase, $EmployeeLeavesTable> {
+  $$EmployeeLeavesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get fromDate => $composableBuilder(
+      column: $table.fromDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get toDate => $composableBuilder(
+      column: $table.toDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reference => $composableBuilder(
+      column: $table.reference, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
+  $$EmployeesTableOrderingComposer get employeeId {
+    final $$EmployeesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.employeeId,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableOrderingComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$EmployeeLeavesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EmployeeLeavesTable> {
+  $$EmployeeLeavesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fromDate =>
+      $composableBuilder(column: $table.fromDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get toDate =>
+      $composableBuilder(column: $table.toDate, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get reference =>
+      $composableBuilder(column: $table.reference, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  $$EmployeesTableAnnotationComposer get employeeId {
+    final $$EmployeesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.employeeId,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$EmployeeLeavesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $EmployeeLeavesTable,
+    EmployeeLeave,
+    $$EmployeeLeavesTableFilterComposer,
+    $$EmployeeLeavesTableOrderingComposer,
+    $$EmployeeLeavesTableAnnotationComposer,
+    $$EmployeeLeavesTableCreateCompanionBuilder,
+    $$EmployeeLeavesTableUpdateCompanionBuilder,
+    (EmployeeLeave, $$EmployeeLeavesTableReferences),
+    EmployeeLeave,
+    PrefetchHooks Function({bool employeeId})> {
+  $$EmployeeLeavesTableTableManager(
+      _$AppDatabase db, $EmployeeLeavesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EmployeeLeavesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EmployeeLeavesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EmployeeLeavesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> employeeId = const Value.absent(),
+            Value<DateTime> fromDate = const Value.absent(),
+            Value<DateTime> toDate = const Value.absent(),
+            Value<String> kind = const Value.absent(),
+            Value<String> reference = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+          }) =>
+              EmployeeLeavesCompanion(
+            id: id,
+            employeeId: employeeId,
+            fromDate: fromDate,
+            toDate: toDate,
+            kind: kind,
+            reference: reference,
+            notes: notes,
+            createdAt: createdAt,
+            isDeleted: isDeleted,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int employeeId,
+            required DateTime fromDate,
+            required DateTime toDate,
+            Value<String> kind = const Value.absent(),
+            Value<String> reference = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+          }) =>
+              EmployeeLeavesCompanion.insert(
+            id: id,
+            employeeId: employeeId,
+            fromDate: fromDate,
+            toDate: toDate,
+            kind: kind,
+            reference: reference,
+            notes: notes,
+            createdAt: createdAt,
+            isDeleted: isDeleted,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$EmployeeLeavesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({employeeId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (employeeId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.employeeId,
+                    referencedTable:
+                        $$EmployeeLeavesTableReferences._employeeIdTable(db),
+                    referencedColumn:
+                        $$EmployeeLeavesTableReferences._employeeIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$EmployeeLeavesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $EmployeeLeavesTable,
+    EmployeeLeave,
+    $$EmployeeLeavesTableFilterComposer,
+    $$EmployeeLeavesTableOrderingComposer,
+    $$EmployeeLeavesTableAnnotationComposer,
+    $$EmployeeLeavesTableCreateCompanionBuilder,
+    $$EmployeeLeavesTableUpdateCompanionBuilder,
+    (EmployeeLeave, $$EmployeeLeavesTableReferences),
+    EmployeeLeave,
+    PrefetchHooks Function({bool employeeId})>;
 typedef $$CashAdvancesTableCreateCompanionBuilder = CashAdvancesCompanion
     Function({
   Value<int> id,
@@ -21722,6 +22801,8 @@ class $AppDatabaseManager {
       $$DepartmentsTableTableManager(_db, _db.departments);
   $$EmployeesTableTableManager get employees =>
       $$EmployeesTableTableManager(_db, _db.employees);
+  $$EmployeeLeavesTableTableManager get employeeLeaves =>
+      $$EmployeeLeavesTableTableManager(_db, _db.employeeLeaves);
   $$CashAdvancesTableTableManager get cashAdvances =>
       $$CashAdvancesTableTableManager(_db, _db.cashAdvances);
   $$CashAdvanceRepaymentsTableTableManager get cashAdvanceRepayments =>

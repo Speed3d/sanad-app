@@ -392,8 +392,16 @@ class PayrollRepository
       if (resolved.employeeId != null) {
         final existingEmp =
             await _db.employeesDao.getEmployeeById(resolved.employeeId!);
+        // ⚠️ **بحسب الشهر لا مطلقاً** (Schema v9): من أُنهيت خدمته في ٢٤
+        //   تموز يدخل كشف تموز بواحدٍ وعشرين يوماً، ويُستبعَد من آب فصاعداً.
+        //   الاستبعاد المطلق كان يحرمه راتب أيامٍ عملها فعلاً.
         if (existingEmp != null &&
-            !EmployeeStatus.joinsNewPayroll(existingEmp.status)) {
+            !EmployeeStatus.joinsPayrollMonth(
+              status: existingEmp.status,
+              terminationDate: existingEmp.terminationDate,
+              year: period.year,
+              month: period.month,
+            )) {
           skipped.add(existingEmp.fullName);
           continue;
         }
@@ -417,6 +425,19 @@ class PayrollRepository
         created++;
       }
 
+      // ── ١-ب. سياق الخدمة **من سجلّ الموظف** (Schema v9) ──────────────
+      //
+      // تواريخ التعيين والإنهاء وأيام الإجازة — تُجمَع في الـDAO لا هنا،
+      // فهي قراءةُ بياناتٍ لا قاعدةَ عمل. راجع
+      // `EmployeesDao.payrollServiceContext` لشرح ما كان معطوباً.
+      final ctx = await _db.employeesDao.payrollServiceContext(
+        employeeId: employeeId,
+        year: period.year,
+        month: period.month,
+        workingDays: period.workingDays,
+      );
+      final effectiveHireDate = ctx.hireDate ?? r.hireDate;
+
       // ── 2. الحساب — يمرّ من `PayrollCalculator` دائماً ───────────────
       // لا مسار يُخزَّن فيه صافٍ لم يُحسب هنا، حتى لو ذكر الملف صافيه.
       final amounts = PayrollCalculator.compute(
@@ -426,8 +447,10 @@ class PayrollRepository
         basicSalary: r.basicSalary,
         currency: r.currency,
         exchangeRate: r.exchangeRate ?? period.exchangeRate,
-        hireDate: r.hireDate,
+        hireDate: effectiveHireDate,
+        terminationDate: ctx.terminationDate,
         absenceDays: r.absenceDays,
+        unpaidLeaveDays: ctx.unpaidLeaveDays,
         bonus: r.bonus,
         deduction: r.deduction,
         manualEligibleDays: r.eligibleDays,
@@ -455,7 +478,9 @@ class PayrollRepository
         snapshotName: Value(r.employeeName),
         snapshotPosition: Value(r.position),
         snapshotCurrency: Value(r.currency),
-        snapshotHireDate: Value(r.hireDate),
+        // اللقطة تحمل التاريخ **المستعمَل في الحساب** لا ما ذكره الملف —
+        // وإلا شرح الإيصالُ استحقاقاً بتاريخٍ لم يُبنَ عليه
+        snapshotHireDate: Value(effectiveHireDate),
         basicSalary: Value(r.basicSalary),
         eligibleDays: Value(amounts.eligibleDays),
         eligibleDaysIsManual: Value(r.eligibleDays != null),

@@ -21,6 +21,7 @@ import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../data/database/daos/employees_dao.dart';
+import '../../data/database/tables/employee_leaves_table.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/employee_model.dart';
 import '../../domain/models/user_model.dart';
@@ -110,6 +111,15 @@ Stream<List<DepartmentModel>> allDepartments(Ref ref) {
 }
 
 /// Stream تفاعلي للسلف الممنوحة لموظف محدد
+/// إجازات موظف — الأحدث أولاً (Schema v9)
+///
+/// تُقرأ من الـDAO مباشرةً بلا نموذج domain: الإجازة صفٌّ بسيط لا منطق فيه،
+/// ونموذجٌ ثالث لها يزيد التحويلات بلا مقابل.
+@riverpod
+Stream<List<EmployeeLeave>> employeeLeaves(Ref ref, int employeeId) {
+  return ref.watch(appDatabaseProvider).employeesDao.watchLeaves(employeeId);
+}
+
 @riverpod
 Stream<List<CashAdvanceModel>> advancesByEmployee(Ref ref, int employeeId) {
   final db = ref.watch(appDatabaseProvider);
@@ -278,6 +288,92 @@ class EmployeeNotifier extends _$EmployeeNotifier {
     } on StateError catch (e, st) {
       state = AsyncError(e.message, st);
       return false;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  // ── إنهاء الخدمة والإجازات (Schema v9) ─────────────────────────────────
+
+  /// إنهاء خدمة موظف بتاريخه وسنده
+  ///
+  /// ⚠️ **لا تستعمل [setStatus] لهذا**: الحالة بلا تاريخ تجعل الراتب يُحسب
+  ///   شهراً كاملاً لمن خرج في اليوم الخامس، والتاريخ هو جوهر القرار.
+  Future<bool> terminate({
+    required int employeeId,
+    required DateTime terminationDate,
+    String reference = '',
+    String notes = '',
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _db.employeesDao.terminateEmployee(
+        employeeId: employeeId,
+        terminationDate: terminationDate,
+        reference: reference,
+        notes: notes,
+      );
+      state = const AsyncData('أُنهيت خدمة الموظف ✓');
+      return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// إعادة موظف إلى الخدمة — تمحو التاريخ والسند معاً
+  Future<bool> reinstate(int employeeId) async {
+    state = const AsyncLoading();
+    try {
+      await _db.employeesDao.reinstateEmployee(employeeId);
+      state = const AsyncData('أُعيد الموظف إلى الخدمة ✓');
+      return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  /// تسجيل إجازة — براتب أو بلا راتب
+  Future<bool> addLeave({
+    required int employeeId,
+    required DateTime from,
+    required DateTime to,
+    required String kind,
+    String reference = '',
+    String notes = '',
+  }) async {
+    if (to.isBefore(from)) {
+      state = const AsyncError('تاريخ النهاية قبل البداية', StackTrace.empty);
+      return false;
+    }
+    state = const AsyncLoading();
+    try {
+      await _db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: employeeId,
+          fromDate: from,
+          toDate: to,
+          kind: Value(kind),
+          reference: Value(reference),
+          notes: Value(notes),
+        ),
+      );
+      state = AsyncData('${LeaveKind.label(kind)} سُجِّلت ✓');
+      return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> deleteLeave(int leaveId) async {
+    state = const AsyncLoading();
+    try {
+      await _db.employeesDao.softDeleteLeave(leaveId);
+      state = const AsyncData('حُذفت الإجازة ✓');
+      return true;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;

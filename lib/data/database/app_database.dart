@@ -40,6 +40,7 @@ import 'tables/item_types_table.dart';
 import 'tables/attachments_table.dart';
 import 'tables/payroll_periods_table.dart';
 import 'tables/departments_table.dart';
+import 'tables/employee_leaves_table.dart';
 // ⚠️ **مستورَدة هنا صراحةً وإن لم يستعملها هذا الملف**: `app_database.g.dart`
 //   جزءٌ من هذه المكتبة، ويولّد `const Constant(EmployeeStatus.active)` قيمةً
 //   افتراضية لعمود الحالة. والجزء لا يرى إلا واردات مكتبته — وبدون هذا
@@ -93,6 +94,7 @@ part 'app_database.g.dart';
     //    PayrollPeriods قبل SalaryPayments يعكس العلاقة: الكشف أبٌ لسطوره.
     Departments,
     Employees,
+    EmployeeLeaves,
     CashAdvances,
     CashAdvanceRepayments,
     PayrollPeriods,
@@ -147,7 +149,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -390,6 +392,25 @@ class AppDatabase extends _$AppDatabase {
               employees.status,
               employees.departmentId,
               employees.sortOrder,
+              // ⚠️⚠️ **أعمدة الإصدار التاسع تُذكَر هنا وإن كانت ترقيتها
+              //   أدناه** — وهذه مصيدة SQLite حقيقية كشفها
+              //   `schema_v8_upgrade_test` لحظة إضافتها:
+              //
+              //   `TableMigration` تُعيد بناء الجدول من **تعريفه الحالي**
+              //   (أي v9)، وتنسخ كل عمودٍ لم يُذكَر في `newColumns` باسمه
+              //   من الجدول القديم. والجدول القديم بلا `termination_date`،
+              //   فتقرأ SQLite الاسمَ المجرّد **نصّاً حرفياً** بدل أن ترفضه
+              //   — فيمتلئ العمود بالسلسلة "termination_date" في كل صفّ.
+              //
+              //   والنتيجة عند القراءة: `FormatException: Invalid date
+              //   format` على قاعدة **بيانات المالك الحقيقية** بعد ترقيةٍ
+              //   بدت ناجحة. لا على شاشة اختبار.
+              //
+              //   📌 والدرس: كل إصدارٍ لاحق يُضيف عموداً إلى `employees`
+              //   يجب أن يُضيفه إلى هذه القائمة أيضاً.
+              employees.terminationDate,
+              employees.terminationReference,
+              employees.terminationNotes,
             ],
           ));
         } else {
@@ -398,6 +419,27 @@ class AppDatabase extends _$AppDatabase {
           await _addColumnIfMissing(m, employees, employees.departmentId);
           await _addColumnIfMissing(m, employees, employees.sortOrder);
         }
+      }
+
+      // ── الترقية إلى الإصدار 9 (إنهاء الخدمة والإجازات) ─────────────────
+      //
+      // جدول `employee_leaves` أنشأته `createAll` أعلاه. وما يبقى ثلاثة
+      // أعمدة على `employees`.
+      //
+      // ⚠️ **إضافة أعمدة لا إعادة بناء** — بخلاف v8: لا عمود يُحذَف هنا ولا
+      //   قيد `CHECK` جديد على الجدول، فإعادةُ بنائه تنقل ٤٧ صفّاً بلا سبب
+      //   وتُعرّض بيانات لا تُعوَّض لمسارٍ أطول. والقيود الجديدة كلها على
+      //   `employee_leaves` وهو جدولٌ يُنشَأ كاملاً.
+      if (from < 9) {
+        await _addColumnIfMissing(m, employees, employees.terminationDate);
+        await _addColumnIfMissing(m, employees, employees.terminationReference);
+        await _addColumnIfMissing(m, employees, employees.terminationNotes);
+
+        // 📌 **ولا نخترع تاريخاً لمن حالته `terminated` أصلاً.** الترحيل
+        //   v7→v8 حوّل `is_active = 0` إلى «منتهية خدمته» بلا تاريخ، ووضعُ
+        //   تاريخٍ مفترَض (اليوم مثلاً) يُعيد حساب رواتب شهورٍ مضت على أساس
+        //   واقعةٍ لم تقع فيها. والتاريخ الفارغ يعني «انتهت خدمته ولا نعرف
+        //   متى» — وهو الصدق، ويُدخِله المالك حين يعرفه.
       }
 
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────
@@ -825,6 +867,13 @@ class AppDatabase extends _$AppDatabase {
       await _wipeMovementTables();
 
       // ── ٢) الهيكل — الابن قبل الأب ───────────────────────────────────
+      // الإجازات ابنةُ الموظفين (Schema v9) — تُمحى قبلهم.
+      //
+      // 📌 كُتب هذا السطر **مع** الجدول لا بعد بلاغ: العطل ع-٥٦ (نسيان
+      //   `departments` هنا) وقع قبل يومٍ واحد، وحارسه الجديد يقرأ الجداول
+      //   من `db.allTables` فكان سيُسقط الاختبار فوراً لو نُسي.
+      await delete(employeeLeaves).go();
+
       // الثلاثة أبناء `treasuries` عبر مفاتيح خارجية
       await delete(employees).go();
       await delete(contractors).go();

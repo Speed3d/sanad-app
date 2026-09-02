@@ -20,7 +20,14 @@
 //   • الشهر **ثلاثون يوماً عرفاً** مهما كان طوله التقويمي (مع وضع تقويمي اختياري)
 //   • **لا يُحفَظ رقم بلا مقابل بالدينار** — الدولار بلا سعر صرف يُرفض
 //   • الغياب والمكافأة والخصم **تُدخَل يدوياً**، والنظام يقترح ولا يفرض
-//   • **لا مكافأة نهاية خدمة ولا إجازات** — خارج النطاق نهائياً
+//   • **لا مكافأة نهاية خدمة** — خارج النطاق
+//
+// 📌 **تحديث 2026-09-02 (Schema v9):** كانت الإجازات «خارج النطاق نهائياً»،
+//    وطلبها المالك صراحةً بعد جولة اختبار. صارت:
+//      • **إجازة براتب** — تُسجَّل ولا تمسّ الاستحقاق
+//      • **إجازة بلا راتب** — تُنقِص أيام الاستحقاق (لا تُخصم كمبلغ)
+//    ومعها **تاريخ إنهاء الخدمة**، وهو ما كان يُعطّل [eligibleDays] كلّها:
+//    الدالة تستقبله منذ اليوم الأول ولم يكن في القاعدة عمودٌ يحمله.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// عملات الرواتب المدعومة — تطابق قيم `employees.salary_currency`
@@ -67,11 +74,19 @@ class PayrollAmounts {
   /// الصافي بالدينار العراقي — الرقم الذي يدخل الدفاتر والتقارير
   final double netSalaryIqd;
 
+  /// أيام الإجازة **بلا راتب** التي أُنقصت فعلاً (Schema v9)
+  ///
+  /// تُخزَّن وتُعرَض في عمودٍ مستقلّ عن الغياب بقرار المالك (2026-09-02):
+  /// الغياب تقصيرٌ والإجازة حقٌّ مأذون، وخلطُهما في رقم واحد يجعل تقرير
+  /// الموظف يقول عنه ما ليس فيه.
+  final int unpaidLeaveDays;
+
   const PayrollAmounts({
     required this.eligibleDays,
     required this.absenceDeduction,
     required this.netSalary,
     required this.netSalaryIqd,
+    this.unpaidLeaveDays = 0,
   });
 }
 
@@ -377,6 +392,7 @@ abstract final class PayrollCalculator {
   ///   مرّةً ثانية؟» — فهذا العطل لم يظهر في اختبارات الوحدة لأن كلّاً من
   ///   المسارين كان صحيحاً **وحده**، والخلل في اجتماعهما.
   ///
+  /// [unpaidLeaveDays] — أيام الإجازة بلا راتب في هذا الشهر (Schema v9)
   /// [manualEligibleDays] — أيام العمل كما ذكرها الملف (أو عدّلها المالك)
   /// [manualAbsenceDeduction] — مبلغ خصم الغياب حين يختاره المالك بيده
   static PayrollAmounts compute({
@@ -392,6 +408,7 @@ abstract final class PayrollCalculator {
     double bonus = 0.0,
     double deduction = 0.0,
     double advanceRepayment = 0.0,
+    int unpaidLeaveDays = 0,
     int? manualEligibleDays,
     double? manualAbsenceDeduction,
   }) {
@@ -404,8 +421,23 @@ abstract final class PayrollCalculator {
       terminationDate: terminationDate,
     );
 
+    // ── الإجازة بلا راتب (Schema v9 — قرار المالك 2026-09-02) ──────────
+    //
+    // **تُنقِص أيام الاستحقاق** ولا تُخصم كمبلغ: الطريقان يُعطيان الرقم
+    // نفسه، والأيام أوضح في الكشف وتتفادى فروق التقريب — وهو السبب نفسه
+    // الذي جعل الغياب بالأيام (المسار ٣).
+    //
+    // ⚠️ **ولا تُطرح في المسار ١ إطلاقاً.** حين يذكر الملف «٢٥ يوماً» فهذا
+    //   **ما يستحقّه نهائياً**، وقد طرح المحاسبُ إجازته أصلاً. طرحُها ثانيةً
+    //   هو ع-٢٦ حرفياً (خصم الغياب مرّتين — بالأيام وبالمبلغ معاً)، وقد
+    //   كلّفنا عطلاً كاملاً لأن كل مسارٍ كان صحيحاً **وحده**.
+    final leave = unpaidLeaveDays <= 0
+        ? 0
+        : (unpaidLeaveDays > fromDates ? fromDates : unpaidLeaveDays);
+
     final int days;
     final double absence;
+    final int appliedLeave;
 
     if (manualEligibleDays != null) {
       // ── المسار ١: الملف (أو المالك) ذكر الأيام النهائية ───────────────
@@ -413,19 +445,29 @@ abstract final class PayrollCalculator {
       // كمبلغ هو العطل نفسه.
       days = manualEligibleDays.clamp(0, workingDays);
       absence = 0.0;
+      appliedLeave = 0;
     } else if (manualAbsenceDeduction != null) {
       // ── المسار ٢: المالك اختار مبلغ الخصم بيده ────────────────────────
       // الأيام تبقى كاملة، والخصم بالمبلغ الذي كتبه — فهو يعرف قيمته
       // (جزاء غياب مخفَّف مثلاً) ولا يريد نسبة حسابية.
-      days = fromDates;
+      //
+      // والإجازة تُنقِص الأيام هنا: خصمُ الغياب اليدوي شيءٌ آخر لا يشملها.
+      days = fromDates - leave;
       absence = manualAbsenceDeduction;
+      appliedLeave = leave;
     } else {
       // ── المسار ٣: أيام غياب فقط ───────────────────────────────────────
       // الغياب يُعبَّر عنه **بالأيام** لا بمبلغ: أوضح في الكشف، ويتفادى
       // فروق التقريب بين نسبةٍ ومبلغ.
-      final capped = absenceDays > fromDates ? fromDates : absenceDays;
-      days = fromDates - capped;
+      //
+      // ⚠️ والإجازة تُطرح **أولاً**، ثم يُحدّ الغياب بما بقي: موظفٌ استحقّ
+      //   ٣٠ يوماً وأخذ ٢٥ إجازةً بلا راتب وغاب ١٠ لا يجوز أن يصير
+      //   استحقاقه سالباً — ولا أن تُلغي إحداهما الأخرى.
+      final afterLeave = fromDates - leave;
+      final capped = absenceDays > afterLeave ? afterLeave : absenceDays;
+      days = afterLeave - capped;
       absence = 0.0;
+      appliedLeave = leave;
     }
 
     final net = netSalary(
@@ -443,6 +485,7 @@ abstract final class PayrollCalculator {
       absenceDeduction: absence,
       netSalary: net,
       netSalaryIqd: toIqd(net, currency, exchangeRate),
+      unpaidLeaveDays: appliedLeave,
     );
   }
 

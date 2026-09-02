@@ -207,7 +207,7 @@ class _SearchContractorsProviderElement
 }
 
 String _$contractorNotifierHash() =>
-    r'f8b6ca437b885e7ee4303894a03b2a166bc3b3fb';
+    r'4467d652024c64d32a97f5559deb109f65faf872';
 
 /// Notifier لإدارة عمليات المقاولين
 ///

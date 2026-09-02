@@ -27,11 +27,16 @@ import '../../providers/provider_read_once.dart';
 import '../../providers/treasury_providers.dart';
 import '../payroll/payroll_print_actions.dart';
 import '../../providers/database_provider.dart';
+import '../../../data/database/app_database.dart';
+// `LeaveKind` و`EmployeeLeave` — تبويب الإجازات (Schema v9)
+import '../../../data/database/tables/employee_leaves_table.dart';
 
 // ── أجزاء المكتبة (المرحلة د) ───────────────────────────────────────
 // قُسِّم الملف بـ part لا بملفات مستقلة كي تبقى الأصناف خاصة.
 part 'employee_departments.dart';
 part 'employee_detail_sheet.dart';
+part 'employee_leaves_ui.dart';
+part 'employee_salary_card.dart';
 part 'employee_dialogs.dart';
 part 'employee_repayment_sheet.dart';
 
