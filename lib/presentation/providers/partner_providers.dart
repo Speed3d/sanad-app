@@ -236,10 +236,16 @@ class PartnerNotifier extends _$PartnerNotifier {
   Future<bool> deletePartner(int id) async {
     state = const AsyncLoading();
     try {
-      await _db.partnersDao.softDeletePartner(id);
+      // الشريك وخزينته يُحذفان معاً — راجع ع-٥٧ في الـDAO
+      final hadTreasury =
+          await _db.partnersDao.softDeletePartnerWithTreasury(id);
       _invalidateShareTotal();
-      state = const AsyncData('تم حذف الشريك ✓');
+      state = AsyncData(
+          hadTreasury ? 'تم حذف الشريك وخزينته ✓' : 'تم حذف الشريك ✓');
       return true;
+    } on StateError catch (e, st) {
+      state = AsyncError(e.message, st);
+      return false;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;

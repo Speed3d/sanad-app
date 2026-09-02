@@ -625,24 +625,33 @@ class _PartnerDetailSheet extends ConsumerWidget {
     );
   }
 
+  /// ⚠️ الالتقاط المسبق — الشرح الكامل في `contractors_screen.dart` (ع-٥٧).
+  ///   `Navigator.pop` يتخلّص من ورقة التفاصيل المالكة لهذا الـ`ref`، فيصير
+  ///   استعمالُه داخل حوارٍ يُفتح بعدها انهياراً مؤكّداً.
   void _handleAction(BuildContext context, WidgetRef ref, String action) {
-    Navigator.pop(context);
+    final notifier = ref.read(partnerNotifierProvider.notifier);
+    final navigator = Navigator.of(context);
+    final rootContext = navigator.context;
+
+    navigator.pop();
+
     switch (action) {
       case 'edit':
         showDialog<void>(
-          context: context,
+          context: rootContext,
           builder: (_) => _PartnerFormDialog(existing: partner),
         );
       case 'toggle':
-        ref.read(partnerNotifierProvider.notifier).toggleActive(partner);
+        notifier.toggleActive(partner);
       case 'delete':
         showDialog<void>(
-          context: context,
+          context: rootContext,
           builder: (_) => _ConfirmDeleteDialog(
             name: partner.name,
-            onConfirm: () => ref
-                .read(partnerNotifierProvider.notifier)
-                .deletePartner(partner.id),
+            note: partner.treasuryId == null
+                ? null
+                : 'وستُحذف خزينته معه — فهما أُنشئا معاً.',
+            onConfirm: () => notifier.deletePartner(partner.id),
           ),
         );
     }
@@ -880,16 +889,25 @@ class _PartnerFormDialogState extends ConsumerState<_PartnerFormDialog> {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _ConfirmDeleteDialog extends StatelessWidget {
-  const _ConfirmDeleteDialog({required this.name, required this.onConfirm});
+  const _ConfirmDeleteDialog({
+    required this.name,
+    required this.onConfirm,
+    this.note,
+  });
   final String name;
   final VoidCallback onConfirm;
+
+  /// أثرٌ إضافي يجب أن يعرفه المالك قبل الضغط — كحذف الخزينة معه
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('تأكيد الحذف'),
       content: Text(
-        'هل تريد حذف الشريك "$name"؟\nستُحفَظ سجلات المعاملات السابقة.',
+        'هل تريد حذف الشريك "$name"؟\n'
+        '${note == null ? '' : '$note\n'}'
+        'ستُحفَظ سجلات المعاملات السابقة.',
       ),
       actions: [
         TextButton(

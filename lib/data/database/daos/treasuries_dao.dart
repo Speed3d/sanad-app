@@ -210,10 +210,45 @@ class TreasuriesDao extends DatabaseAccessor<AppDatabase>
   /// حذف ناعم للخزينة
   ///
   /// لا يُحذَف فعلياً حتى لا تُفقَد السندات المرتبطة بها
+  /// حذف ناعم للخزينة — **ومعها صاحبها** إن كانت حساب مقاول أو شريك
+  ///
+  /// 🔴 **ما كان معطوباً** (ع-٥٧ — بلاغ المالك 2026-09-02): حذف خزينة
+  ///   المقاول كان يُخفيها ويُبقي المقاول نفسه ظاهراً في شاشته، مشيراً إلى
+  ///   خزينةٍ ميتة. ومحاولة حذفه بعدها تُسقط التطبيق.
+  ///
+  /// 📌 **ولماذا يُحذَف الاثنان من أيّ الطرفين؟** لأن الإنشاء يصنعهما معاً
+  ///   في معاملة واحدة، فهما **كيانٌ واحد بوجهين** لا كيانان مرتبطان.
+  ///   وبابٌ يعرف وجهاً واحداً يُنتج يتيماً في كل مرّة.
+  ///
+  /// ⚠️ ولا حارس مالياً هنا: المستدعي يفحص السندات قبله (المسار القائم منذ
+  ///   البداية في `TreasuryNotifier.deleteTreasury`).
   Future<void> softDeleteTreasury(int id) async {
-    await (update(treasuries)..where((t) => t.id.equals(id))).write(
-      const TreasuriesCompanion(isDeleted: Value(true), isActive: Value(false)),
-    );
+    await transaction(() async {
+      final t = await (select(treasuries)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+      await (update(treasuries)..where((t) => t.id.equals(id))).write(
+        const TreasuriesCompanion(
+            isDeleted: Value(true), isActive: Value(false)),
+      );
+
+      // الربط يُقرأ من `entity_type`/`entity_id` — وهو ما يكتبه الإنشاء
+      // الذرّي. والقراءة من الخزينة لا من الطرف الآخر تجعل بابَي الحذف
+      // يقرآن **المصدر نفسه**، فلا يفترقان لاحقاً.
+      if (t?.entityId == null) return;
+      switch (t!.entityType) {
+        case 'contractor':
+          await customStatement(
+            'UPDATE contractors SET is_deleted = 1, is_active = 0 WHERE id = ?',
+            [t.entityId],
+          );
+        case 'partner':
+          await customStatement(
+            'UPDATE partners SET is_deleted = 1, is_active = 0 WHERE id = ?',
+            [t.entityId],
+          );
+      }
+    });
   }
 
   /// تفعيل / تعطيل خزينة

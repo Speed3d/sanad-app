@@ -189,9 +189,17 @@ class ContractorNotifier extends _$ContractorNotifier {
   Future<bool> deleteContractor(int id) async {
     state = const AsyncLoading();
     try {
-      await _db.contractorsDao.softDeleteContractor(id);
-      state = const AsyncData('تم حذف المقاول ✓');
+      // المقاول وخزينته يُحذفان معاً — راجع ع-٥٧ في الـDAO
+      final hadTreasury =
+          await _db.contractorsDao.softDeleteContractorWithTreasury(id);
+      state = AsyncData(hadTreasury
+          ? 'تم حذف المقاول وخزينته ✓'
+          : 'تم حذف المقاول ✓');
       return true;
+    } on StateError catch (e, st) {
+      // رسالة الحارس عربية كاملة — تُعرَض كما كُتبت (درس ع-٢٥)
+      state = AsyncError(e.message, st);
+      return false;
     } catch (e, st) {
       state = AsyncError(e, st);
       return false;

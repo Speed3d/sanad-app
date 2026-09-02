@@ -185,16 +185,63 @@ class ContractorsDao extends DatabaseAccessor<AppDatabase>
         .write(ContractorsCompanion(treasuryId: Value(treasuryId)));
   }
 
-  /// حذف ناعم للمقاول
+  /// حذف ناعم للمقاول **وخزينته معاً** — في معاملة واحدة
   ///
-  /// لا يُحذَف فعلياً لحفظ سجل المعاملات التاريخية
-  Future<void> softDeleteContractor(int id) async {
-    await (update(contractors)..where((c) => c.id.equals(id))).write(
-      const ContractorsCompanion(
-        isDeleted: Value(true),
-        isActive: Value(false),
-      ),
-    );
+  /// 🔴 **ما كان معطوباً** (ع-٥٧ — بلاغ المالك 2026-09-02):
+  ///   صار الإنشاء ذرّياً (مقاول + خزينته في معاملة واحدة) و**بقي الحذف
+  ///   يعرف طرفاً واحداً**:
+  ///     • حذف المقاول يُبقي خزينته — «خزنة مقاول» بلا مقاول في كل تبويب
+  ///     • وحذف الخزينة يُبقي المقاول — يظهر في شاشته مشيراً إلى خزينةٍ ميتة،
+  ///       ومحاولة حذفه ثانيةً تُسقط التطبيق
+  ///
+  ///   وهو **خامس** عطل من العائلة نفسها (ع-٢٨ · ع-٣١ · ع-٣٣ · ع-٥٦):
+  ///   «كل باب حذفٍ يعرف مكاناً ويجهل الباقي». والقاعدة التي تعلّمناها:
+  ///   **ما أُنشئ معاً يُحذَف معاً** — وإلا وُلد يتيمٌ من كل باب.
+  ///
+  /// ⚠️ **والحارس المالي يسبق الحذف**: خزينةٌ فيها سندات لا تُحذف — لأن
+  ///   حذفها يُخفي مالاً تحرّك فعلاً. يُرمى `StateError` برسالة عربية تقول
+  ///   البديل (التعطيل)، تماماً كحارس حذف الخزينة القائم منذ البداية.
+  ///
+  /// يُعيد `true` إن حُذفت خزينةٌ معه — ليقول المستدعي للمالك ما وقع فعلاً.
+  Future<bool> softDeleteContractorWithTreasury(int id) {
+    return transaction(() async {
+      final row = await (select(contractors)..where((c) => c.id.equals(id)))
+          .getSingleOrNull();
+      final treasuryId = row?.treasuryId;
+
+      if (treasuryId != null) {
+        // الحارس **قبل** أي كتابة: معاملةٌ تكتب ثم ترمي تتراجع، لكن رسالة
+        // الرفض أوضح حين تسبق العمل
+        final count = await customSelect(
+          'SELECT COUNT(*) AS c FROM vouchers '
+          'WHERE treasury_id = ? AND is_deleted = 0',
+          variables: [Variable.withInt(treasuryId)],
+        ).getSingle();
+
+        if ((count.data['c'] as int? ?? 0) > 0) {
+          throw StateError(
+            'لا يمكن حذف هذا المقاول: خزينته فيها سندات مسجَّلة.\n'
+            'عطّله بدلاً من ذلك — فيبقى سجل معاملاته سليماً.',
+          );
+        }
+      }
+
+      await (update(contractors)..where((c) => c.id.equals(id))).write(
+        const ContractorsCompanion(
+          isDeleted: Value(true),
+          isActive: Value(false),
+        ),
+      );
+
+      if (treasuryId != null) {
+        await (update(treasuries)..where((t) => t.id.equals(treasuryId)))
+            .write(const TreasuriesCompanion(
+          isDeleted: Value(true),
+          isActive: Value(false),
+        ));
+      }
+      return treasuryId != null;
+    });
   }
 
   /// تفعيل / تعطيل مقاول

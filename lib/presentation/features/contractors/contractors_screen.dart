@@ -543,26 +543,46 @@ class _ContractorDetailSheet extends ConsumerWidget {
     );
   }
 
+  /// ⚠️ **كل ما يُحتاج بعد الإغلاق يُلتقط قبله** (ع-٥٧ — بلاغ المالك
+  ///   2026-09-02):
+  ///
+  ///   `Navigator.pop` يتخلّص من `_ContractorDetailSheet` — وهي مالكة هذا
+  ///   الـ`ref`. فالحوار الذي يُفتح بعدها يحمل في إغلاقه (`closure`) مرجعاً
+  ///   إلى ودجتٍ **ميتة**، وأول ضغطةٍ على «حذف» ترمي:
+  ///     `Bad state: Cannot use "ref" after the widget was disposed.`
+  ///
+  ///   وهي عائلة ع-٠٤ نفسها بوجهٍ آخر: هناك متحكّم نصّي عاش بعد التخلّص
+  ///   منه، وهنا `ref`. والقاعدة واحدة — **لا تعبر `await` أو `pop` بمرجعٍ
+  ///   يملكه ما سيُغلَق**.
+  ///
+  ///   والالتقاط المسبق يحلّ الطرفين: `notifier` كائنٌ مستقلّ عن الودجت،
+  ///   و`navigator` يملك سياقاً يبقى حيّاً بعد إغلاق الورقة.
   void _handleAction(BuildContext context, WidgetRef ref, String action) {
-    Navigator.pop(context);
+    final notifier = ref.read(contractorNotifierProvider.notifier);
+    final navigator = Navigator.of(context);
+    final rootContext = navigator.context;
+
+    navigator.pop();
+
     switch (action) {
       case 'edit':
         showDialog<void>(
-          context: context,
+          context: rootContext,
           builder: (_) => _ContractorFormDialog(existing: contractor),
         );
       case 'toggle':
-        ref
-            .read(contractorNotifierProvider.notifier)
-            .toggleActive(contractor);
+        notifier.toggleActive(contractor);
       case 'delete':
         showDialog<void>(
-          context: context,
+          context: rootContext,
           builder: (_) => _ConfirmDeleteDialog(
             name: contractor.name,
-            onConfirm: () => ref
-                .read(contractorNotifierProvider.notifier)
-                .deleteContractor(contractor.id),
+            // ⚠️ التنبيه يذكر الخزينة صراحةً: حذفٌ يمسّ حسابَ مالٍ لا يجوز
+            //   أن يقع بلا أن يعرف صاحبه أنه يمسّه
+            note: contractor.treasuryId == null
+                ? null
+                : 'وستُحذف خزينته معه — فهما أُنشئا معاً.',
+            onConfirm: () => notifier.deleteContractor(contractor.id),
           ),
         );
     }
@@ -811,16 +831,25 @@ class _ContractorFormDialogState
 // ════════════════════════════════════════════════════════════════════════════
 
 class _ConfirmDeleteDialog extends StatelessWidget {
-  const _ConfirmDeleteDialog({required this.name, required this.onConfirm});
+  const _ConfirmDeleteDialog({
+    required this.name,
+    required this.onConfirm,
+    this.note,
+  });
   final String name;
   final VoidCallback onConfirm;
+
+  /// أثرٌ إضافي يجب أن يعرفه المالك قبل الضغط — كحذف الخزينة معه
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('تأكيد الحذف'),
       content: Text(
-        'هل تريد حذف المقاول "$name"؟\nلن يُحذف سجل المعاملات السابقة.',
+        'هل تريد حذف المقاول "$name"؟\n'
+        '${note == null ? '' : '$note\n'}'
+        'لن يُحذف سجل المعاملات السابقة.',
       ),
       actions: [
         TextButton(

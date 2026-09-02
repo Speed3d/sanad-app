@@ -176,16 +176,51 @@ class PartnersDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  /// حذف ناعم للشريك
+  /// حذف ناعم للشريك **وخزينته معاً** — في معاملة واحدة
   ///
-  /// لا يُحذَف فعلياً لحفظ سجل المعاملات والتوزيعات التاريخية
-  Future<void> softDeletePartner(int id) async {
-    await (update(partners)..where((p) => p.id.equals(id))).write(
-      const PartnersCompanion(
-        isDeleted: Value(true),
-        isActive: Value(false),
-      ),
-    );
+  /// نسخة الشريك من ع-٥٧ — والشرح الكامل في
+  /// `ContractorsDao.softDeleteContractorWithTreasury`.
+  ///
+  /// 📌 **ولماذا يُصلَح البابان معاً في الالتزام نفسه؟** لأن إصلاح باب
+  ///   وترك أخيه هو **عين** العلّة التي أنتجت ع-٢٨ و ع-٣١ و ع-٣٣: ثلاثة
+  ///   أعطال متتالية من فئة واحدة، كلٌّ منها بابٌ نُسي بعد إصلاح جاره.
+  Future<bool> softDeletePartnerWithTreasury(int id) {
+    return transaction(() async {
+      final row = await (select(partners)..where((p) => p.id.equals(id)))
+          .getSingleOrNull();
+      final treasuryId = row?.treasuryId;
+
+      if (treasuryId != null) {
+        final count = await customSelect(
+          'SELECT COUNT(*) AS c FROM vouchers '
+          'WHERE treasury_id = ? AND is_deleted = 0',
+          variables: [Variable.withInt(treasuryId)],
+        ).getSingle();
+
+        if ((count.data['c'] as int? ?? 0) > 0) {
+          throw StateError(
+            'لا يمكن حذف هذا الشريك: خزينته فيها سندات مسجَّلة.\n'
+            'عطّله بدلاً من ذلك — فيبقى سجل معاملاته سليماً.',
+          );
+        }
+      }
+
+      await (update(partners)..where((p) => p.id.equals(id))).write(
+        const PartnersCompanion(
+          isDeleted: Value(true),
+          isActive: Value(false),
+        ),
+      );
+
+      if (treasuryId != null) {
+        await (update(treasuries)..where((t) => t.id.equals(treasuryId)))
+            .write(const TreasuriesCompanion(
+          isDeleted: Value(true),
+          isActive: Value(false),
+        ));
+      }
+      return treasuryId != null;
+    });
   }
 
   /// تفعيل / تعطيل شريك
