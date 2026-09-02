@@ -348,6 +348,26 @@ class SalaryPayments extends Table {
   IntColumn get absenceDays =>
       integer().named('absence_days').withDefault(const Constant(0))();
 
+  // ── الإجازة في هذا الشهر — **لقطة تُفسّر الرقم** (Schema v10) ───────────
+  //
+  // 🔴 **بلاغ المالك (2026-09-03):** «أعطيتُ موظفاً إجازة براتب وآخر بلا
+  //   راتب، ولم يظهر لي أي شيء عليهما في مسودة الرواتب.»
+  //
+  // ⚠️ **ولماذا تُخزَّن هنا وقد كانت تُحسَب من الجدول؟** لأن السؤالين
+  //   مختلفان: `unpaidLeaveDaysInMonth` تجيب «كم يوماً في هذا الشهر؟» وهي
+  //   حسبةٌ حيّة تتغيّر بتعديل الإجازة. وهذا العمود يجيب «**على أي أساس
+  //   حُسب هذا السطر؟**» — وهو لقطةٌ يجب ألّا تتغيّر، كـ`snapshot_name`
+  //   و`snapshot_hire_date` تماماً.
+  //
+  //   وبدونه يعرض الكشف عشرين يوماً بلا سبب مكتوب، فيبدو خطأً للمحاسب.
+  //   وإجازةُ **الراتب** لا أثر لها في الأرقام إطلاقاً، فتختفي تماماً ما لم
+  //   تُكتَب — وهي معلومة إدارية يحتاجها من يقرأ الكشف بعد سنة.
+  IntColumn get leaveDaysPaid =>
+      integer().named('leave_days_paid').withDefault(const Constant(0))();
+
+  IntColumn get leaveDaysUnpaid =>
+      integer().named('leave_days_unpaid').withDefault(const Constant(0))();
+
   // خصم الغياب المطبَّق فعلاً — **اقتراحٌ يعدّله المستخدم** لا حكم
   RealColumn get absenceDeduction =>
       real().named('absence_deduction').withDefault(const Constant(0.0))();

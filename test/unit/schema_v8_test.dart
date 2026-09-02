@@ -46,7 +46,7 @@ void main() {
   test('⭐ إصدار الـ Schema صار 8', () {
     // الموضع **الوحيد** الذي يثبّت الرقم الحالي
     // يُحدَّث مع كل إصدار — والاختبار هنا يحرس أن الرقم لم يُنسَ
-    expect(db.schemaVersion, 9);
+    expect(db.schemaVersion, 10);
   });
 
   test('⭐⭐ `is_active` حُذف من جدول الموظفين ولم يبقَ بجوار `status`', () async {

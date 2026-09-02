@@ -101,6 +101,8 @@ lib/
 | `contractors` · `partners` | الأطراف الخارجية | **وُصِّلا بالخزائن 2026-09-01**: `insertContractorWithTreasury` / `insertPartnerWithTreasury` تُنشئان الخزينة بنوعها وتربطانها في معاملة واحدة |
 | `advances` · `advance_lines` · `item_types` | **سلف المشاريع** (Schema v5) | ⚠️ ≠ `cash_advances` |
 | `attachments` | فهرس مرفقات السلف والسندات (Schema v6) | **المسار نسبي لا مطلق** · `entity_id` بلا مفتاح خارجي (يشير لجدولين) |
+| `employee_leaves` | إجازات الموظف بمدياتها (Schema v9) | **المصدر الوحيد لـ«في إجازة»** — والحالة تُشتقّ منه لا تُضبط بيد (ع-٦٠) |
+| `employee_events` | سجل حركات الموظف (Schema v10) | لقطةٌ لا إشارة: الوصف والقيمتان تُكتَب لحظة الحدث · و`logEvent` **لا ترمي أبداً** |
 | `exchange_rates` · `audit_log` | مساعدة | |
 
 **الـ VIEW:** `views/treasury_balance_view.dart` — `v_treasury_balances`.
@@ -117,6 +119,7 @@ lib/
 | `treasuries_dao` | `getTreasuryBalance()` — يقرأ من الـ VIEW |
 | `attachments_dao` | `watchForEntity()` · `findDuplicate()` · `deleteForEntity()` **يُعيد الصفوف** ليحذف المستدعي ملفاتها |
 | `advances_dao` | **+Schema v7**: `linkLineToPayroll()` · `getPayrollLinkPreviews()` · و**حارس المطابقة داخل `postAdvance`** يمنع احتساب المال مرّتين |
+| `employees_dao` + `employees_dao_service.dart` | جزء (`mixin`) — **دورة حياة الخدمة**: الإجازات · إنهاء الخدمة · `refreshLeaveStatus` (اشتقاق الحالة) · `payrollServiceContext` · و`logEvent`/`watchEvents` للسجل |
 | `advances_dao` | **+الدفعة ج**: `searchByItemType()` البحث بالبند داخل السلف (لا يعدّ المستبعَد) · `getLinesForAdvances()` أسطر عدّة سلف باستعلام واحد |
 | `employees_dao` | **+Schema v8**: `setEmployeeStatus()` · `insertDepartment/renameDepartment/deleteDepartment` (تفكّ ربط الموظفين) · `reorderDepartments/reorderEmployees` · `assignDepartment` · و`_orderedEmployees()` **نقطة الترتيب الوحيدة** |
 | `payroll_dao` | `payEntries()` **ذرّية** (سند واحد + السطور + أقساط السلف) · `getTotals()` **مصدر الحقيقة الوحيد للمجموع** · `getYears()` تشتقّ السنوات · `findByFileHash()` · `getYearMonths()` و`getYearTreasuryShares()` و`getOutOfSheetSalaries()` لتقرير السنة |

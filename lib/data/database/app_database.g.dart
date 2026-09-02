@@ -5409,6 +5409,575 @@ class EmployeeLeavesCompanion extends UpdateCompanion<EmployeeLeave> {
   }
 }
 
+class $EmployeeEventsTable extends EmployeeEvents
+    with TableInfo<$EmployeeEventsTable, EmployeeEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EmployeeEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _employeeIdMeta =
+      const VerificationMeta('employeeId');
+  @override
+  late final GeneratedColumn<int> employeeId = GeneratedColumn<int>(
+      'employee_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES employees (id) ON DELETE CASCADE'));
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 40),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _eventDateMeta =
+      const VerificationMeta('eventDate');
+  @override
+  late final GeneratedColumn<DateTime> eventDate = GeneratedColumn<DateTime>(
+      'event_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+      'description', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _oldValueMeta =
+      const VerificationMeta('oldValue');
+  @override
+  late final GeneratedColumn<double> oldValue = GeneratedColumn<double>(
+      'old_value', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _newValueMeta =
+      const VerificationMeta('newValue');
+  @override
+  late final GeneratedColumn<double> newValue = GeneratedColumn<double>(
+      'new_value', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _referenceMeta =
+      const VerificationMeta('reference');
+  @override
+  late final GeneratedColumn<String> reference = GeneratedColumn<String>(
+      'reference', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdByUserIdMeta =
+      const VerificationMeta('createdByUserId');
+  @override
+  late final GeneratedColumn<int> createdByUserId = GeneratedColumn<int>(
+      'created_by_user_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        employeeId,
+        kind,
+        eventDate,
+        description,
+        oldValue,
+        newValue,
+        reference,
+        notes,
+        createdByUserId,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'employee_events';
+  @override
+  VerificationContext validateIntegrity(Insertable<EmployeeEvent> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+          _employeeIdMeta,
+          employeeId.isAcceptableOrUnknown(
+              data['employee_id']!, _employeeIdMeta));
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('event_date')) {
+      context.handle(_eventDateMeta,
+          eventDate.isAcceptableOrUnknown(data['event_date']!, _eventDateMeta));
+    } else if (isInserting) {
+      context.missing(_eventDateMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+          _descriptionMeta,
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
+    }
+    if (data.containsKey('old_value')) {
+      context.handle(_oldValueMeta,
+          oldValue.isAcceptableOrUnknown(data['old_value']!, _oldValueMeta));
+    }
+    if (data.containsKey('new_value')) {
+      context.handle(_newValueMeta,
+          newValue.isAcceptableOrUnknown(data['new_value']!, _newValueMeta));
+    }
+    if (data.containsKey('reference')) {
+      context.handle(_referenceMeta,
+          reference.isAcceptableOrUnknown(data['reference']!, _referenceMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('created_by_user_id')) {
+      context.handle(
+          _createdByUserIdMeta,
+          createdByUserId.isAcceptableOrUnknown(
+              data['created_by_user_id']!, _createdByUserIdMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EmployeeEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EmployeeEvent(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      employeeId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}employee_id'])!,
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      eventDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}event_date'])!,
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description'])!,
+      oldValue: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}old_value']),
+      newValue: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}new_value']),
+      reference: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reference'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      createdByUserId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_by_user_id']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $EmployeeEventsTable createAlias(String alias) {
+    return $EmployeeEventsTable(attachedDatabase, alias);
+  }
+}
+
+class EmployeeEvent extends DataClass implements Insertable<EmployeeEvent> {
+  final int id;
+  final int employeeId;
+
+  /// نوع الحدث — راجع [EmployeeEventKind]
+  final String kind;
+
+  /// تاريخ **وقوع** الحدث لا تاريخ تسجيله
+  ///
+  /// ⚠️ الفرق جوهري: إجازةٌ تُسجَّل اليوم عن الشهر الماضي حدثُها الشهر
+  ///   الماضي. و`created_at` يبقى للتسجيل — فيُعرف المتأخّر عن موعده.
+  final DateTime eventDate;
+
+  /// وصفٌ عربي جاهز — **لقطة لا إشارة**
+  ///
+  /// «تعديل الراتب من ٢٬٥٠٠٬٠٠٠ إلى ٣٬٠٠٠٬٠٠٠ د.ع». يُكتَب وقت الحدث فلا
+  /// يتغيّر معناه لاحقاً بتغيّر ما يشير إليه.
+  final String description;
+
+  /// القيمتان قبل وبعد — للأحداث الرقمية (الراتب)
+  ///
+  /// تُخزَّنان مفصولتين عن [description] لأن التقرير قد يريد الفرق رقماً
+  /// لا نصّاً.
+  final double? oldValue;
+  final double? newValue;
+
+  /// سند الحدث — رقم الكتاب أو الأمر الإداري
+  final String reference;
+  final String notes;
+
+  /// من سجّل الحدث — `null` لما سجّله النظام تلقائياً
+  final int? createdByUserId;
+  final DateTime createdAt;
+  const EmployeeEvent(
+      {required this.id,
+      required this.employeeId,
+      required this.kind,
+      required this.eventDate,
+      required this.description,
+      this.oldValue,
+      this.newValue,
+      required this.reference,
+      required this.notes,
+      this.createdByUserId,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['employee_id'] = Variable<int>(employeeId);
+    map['kind'] = Variable<String>(kind);
+    map['event_date'] = Variable<DateTime>(eventDate);
+    map['description'] = Variable<String>(description);
+    if (!nullToAbsent || oldValue != null) {
+      map['old_value'] = Variable<double>(oldValue);
+    }
+    if (!nullToAbsent || newValue != null) {
+      map['new_value'] = Variable<double>(newValue);
+    }
+    map['reference'] = Variable<String>(reference);
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || createdByUserId != null) {
+      map['created_by_user_id'] = Variable<int>(createdByUserId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  EmployeeEventsCompanion toCompanion(bool nullToAbsent) {
+    return EmployeeEventsCompanion(
+      id: Value(id),
+      employeeId: Value(employeeId),
+      kind: Value(kind),
+      eventDate: Value(eventDate),
+      description: Value(description),
+      oldValue: oldValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(oldValue),
+      newValue: newValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(newValue),
+      reference: Value(reference),
+      notes: Value(notes),
+      createdByUserId: createdByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdByUserId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory EmployeeEvent.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EmployeeEvent(
+      id: serializer.fromJson<int>(json['id']),
+      employeeId: serializer.fromJson<int>(json['employeeId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      eventDate: serializer.fromJson<DateTime>(json['eventDate']),
+      description: serializer.fromJson<String>(json['description']),
+      oldValue: serializer.fromJson<double?>(json['oldValue']),
+      newValue: serializer.fromJson<double?>(json['newValue']),
+      reference: serializer.fromJson<String>(json['reference']),
+      notes: serializer.fromJson<String>(json['notes']),
+      createdByUserId: serializer.fromJson<int?>(json['createdByUserId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'employeeId': serializer.toJson<int>(employeeId),
+      'kind': serializer.toJson<String>(kind),
+      'eventDate': serializer.toJson<DateTime>(eventDate),
+      'description': serializer.toJson<String>(description),
+      'oldValue': serializer.toJson<double?>(oldValue),
+      'newValue': serializer.toJson<double?>(newValue),
+      'reference': serializer.toJson<String>(reference),
+      'notes': serializer.toJson<String>(notes),
+      'createdByUserId': serializer.toJson<int?>(createdByUserId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  EmployeeEvent copyWith(
+          {int? id,
+          int? employeeId,
+          String? kind,
+          DateTime? eventDate,
+          String? description,
+          Value<double?> oldValue = const Value.absent(),
+          Value<double?> newValue = const Value.absent(),
+          String? reference,
+          String? notes,
+          Value<int?> createdByUserId = const Value.absent(),
+          DateTime? createdAt}) =>
+      EmployeeEvent(
+        id: id ?? this.id,
+        employeeId: employeeId ?? this.employeeId,
+        kind: kind ?? this.kind,
+        eventDate: eventDate ?? this.eventDate,
+        description: description ?? this.description,
+        oldValue: oldValue.present ? oldValue.value : this.oldValue,
+        newValue: newValue.present ? newValue.value : this.newValue,
+        reference: reference ?? this.reference,
+        notes: notes ?? this.notes,
+        createdByUserId: createdByUserId.present
+            ? createdByUserId.value
+            : this.createdByUserId,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  EmployeeEvent copyWithCompanion(EmployeeEventsCompanion data) {
+    return EmployeeEvent(
+      id: data.id.present ? data.id.value : this.id,
+      employeeId:
+          data.employeeId.present ? data.employeeId.value : this.employeeId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      eventDate: data.eventDate.present ? data.eventDate.value : this.eventDate,
+      description:
+          data.description.present ? data.description.value : this.description,
+      oldValue: data.oldValue.present ? data.oldValue.value : this.oldValue,
+      newValue: data.newValue.present ? data.newValue.value : this.newValue,
+      reference: data.reference.present ? data.reference.value : this.reference,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdByUserId: data.createdByUserId.present
+          ? data.createdByUserId.value
+          : this.createdByUserId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeEvent(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('kind: $kind, ')
+          ..write('eventDate: $eventDate, ')
+          ..write('description: $description, ')
+          ..write('oldValue: $oldValue, ')
+          ..write('newValue: $newValue, ')
+          ..write('reference: $reference, ')
+          ..write('notes: $notes, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, employeeId, kind, eventDate, description,
+      oldValue, newValue, reference, notes, createdByUserId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EmployeeEvent &&
+          other.id == this.id &&
+          other.employeeId == this.employeeId &&
+          other.kind == this.kind &&
+          other.eventDate == this.eventDate &&
+          other.description == this.description &&
+          other.oldValue == this.oldValue &&
+          other.newValue == this.newValue &&
+          other.reference == this.reference &&
+          other.notes == this.notes &&
+          other.createdByUserId == this.createdByUserId &&
+          other.createdAt == this.createdAt);
+}
+
+class EmployeeEventsCompanion extends UpdateCompanion<EmployeeEvent> {
+  final Value<int> id;
+  final Value<int> employeeId;
+  final Value<String> kind;
+  final Value<DateTime> eventDate;
+  final Value<String> description;
+  final Value<double?> oldValue;
+  final Value<double?> newValue;
+  final Value<String> reference;
+  final Value<String> notes;
+  final Value<int?> createdByUserId;
+  final Value<DateTime> createdAt;
+  const EmployeeEventsCompanion({
+    this.id = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.eventDate = const Value.absent(),
+    this.description = const Value.absent(),
+    this.oldValue = const Value.absent(),
+    this.newValue = const Value.absent(),
+    this.reference = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  EmployeeEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required int employeeId,
+    required String kind,
+    required DateTime eventDate,
+    this.description = const Value.absent(),
+    this.oldValue = const Value.absent(),
+    this.newValue = const Value.absent(),
+    this.reference = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdByUserId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  })  : employeeId = Value(employeeId),
+        kind = Value(kind),
+        eventDate = Value(eventDate);
+  static Insertable<EmployeeEvent> custom({
+    Expression<int>? id,
+    Expression<int>? employeeId,
+    Expression<String>? kind,
+    Expression<DateTime>? eventDate,
+    Expression<String>? description,
+    Expression<double>? oldValue,
+    Expression<double>? newValue,
+    Expression<String>? reference,
+    Expression<String>? notes,
+    Expression<int>? createdByUserId,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (kind != null) 'kind': kind,
+      if (eventDate != null) 'event_date': eventDate,
+      if (description != null) 'description': description,
+      if (oldValue != null) 'old_value': oldValue,
+      if (newValue != null) 'new_value': newValue,
+      if (reference != null) 'reference': reference,
+      if (notes != null) 'notes': notes,
+      if (createdByUserId != null) 'created_by_user_id': createdByUserId,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  EmployeeEventsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? employeeId,
+      Value<String>? kind,
+      Value<DateTime>? eventDate,
+      Value<String>? description,
+      Value<double?>? oldValue,
+      Value<double?>? newValue,
+      Value<String>? reference,
+      Value<String>? notes,
+      Value<int?>? createdByUserId,
+      Value<DateTime>? createdAt}) {
+    return EmployeeEventsCompanion(
+      id: id ?? this.id,
+      employeeId: employeeId ?? this.employeeId,
+      kind: kind ?? this.kind,
+      eventDate: eventDate ?? this.eventDate,
+      description: description ?? this.description,
+      oldValue: oldValue ?? this.oldValue,
+      newValue: newValue ?? this.newValue,
+      reference: reference ?? this.reference,
+      notes: notes ?? this.notes,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<int>(employeeId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (eventDate.present) {
+      map['event_date'] = Variable<DateTime>(eventDate.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (oldValue.present) {
+      map['old_value'] = Variable<double>(oldValue.value);
+    }
+    if (newValue.present) {
+      map['new_value'] = Variable<double>(newValue.value);
+    }
+    if (reference.present) {
+      map['reference'] = Variable<String>(reference.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdByUserId.present) {
+      map['created_by_user_id'] = Variable<int>(createdByUserId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('kind: $kind, ')
+          ..write('eventDate: $eventDate, ')
+          ..write('description: $description, ')
+          ..write('oldValue: $oldValue, ')
+          ..write('newValue: $newValue, ')
+          ..write('reference: $reference, ')
+          ..write('notes: $notes, ')
+          ..write('createdByUserId: $createdByUserId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CashAdvancesTable extends CashAdvances
     with TableInfo<$CashAdvancesTable, CashAdvance> {
   @override
@@ -7433,6 +8002,22 @@ class $SalaryPaymentsTable extends SalaryPayments
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _leaveDaysPaidMeta =
+      const VerificationMeta('leaveDaysPaid');
+  @override
+  late final GeneratedColumn<int> leaveDaysPaid = GeneratedColumn<int>(
+      'leave_days_paid', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _leaveDaysUnpaidMeta =
+      const VerificationMeta('leaveDaysUnpaid');
+  @override
+  late final GeneratedColumn<int> leaveDaysUnpaid = GeneratedColumn<int>(
+      'leave_days_unpaid', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _absenceDeductionMeta =
       const VerificationMeta('absenceDeduction');
   @override
@@ -7601,6 +8186,8 @@ class $SalaryPaymentsTable extends SalaryPayments
         eligibleDays,
         eligibleDaysIsManual,
         absenceDays,
+        leaveDaysPaid,
+        leaveDaysUnpaid,
         absenceDeduction,
         absenceDeductionIsManual,
         additions,
@@ -7703,6 +8290,18 @@ class $SalaryPaymentsTable extends SalaryPayments
           _absenceDaysMeta,
           absenceDays.isAcceptableOrUnknown(
               data['absence_days']!, _absenceDaysMeta));
+    }
+    if (data.containsKey('leave_days_paid')) {
+      context.handle(
+          _leaveDaysPaidMeta,
+          leaveDaysPaid.isAcceptableOrUnknown(
+              data['leave_days_paid']!, _leaveDaysPaidMeta));
+    }
+    if (data.containsKey('leave_days_unpaid')) {
+      context.handle(
+          _leaveDaysUnpaidMeta,
+          leaveDaysUnpaid.isAcceptableOrUnknown(
+              data['leave_days_unpaid']!, _leaveDaysUnpaidMeta));
     }
     if (data.containsKey('absence_deduction')) {
       context.handle(
@@ -7848,6 +8447,10 @@ class $SalaryPaymentsTable extends SalaryPayments
           data['${effectivePrefix}eligible_days_is_manual'])!,
       absenceDays: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}absence_days'])!,
+      leaveDaysPaid: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}leave_days_paid'])!,
+      leaveDaysUnpaid: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}leave_days_unpaid'])!,
       absenceDeduction: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}absence_deduction'])!,
       absenceDeductionIsManual: attachedDatabase.typeMapping.read(
@@ -7914,6 +8517,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
   final int eligibleDays;
   final bool eligibleDaysIsManual;
   final int absenceDays;
+  final int leaveDaysPaid;
+  final int leaveDaysUnpaid;
   final double absenceDeduction;
   final bool absenceDeductionIsManual;
   final double additions;
@@ -7948,6 +8553,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
       required this.eligibleDays,
       required this.eligibleDaysIsManual,
       required this.absenceDays,
+      required this.leaveDaysPaid,
+      required this.leaveDaysUnpaid,
       required this.absenceDeduction,
       required this.absenceDeductionIsManual,
       required this.additions,
@@ -7988,6 +8595,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
     map['eligible_days'] = Variable<int>(eligibleDays);
     map['eligible_days_is_manual'] = Variable<bool>(eligibleDaysIsManual);
     map['absence_days'] = Variable<int>(absenceDays);
+    map['leave_days_paid'] = Variable<int>(leaveDaysPaid);
+    map['leave_days_unpaid'] = Variable<int>(leaveDaysUnpaid);
     map['absence_deduction'] = Variable<double>(absenceDeduction);
     map['absence_deduction_is_manual'] =
         Variable<bool>(absenceDeductionIsManual);
@@ -8049,6 +8658,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
       eligibleDays: Value(eligibleDays),
       eligibleDaysIsManual: Value(eligibleDaysIsManual),
       absenceDays: Value(absenceDays),
+      leaveDaysPaid: Value(leaveDaysPaid),
+      leaveDaysUnpaid: Value(leaveDaysUnpaid),
       absenceDeduction: Value(absenceDeduction),
       absenceDeductionIsManual: Value(absenceDeductionIsManual),
       additions: Value(additions),
@@ -8108,6 +8719,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
       eligibleDaysIsManual:
           serializer.fromJson<bool>(json['eligibleDaysIsManual']),
       absenceDays: serializer.fromJson<int>(json['absenceDays']),
+      leaveDaysPaid: serializer.fromJson<int>(json['leaveDaysPaid']),
+      leaveDaysUnpaid: serializer.fromJson<int>(json['leaveDaysUnpaid']),
       absenceDeduction: serializer.fromJson<double>(json['absenceDeduction']),
       absenceDeductionIsManual:
           serializer.fromJson<bool>(json['absenceDeductionIsManual']),
@@ -8149,6 +8762,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
       'eligibleDays': serializer.toJson<int>(eligibleDays),
       'eligibleDaysIsManual': serializer.toJson<bool>(eligibleDaysIsManual),
       'absenceDays': serializer.toJson<int>(absenceDays),
+      'leaveDaysPaid': serializer.toJson<int>(leaveDaysPaid),
+      'leaveDaysUnpaid': serializer.toJson<int>(leaveDaysUnpaid),
       'absenceDeduction': serializer.toJson<double>(absenceDeduction),
       'absenceDeductionIsManual':
           serializer.toJson<bool>(absenceDeductionIsManual),
@@ -8188,6 +8803,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
           int? eligibleDays,
           bool? eligibleDaysIsManual,
           int? absenceDays,
+          int? leaveDaysPaid,
+          int? leaveDaysUnpaid,
           double? absenceDeduction,
           bool? absenceDeductionIsManual,
           double? additions,
@@ -8226,6 +8843,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
         eligibleDays: eligibleDays ?? this.eligibleDays,
         eligibleDaysIsManual: eligibleDaysIsManual ?? this.eligibleDaysIsManual,
         absenceDays: absenceDays ?? this.absenceDays,
+        leaveDaysPaid: leaveDaysPaid ?? this.leaveDaysPaid,
+        leaveDaysUnpaid: leaveDaysUnpaid ?? this.leaveDaysUnpaid,
         absenceDeduction: absenceDeduction ?? this.absenceDeduction,
         absenceDeductionIsManual:
             absenceDeductionIsManual ?? this.absenceDeductionIsManual,
@@ -8286,6 +8905,12 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
           : this.eligibleDaysIsManual,
       absenceDays:
           data.absenceDays.present ? data.absenceDays.value : this.absenceDays,
+      leaveDaysPaid: data.leaveDaysPaid.present
+          ? data.leaveDaysPaid.value
+          : this.leaveDaysPaid,
+      leaveDaysUnpaid: data.leaveDaysUnpaid.present
+          ? data.leaveDaysUnpaid.value
+          : this.leaveDaysUnpaid,
       absenceDeduction: data.absenceDeduction.present
           ? data.absenceDeduction.value
           : this.absenceDeduction,
@@ -8346,6 +8971,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
           ..write('eligibleDays: $eligibleDays, ')
           ..write('eligibleDaysIsManual: $eligibleDaysIsManual, ')
           ..write('absenceDays: $absenceDays, ')
+          ..write('leaveDaysPaid: $leaveDaysPaid, ')
+          ..write('leaveDaysUnpaid: $leaveDaysUnpaid, ')
           ..write('absenceDeduction: $absenceDeduction, ')
           ..write('absenceDeductionIsManual: $absenceDeductionIsManual, ')
           ..write('additions: $additions, ')
@@ -8385,6 +9012,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
         eligibleDays,
         eligibleDaysIsManual,
         absenceDays,
+        leaveDaysPaid,
+        leaveDaysUnpaid,
         absenceDeduction,
         absenceDeductionIsManual,
         additions,
@@ -8423,6 +9052,8 @@ class SalaryPayment extends DataClass implements Insertable<SalaryPayment> {
           other.eligibleDays == this.eligibleDays &&
           other.eligibleDaysIsManual == this.eligibleDaysIsManual &&
           other.absenceDays == this.absenceDays &&
+          other.leaveDaysPaid == this.leaveDaysPaid &&
+          other.leaveDaysUnpaid == this.leaveDaysUnpaid &&
           other.absenceDeduction == this.absenceDeduction &&
           other.absenceDeductionIsManual == this.absenceDeductionIsManual &&
           other.additions == this.additions &&
@@ -8459,6 +9090,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
   final Value<int> eligibleDays;
   final Value<bool> eligibleDaysIsManual;
   final Value<int> absenceDays;
+  final Value<int> leaveDaysPaid;
+  final Value<int> leaveDaysUnpaid;
   final Value<double> absenceDeduction;
   final Value<bool> absenceDeductionIsManual;
   final Value<double> additions;
@@ -8493,6 +9126,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     this.eligibleDays = const Value.absent(),
     this.eligibleDaysIsManual = const Value.absent(),
     this.absenceDays = const Value.absent(),
+    this.leaveDaysPaid = const Value.absent(),
+    this.leaveDaysUnpaid = const Value.absent(),
     this.absenceDeduction = const Value.absent(),
     this.absenceDeductionIsManual = const Value.absent(),
     this.additions = const Value.absent(),
@@ -8528,6 +9163,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     this.eligibleDays = const Value.absent(),
     this.eligibleDaysIsManual = const Value.absent(),
     this.absenceDays = const Value.absent(),
+    this.leaveDaysPaid = const Value.absent(),
+    this.leaveDaysUnpaid = const Value.absent(),
     this.absenceDeduction = const Value.absent(),
     this.absenceDeductionIsManual = const Value.absent(),
     this.additions = const Value.absent(),
@@ -8564,6 +9201,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     Expression<int>? eligibleDays,
     Expression<bool>? eligibleDaysIsManual,
     Expression<int>? absenceDays,
+    Expression<int>? leaveDaysPaid,
+    Expression<int>? leaveDaysUnpaid,
     Expression<double>? absenceDeduction,
     Expression<bool>? absenceDeductionIsManual,
     Expression<double>? additions,
@@ -8600,6 +9239,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
       if (eligibleDaysIsManual != null)
         'eligible_days_is_manual': eligibleDaysIsManual,
       if (absenceDays != null) 'absence_days': absenceDays,
+      if (leaveDaysPaid != null) 'leave_days_paid': leaveDaysPaid,
+      if (leaveDaysUnpaid != null) 'leave_days_unpaid': leaveDaysUnpaid,
       if (absenceDeduction != null) 'absence_deduction': absenceDeduction,
       if (absenceDeductionIsManual != null)
         'absence_deduction_is_manual': absenceDeductionIsManual,
@@ -8639,6 +9280,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
       Value<int>? eligibleDays,
       Value<bool>? eligibleDaysIsManual,
       Value<int>? absenceDays,
+      Value<int>? leaveDaysPaid,
+      Value<int>? leaveDaysUnpaid,
       Value<double>? absenceDeduction,
       Value<bool>? absenceDeductionIsManual,
       Value<double>? additions,
@@ -8673,6 +9316,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
       eligibleDays: eligibleDays ?? this.eligibleDays,
       eligibleDaysIsManual: eligibleDaysIsManual ?? this.eligibleDaysIsManual,
       absenceDays: absenceDays ?? this.absenceDays,
+      leaveDaysPaid: leaveDaysPaid ?? this.leaveDaysPaid,
+      leaveDaysUnpaid: leaveDaysUnpaid ?? this.leaveDaysUnpaid,
       absenceDeduction: absenceDeduction ?? this.absenceDeduction,
       absenceDeductionIsManual:
           absenceDeductionIsManual ?? this.absenceDeductionIsManual,
@@ -8738,6 +9383,12 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
     }
     if (absenceDays.present) {
       map['absence_days'] = Variable<int>(absenceDays.value);
+    }
+    if (leaveDaysPaid.present) {
+      map['leave_days_paid'] = Variable<int>(leaveDaysPaid.value);
+    }
+    if (leaveDaysUnpaid.present) {
+      map['leave_days_unpaid'] = Variable<int>(leaveDaysUnpaid.value);
     }
     if (absenceDeduction.present) {
       map['absence_deduction'] = Variable<double>(absenceDeduction.value);
@@ -8822,6 +9473,8 @@ class SalaryPaymentsCompanion extends UpdateCompanion<SalaryPayment> {
           ..write('eligibleDays: $eligibleDays, ')
           ..write('eligibleDaysIsManual: $eligibleDaysIsManual, ')
           ..write('absenceDays: $absenceDays, ')
+          ..write('leaveDaysPaid: $leaveDaysPaid, ')
+          ..write('leaveDaysUnpaid: $leaveDaysUnpaid, ')
           ..write('absenceDeduction: $absenceDeduction, ')
           ..write('absenceDeductionIsManual: $absenceDeductionIsManual, ')
           ..write('additions: $additions, ')
@@ -13513,6 +14166,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DepartmentsTable departments = $DepartmentsTable(this);
   late final $EmployeesTable employees = $EmployeesTable(this);
   late final $EmployeeLeavesTable employeeLeaves = $EmployeeLeavesTable(this);
+  late final $EmployeeEventsTable employeeEvents = $EmployeeEventsTable(this);
   late final $CashAdvancesTable cashAdvances = $CashAdvancesTable(this);
   late final $CashAdvanceRepaymentsTable cashAdvanceRepayments =
       $CashAdvanceRepaymentsTable(this);
@@ -13559,6 +14213,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         departments,
         employees,
         employeeLeaves,
+        employeeEvents,
         cashAdvances,
         cashAdvanceRepayments,
         payrollPeriods,
@@ -13572,6 +14227,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         exchangeRates,
         auditLog
       ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
+        [
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('employees',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('employee_events', kind: UpdateKind.delete),
+            ],
+          ),
+        ],
+      );
   @override
   DriftDatabaseOptions get options =>
       const DriftDatabaseOptions(storeDateTimeAsText: true);
@@ -16707,6 +17374,21 @@ final class $$EmployeesTableReferences
         manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$EmployeeEventsTable, List<EmployeeEvent>>
+      _employeeEventsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.employeeEvents,
+              aliasName: $_aliasNameGenerator(
+                  db.employees.id, db.employeeEvents.employeeId));
+
+  $$EmployeeEventsTableProcessedTableManager get employeeEventsRefs {
+    final manager = $$EmployeeEventsTableTableManager($_db, $_db.employeeEvents)
+        .filter((f) => f.employeeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_employeeEventsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$CashAdvancesTable, List<CashAdvance>>
       _cashAdvancesRefsTable(_$AppDatabase db) =>
           MultiTypedResultKey.fromTable(db.cashAdvances,
@@ -16852,6 +17534,27 @@ class $$EmployeesTableFilterComposer
             $$EmployeeLeavesTableFilterComposer(
               $db: $db,
               $table: $db.employeeLeaves,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> employeeEventsRefs(
+      Expression<bool> Function($$EmployeeEventsTableFilterComposer f) f) {
+    final $$EmployeeEventsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.employeeEvents,
+        getReferencedColumn: (t) => t.employeeId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeeEventsTableFilterComposer(
+              $db: $db,
+              $table: $db.employeeEvents,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -17123,6 +17826,27 @@ class $$EmployeesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> employeeEventsRefs<T extends Object>(
+      Expression<T> Function($$EmployeeEventsTableAnnotationComposer a) f) {
+    final $$EmployeeEventsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.employeeEvents,
+        getReferencedColumn: (t) => t.employeeId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeeEventsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.employeeEvents,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<T> cashAdvancesRefs<T extends Object>(
       Expression<T> Function($$CashAdvancesTableAnnotationComposer a) f) {
     final $$CashAdvancesTableAnnotationComposer composer = $composerBuilder(
@@ -17181,6 +17905,7 @@ class $$EmployeesTableTableManager extends RootTableManager<
         {bool treasuryId,
         bool departmentId,
         bool employeeLeavesRefs,
+        bool employeeEventsRefs,
         bool cashAdvancesRefs,
         bool salaryPaymentsRefs})> {
   $$EmployeesTableTableManager(_$AppDatabase db, $EmployeesTable table)
@@ -17283,12 +18008,14 @@ class $$EmployeesTableTableManager extends RootTableManager<
               {treasuryId = false,
               departmentId = false,
               employeeLeavesRefs = false,
+              employeeEventsRefs = false,
               cashAdvancesRefs = false,
               salaryPaymentsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (employeeLeavesRefs) db.employeeLeaves,
+                if (employeeEventsRefs) db.employeeEvents,
                 if (cashAdvancesRefs) db.cashAdvances,
                 if (salaryPaymentsRefs) db.salaryPayments
               ],
@@ -17343,6 +18070,19 @@ class $$EmployeesTableTableManager extends RootTableManager<
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.employeeId == item.id),
                         typedResults: items),
+                  if (employeeEventsRefs)
+                    await $_getPrefetchedData<Employee, $EmployeesTable,
+                            EmployeeEvent>(
+                        currentTable: table,
+                        referencedTable: $$EmployeesTableReferences
+                            ._employeeEventsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$EmployeesTableReferences(db, table, p0)
+                                .employeeEventsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.employeeId == item.id),
+                        typedResults: items),
                   if (cashAdvancesRefs)
                     await $_getPrefetchedData<Employee, $EmployeesTable,
                             CashAdvance>(
@@ -17391,6 +18131,7 @@ typedef $$EmployeesTableProcessedTableManager = ProcessedTableManager<
         {bool treasuryId,
         bool departmentId,
         bool employeeLeavesRefs,
+        bool employeeEventsRefs,
         bool cashAdvancesRefs,
         bool salaryPaymentsRefs})>;
 typedef $$EmployeeLeavesTableCreateCompanionBuilder = EmployeeLeavesCompanion
@@ -17723,6 +18464,369 @@ typedef $$EmployeeLeavesTableProcessedTableManager = ProcessedTableManager<
     $$EmployeeLeavesTableUpdateCompanionBuilder,
     (EmployeeLeave, $$EmployeeLeavesTableReferences),
     EmployeeLeave,
+    PrefetchHooks Function({bool employeeId})>;
+typedef $$EmployeeEventsTableCreateCompanionBuilder = EmployeeEventsCompanion
+    Function({
+  Value<int> id,
+  required int employeeId,
+  required String kind,
+  required DateTime eventDate,
+  Value<String> description,
+  Value<double?> oldValue,
+  Value<double?> newValue,
+  Value<String> reference,
+  Value<String> notes,
+  Value<int?> createdByUserId,
+  Value<DateTime> createdAt,
+});
+typedef $$EmployeeEventsTableUpdateCompanionBuilder = EmployeeEventsCompanion
+    Function({
+  Value<int> id,
+  Value<int> employeeId,
+  Value<String> kind,
+  Value<DateTime> eventDate,
+  Value<String> description,
+  Value<double?> oldValue,
+  Value<double?> newValue,
+  Value<String> reference,
+  Value<String> notes,
+  Value<int?> createdByUserId,
+  Value<DateTime> createdAt,
+});
+
+final class $$EmployeeEventsTableReferences
+    extends BaseReferences<_$AppDatabase, $EmployeeEventsTable, EmployeeEvent> {
+  $$EmployeeEventsTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $EmployeesTable _employeeIdTable(_$AppDatabase db) =>
+      db.employees.createAlias(
+          $_aliasNameGenerator(db.employeeEvents.employeeId, db.employees.id));
+
+  $$EmployeesTableProcessedTableManager get employeeId {
+    final $_column = $_itemColumn<int>('employee_id')!;
+
+    final manager = $$EmployeesTableTableManager($_db, $_db.employees)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_employeeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$EmployeeEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $EmployeeEventsTable> {
+  $$EmployeeEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get eventDate => $composableBuilder(
+      column: $table.eventDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get oldValue => $composableBuilder(
+      column: $table.oldValue, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get newValue => $composableBuilder(
+      column: $table.newValue, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reference => $composableBuilder(
+      column: $table.reference, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  $$EmployeesTableFilterComposer get employeeId {
+    final $$EmployeesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.employeeId,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableFilterComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$EmployeeEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $EmployeeEventsTable> {
+  $$EmployeeEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get eventDate => $composableBuilder(
+      column: $table.eventDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get oldValue => $composableBuilder(
+      column: $table.oldValue, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get newValue => $composableBuilder(
+      column: $table.newValue, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reference => $composableBuilder(
+      column: $table.reference, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  $$EmployeesTableOrderingComposer get employeeId {
+    final $$EmployeesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.employeeId,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableOrderingComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$EmployeeEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EmployeeEventsTable> {
+  $$EmployeeEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get eventDate =>
+      $composableBuilder(column: $table.eventDate, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<double> get oldValue =>
+      $composableBuilder(column: $table.oldValue, builder: (column) => column);
+
+  GeneratedColumn<double> get newValue =>
+      $composableBuilder(column: $table.newValue, builder: (column) => column);
+
+  GeneratedColumn<String> get reference =>
+      $composableBuilder(column: $table.reference, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<int> get createdByUserId => $composableBuilder(
+      column: $table.createdByUserId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$EmployeesTableAnnotationComposer get employeeId {
+    final $$EmployeesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.employeeId,
+        referencedTable: $db.employees,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$EmployeesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.employees,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$EmployeeEventsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $EmployeeEventsTable,
+    EmployeeEvent,
+    $$EmployeeEventsTableFilterComposer,
+    $$EmployeeEventsTableOrderingComposer,
+    $$EmployeeEventsTableAnnotationComposer,
+    $$EmployeeEventsTableCreateCompanionBuilder,
+    $$EmployeeEventsTableUpdateCompanionBuilder,
+    (EmployeeEvent, $$EmployeeEventsTableReferences),
+    EmployeeEvent,
+    PrefetchHooks Function({bool employeeId})> {
+  $$EmployeeEventsTableTableManager(
+      _$AppDatabase db, $EmployeeEventsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EmployeeEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EmployeeEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EmployeeEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> employeeId = const Value.absent(),
+            Value<String> kind = const Value.absent(),
+            Value<DateTime> eventDate = const Value.absent(),
+            Value<String> description = const Value.absent(),
+            Value<double?> oldValue = const Value.absent(),
+            Value<double?> newValue = const Value.absent(),
+            Value<String> reference = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<int?> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              EmployeeEventsCompanion(
+            id: id,
+            employeeId: employeeId,
+            kind: kind,
+            eventDate: eventDate,
+            description: description,
+            oldValue: oldValue,
+            newValue: newValue,
+            reference: reference,
+            notes: notes,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int employeeId,
+            required String kind,
+            required DateTime eventDate,
+            Value<String> description = const Value.absent(),
+            Value<double?> oldValue = const Value.absent(),
+            Value<double?> newValue = const Value.absent(),
+            Value<String> reference = const Value.absent(),
+            Value<String> notes = const Value.absent(),
+            Value<int?> createdByUserId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              EmployeeEventsCompanion.insert(
+            id: id,
+            employeeId: employeeId,
+            kind: kind,
+            eventDate: eventDate,
+            description: description,
+            oldValue: oldValue,
+            newValue: newValue,
+            reference: reference,
+            notes: notes,
+            createdByUserId: createdByUserId,
+            createdAt: createdAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$EmployeeEventsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({employeeId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (employeeId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.employeeId,
+                    referencedTable:
+                        $$EmployeeEventsTableReferences._employeeIdTable(db),
+                    referencedColumn:
+                        $$EmployeeEventsTableReferences._employeeIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$EmployeeEventsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $EmployeeEventsTable,
+    EmployeeEvent,
+    $$EmployeeEventsTableFilterComposer,
+    $$EmployeeEventsTableOrderingComposer,
+    $$EmployeeEventsTableAnnotationComposer,
+    $$EmployeeEventsTableCreateCompanionBuilder,
+    $$EmployeeEventsTableUpdateCompanionBuilder,
+    (EmployeeEvent, $$EmployeeEventsTableReferences),
+    EmployeeEvent,
     PrefetchHooks Function({bool employeeId})>;
 typedef $$CashAdvancesTableCreateCompanionBuilder = CashAdvancesCompanion
     Function({
@@ -19164,6 +20268,8 @@ typedef $$SalaryPaymentsTableCreateCompanionBuilder = SalaryPaymentsCompanion
   Value<int> eligibleDays,
   Value<bool> eligibleDaysIsManual,
   Value<int> absenceDays,
+  Value<int> leaveDaysPaid,
+  Value<int> leaveDaysUnpaid,
   Value<double> absenceDeduction,
   Value<bool> absenceDeductionIsManual,
   Value<double> additions,
@@ -19200,6 +20306,8 @@ typedef $$SalaryPaymentsTableUpdateCompanionBuilder = SalaryPaymentsCompanion
   Value<int> eligibleDays,
   Value<bool> eligibleDaysIsManual,
   Value<int> absenceDays,
+  Value<int> leaveDaysPaid,
+  Value<int> leaveDaysUnpaid,
   Value<double> absenceDeduction,
   Value<bool> absenceDeductionIsManual,
   Value<double> additions,
@@ -19316,6 +20424,13 @@ class $$SalaryPaymentsTableFilterComposer
 
   ColumnFilters<int> get absenceDays => $composableBuilder(
       column: $table.absenceDays, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get leaveDaysPaid => $composableBuilder(
+      column: $table.leaveDaysPaid, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get leaveDaysUnpaid => $composableBuilder(
+      column: $table.leaveDaysUnpaid,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get absenceDeduction => $composableBuilder(
       column: $table.absenceDeduction,
@@ -19486,6 +20601,14 @@ class $$SalaryPaymentsTableOrderingComposer
   ColumnOrderings<int> get absenceDays => $composableBuilder(
       column: $table.absenceDays, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get leaveDaysPaid => $composableBuilder(
+      column: $table.leaveDaysPaid,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get leaveDaysUnpaid => $composableBuilder(
+      column: $table.leaveDaysUnpaid,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get absenceDeduction => $composableBuilder(
       column: $table.absenceDeduction,
       builder: (column) => ColumnOrderings(column));
@@ -19655,6 +20778,12 @@ class $$SalaryPaymentsTableAnnotationComposer
   GeneratedColumn<int> get absenceDays => $composableBuilder(
       column: $table.absenceDays, builder: (column) => column);
 
+  GeneratedColumn<int> get leaveDaysPaid => $composableBuilder(
+      column: $table.leaveDaysPaid, builder: (column) => column);
+
+  GeneratedColumn<int> get leaveDaysUnpaid => $composableBuilder(
+      column: $table.leaveDaysUnpaid, builder: (column) => column);
+
   GeneratedColumn<double> get absenceDeduction => $composableBuilder(
       column: $table.absenceDeduction, builder: (column) => column);
 
@@ -19813,6 +20942,8 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
             Value<int> eligibleDays = const Value.absent(),
             Value<bool> eligibleDaysIsManual = const Value.absent(),
             Value<int> absenceDays = const Value.absent(),
+            Value<int> leaveDaysPaid = const Value.absent(),
+            Value<int> leaveDaysUnpaid = const Value.absent(),
             Value<double> absenceDeduction = const Value.absent(),
             Value<bool> absenceDeductionIsManual = const Value.absent(),
             Value<double> additions = const Value.absent(),
@@ -19848,6 +20979,8 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
             eligibleDays: eligibleDays,
             eligibleDaysIsManual: eligibleDaysIsManual,
             absenceDays: absenceDays,
+            leaveDaysPaid: leaveDaysPaid,
+            leaveDaysUnpaid: leaveDaysUnpaid,
             absenceDeduction: absenceDeduction,
             absenceDeductionIsManual: absenceDeductionIsManual,
             additions: additions,
@@ -19883,6 +21016,8 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
             Value<int> eligibleDays = const Value.absent(),
             Value<bool> eligibleDaysIsManual = const Value.absent(),
             Value<int> absenceDays = const Value.absent(),
+            Value<int> leaveDaysPaid = const Value.absent(),
+            Value<int> leaveDaysUnpaid = const Value.absent(),
             Value<double> absenceDeduction = const Value.absent(),
             Value<bool> absenceDeductionIsManual = const Value.absent(),
             Value<double> additions = const Value.absent(),
@@ -19918,6 +21053,8 @@ class $$SalaryPaymentsTableTableManager extends RootTableManager<
             eligibleDays: eligibleDays,
             eligibleDaysIsManual: eligibleDaysIsManual,
             absenceDays: absenceDays,
+            leaveDaysPaid: leaveDaysPaid,
+            leaveDaysUnpaid: leaveDaysUnpaid,
             absenceDeduction: absenceDeduction,
             absenceDeductionIsManual: absenceDeductionIsManual,
             additions: additions,
@@ -22803,6 +23940,8 @@ class $AppDatabaseManager {
       $$EmployeesTableTableManager(_db, _db.employees);
   $$EmployeeLeavesTableTableManager get employeeLeaves =>
       $$EmployeeLeavesTableTableManager(_db, _db.employeeLeaves);
+  $$EmployeeEventsTableTableManager get employeeEvents =>
+      $$EmployeeEventsTableTableManager(_db, _db.employeeEvents);
   $$CashAdvancesTableTableManager get cashAdvances =>
       $$CashAdvancesTableTableManager(_db, _db.cashAdvances);
   $$CashAdvanceRepaymentsTableTableManager get cashAdvanceRepayments =>

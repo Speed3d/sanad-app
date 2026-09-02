@@ -17,11 +17,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/employee_status.dart';
+// `EmployeeEventKind` — تسميات سجل الحركات وأيقوناته (Schema v10)
+import '../../../data/database/tables/employee_events_table.dart';
 import '../../../core/services/payroll_calculator.dart';
 import '../../../domain/models/employee_model.dart';
 import '../../../domain/models/treasury_model.dart';
 import '../../providers/employee_providers.dart';
 import '../../providers/payroll_providers.dart';
+import '../../widgets/common/app_components.dart';
 import '../../widgets/common/password_confirm_dialog.dart';
 import '../../providers/provider_read_once.dart';
 import '../../providers/treasury_providers.dart';
@@ -36,6 +39,7 @@ import '../../../data/database/tables/employee_leaves_table.dart';
 part 'employee_departments.dart';
 part 'employee_detail_sheet.dart';
 part 'employee_leaves_ui.dart';
+part 'employee_events_ui.dart';
 part 'employee_salary_card.dart';
 part 'employee_dialogs.dart';
 part 'employee_repayment_sheet.dart';

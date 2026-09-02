@@ -418,8 +418,34 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
               ))
           .toList();
 
-      final result =
-          await notifier.importRows(periodId: periodId, rows: resolved);
+      // ── التعارض بين الملف وخدمة الموظف — يُسأل **قبل** الكتابة ───────
+      //
+      // 🔴 بلاغ المالك (2026-09-03): «أنهيتُ خدمة ياسر في ٩/٢ واستوردتُ ملف
+      //   أيلول فلم يظهر أي تنبيه ولم تُحتسب له يومان.» عمودُ الأيام في
+      //   الملف كان يُلغي تناسبَ الإنهاء والإجازة **صامتاً**.
+      //
+      //   والقرار سليم في أصله (الملف يقول «هذا ما يستحقّه نهائياً»)،
+      //   والخطأ أنه يقع بلا أن يقول. فصار يُسأل.
+      final conflicts = await notifier.previewServiceConflicts(
+        periodId: periodId,
+        rows: resolved,
+      );
+      if (!mounted) return;
+
+      var applyComputed = false;
+      if (conflicts.isNotEmpty) {
+        final choice = await _askServiceConflicts(conflicts);
+        // ⚠️ إغلاق الحوار بلا اختيار **يُلغي الاستيراد** ولا يمضي بافتراض:
+        //   المضيّ بأحد الخيارين صامتاً هو العطل نفسه الذي نُصلحه.
+        if (choice == null || !mounted) return;
+        applyComputed = choice;
+      }
+
+      final result = await notifier.importRows(
+        periodId: periodId,
+        rows: resolved,
+        applyComputedDays: applyComputed,
+      );
       if (result == null || !mounted) return;
 
       // ⚠️ **من انتهت خدمته يُقال صراحةً** (Schema v8): استبعادٌ صامت لسطر
@@ -438,6 +464,96 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// يسأل المالك عن السطور التي يخالف فيها الملفُ خدمةَ الموظف
+  ///
+  /// يُعيد `true` = طبّق حساب البرنامج · `false` = اعتمد الملف · `null` = ألغِ
+  ///
+  /// ⚠️ **بلا `TextEditingController`** — عرضٌ وزرّان فقط (ع-٠٤).
+  Future<bool?> _askServiceConflicts(
+      List<PayrollServiceConflict> conflicts) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.rule_folder_outlined, color: Colors.orange),
+        title: const Text('الملف يخالف خدمة الموظف'),
+        content: SizedBox(
+          width: 560,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'في ${conflicts.length} سطراً يذكر الملف أيام عملٍ تخالف ما '
+                'يعرفه البرنامج عن خدمة الموظف:',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      for (final c in conflicts)
+                        Card(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            dense: true,
+                            title: Text(c.employeeName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)),
+                            subtitle: Text(c.reason,
+                                style: const TextStyle(fontSize: 11.5)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _DaysChip(
+                                    label: 'الملف',
+                                    days: c.fileDays,
+                                    color: Colors.blueGrey),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.arrow_back, size: 14),
+                                const SizedBox(width: 6),
+                                _DaysChip(
+                                    label: 'البرنامج',
+                                    days: c.computedDays,
+                                    color: Colors.green),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'إن كان محاسبك قد طرح الإجازة أو أيام الخدمة في ملفه، '
+                'فاعتمد الملف — وإلا طُرحت مرّتين.',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء الاستيراد'),
+          ),
+          const Spacer(),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('اعتمد الملف كما هو'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('طبّق حساب البرنامج'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// من استُبعِدوا لانتهاء خدمتهم — بأسمائهم وبالطريق إلى تصحيح القرار
@@ -1001,6 +1117,44 @@ class _PayrollImportScreenState extends ConsumerState<PayrollImportScreen> {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// شارة أيام في حوار التعارض — الرقم بارزاً ومصدره تحته
+class _DaysChip extends StatelessWidget {
+  const _DaysChip({
+    required this.label,
+    required this.days,
+    required this.color,
+  });
+
+  final String label;
+  final int days;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            '$days',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ),
+        Text(label, style: const TextStyle(fontSize: 9.5, color: Colors.grey)),
       ],
     );
   }

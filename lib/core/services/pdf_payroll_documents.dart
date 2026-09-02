@@ -46,6 +46,17 @@ String _payrollIqd(double value) => '${_payrollIqdFormat.format(value)} د.ع';
 String _payrollMoneyOrDash(double value, String currency) =>
     value == 0 ? '—' : _payrollMoney(value, currency);
 
+/// أيام الإجازة في خليّة واحدة — «م» مدفوعة و«غ» بلا راتب
+///
+/// والمفتاح يُكتَب في ذيل الكشف، فورقةٌ تُقرأ بعد سنة لا تحتاج شرحاً شفوياً.
+String _payrollLeave(PayrollSheetPrintRow r) {
+  final parts = <String>[
+    if (r.leaveDaysPaid > 0) '${r.leaveDaysPaid} م',
+    if (r.leaveDaysUnpaid > 0) '${r.leaveDaysUnpaid} غ',
+  ];
+  return parts.isEmpty ? '—' : parts.join(' · ');
+}
+
 /// رموز العملات المعتمدة في المستندات
 abstract final class PayrollPrintCurrency {
   static const String iqd = 'IQD';
@@ -93,6 +104,7 @@ extension PdfPayrollDocuments on PdfService {
       'الأساسي',
       'الأيام',
       'غياب',
+      'إجازة',
       'خصم الغياب',
       'مكافأة',
       'خصم',
@@ -106,20 +118,23 @@ extension PdfPayrollDocuments on PdfService {
     /// نِسَب العرض — الاسم أعرض ما فيها، والتسلسل أضيقه
     final widths = <int, pw.TableColumnWidth>{
       0: const pw.FlexColumnWidth(0.6),
-      1: const pw.FlexColumnWidth(3.2),
-      2: const pw.FlexColumnWidth(2.0),
+      1: const pw.FlexColumnWidth(3.0),
+      2: const pw.FlexColumnWidth(1.9),
       3: const pw.FlexColumnWidth(0.9),
       4: const pw.FlexColumnWidth(1.7),
       5: const pw.FlexColumnWidth(0.8),
       6: const pw.FlexColumnWidth(0.8),
-      7: const pw.FlexColumnWidth(1.4),
-      8: const pw.FlexColumnWidth(1.3),
+      // ⚠️ عمود الإجازة أُدرج **هنا** فانزاح ما بعده — والخريطة تُعدَّل معه
+      //   دائماً: نسيانُها يُخرج «الاسم» بعرض «التسلسل» (درس الدفعة أ).
+      7: const pw.FlexColumnWidth(1.0),
+      8: const pw.FlexColumnWidth(1.4),
       9: const pw.FlexColumnWidth(1.3),
-      10: const pw.FlexColumnWidth(1.4),
-      11: const pw.FlexColumnWidth(1.7),
-      12: const pw.FlexColumnWidth(1.9),
-      13: const pw.FlexColumnWidth(1.1),
-      if (data.withSignatureColumn) 14: const pw.FlexColumnWidth(2.4),
+      10: const pw.FlexColumnWidth(1.3),
+      11: const pw.FlexColumnWidth(1.4),
+      12: const pw.FlexColumnWidth(1.7),
+      13: const pw.FlexColumnWidth(1.9),
+      14: const pw.FlexColumnWidth(1.1),
+      if (data.withSignatureColumn) 15: const pw.FlexColumnWidth(2.4),
     };
 
     final rows = <List<String>>[
@@ -132,6 +147,7 @@ extension PdfPayrollDocuments on PdfService {
           _payrollMoney(r.basicSalary, r.currency),
           '${r.eligibleDays}',
           r.absenceDays == 0 ? '—' : '${r.absenceDays}',
+          _payrollLeave(r),
           _payrollMoneyOrDash(r.absenceDeduction, r.currency),
           _payrollMoneyOrDash(r.bonus, r.currency),
           _payrollMoneyOrDash(r.deduction, r.currency),
@@ -149,7 +165,7 @@ extension PdfPayrollDocuments on PdfService {
       [
         '',
         'المجموع (${data.employeeCount} موظفاً)',
-        '', '', '', '', '', '', '', '', '',
+        '', '', '', '', '', '', '', '', '', '',
         '',
         _payrollIqdFormat.format(data.totalIqd),
         '',
@@ -170,6 +186,16 @@ extension PdfPayrollDocuments on PdfService {
           _buildCompanyHeader(header, accent),
           _payrollSheetTitle(data, accent),
           pw.SizedBox(height: 8),
+          if (data.rows.any((r) => r.leaveDaysPaid > 0 || r.leaveDaysUnpaid > 0))
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 4),
+              child: pw.Text(
+                'عمود الإجازة: «م» = إجازة براتب · «غ» = إجازة بلا راتب '
+                '(تُنقِص الأيام المستحقّة)',
+                style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700),
+                textAlign: pw.TextAlign.right,
+              ),
+            ),
           pw.TableHelper.fromTextArray(
             context: context,
             // ↔️ الأعمدة معكوسة عمداً — `pw.Table` لا تعرف الاتّجاه فترتّبها

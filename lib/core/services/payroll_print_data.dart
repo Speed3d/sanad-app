@@ -35,6 +35,13 @@ class PayrollSheetPrintRow {
   final int eligibleDays;
   final int workingDays;
   final int absenceDays;
+
+  /// أيام الإجازة في هذا الشهر — **تُفسّر الأيام المستحقّة**
+  ///
+  /// بدونها يقرأ المحاسب «٢٠ يوماً» ولا يعرف لماذا، فيظنّها خطأً.
+  final int leaveDaysPaid;
+  final int leaveDaysUnpaid;
+
   final double absenceDeduction;
   final double bonus;
   final double deduction;
@@ -64,6 +71,8 @@ class PayrollSheetPrintRow {
     required this.eligibleDays,
     required this.workingDays,
     required this.absenceDays,
+    this.leaveDaysPaid = 0,
+    this.leaveDaysUnpaid = 0,
     required this.absenceDeduction,
     required this.bonus,
     required this.deduction,

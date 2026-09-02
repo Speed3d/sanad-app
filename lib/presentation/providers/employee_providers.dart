@@ -12,7 +12,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:drift/drift.dart';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/auth/permissions.dart';
@@ -21,6 +24,7 @@ import '../../core/services/balance_guard.dart';
 import '../../core/utils/audit_logger.dart';
 import '../../data/database/app_database.dart';
 import '../../data/database/daos/employees_dao.dart';
+import '../../data/database/tables/employee_events_table.dart';
 import '../../data/database/tables/employee_leaves_table.dart';
 import '../../domain/models/auth_state.dart';
 import '../../domain/models/employee_model.dart';
@@ -95,6 +99,18 @@ SalaryPaymentModel _mapSalary(SalaryPayment s) => SalaryPaymentModel(
 @riverpod
 Stream<List<EmployeeModel>> allEmployees(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
+
+  // 🔑 **اشتقاق حالة الإجازة عند كل قراءة للقائمة** (قرار المالك 2026-09-03)
+  //
+  //   انقضاء الإجازة **حدثٌ لا يكتبه أحد**: تنتهي بمرور الوقت لا بضغطة زرّ.
+  //   فبلا هذا السطر يبقى الموظف «في إجازة» إلى الأبد بعد انتهائها، ويعود
+  //   المعنى إلى مكانين — وهو العطل الذي نُصلحه بعينه.
+  //
+  // ⚠️ ولا `await` هنا: الدالة تُطلَق ويُعيد التدفّق نفسه بناء القائمة حين
+  //   تتغيّر الحالة فعلاً (Drift تُخطر مراقبي `employees`). وانتظارُها كان
+  //   سيؤخّر ظهور القائمة كلّها لأجل حالةٍ نادرة التغيّر.
+  unawaited(db.employeesDao.refreshAllLeaveStatuses());
+
   return db.employeesDao
       .watchAllEmployees()
       .map((list) => list.map(_mapEmployee).toList());
@@ -118,6 +134,12 @@ Stream<List<DepartmentModel>> allDepartments(Ref ref) {
 @riverpod
 Stream<List<EmployeeLeave>> employeeLeaves(Ref ref, int employeeId) {
   return ref.watch(appDatabaseProvider).employeesDao.watchLeaves(employeeId);
+}
+
+/// سجل حركات موظف — Reactive Stream (Schema v10)
+@riverpod
+Stream<List<EmployeeEvent>> employeeEvents(Ref ref, int employeeId) {
+  return ref.watch(appDatabaseProvider).employeesDao.watchEvents(employeeId);
 }
 
 @riverpod
@@ -198,6 +220,12 @@ class EmployeeNotifier extends _$EmployeeNotifier {
 
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
+  /// معرّف المستخدم الحالي — يُنسَب إليه الحدث في سجل الحركات
+  int? get _userId {
+    final s = ref.read(authNotifierProvider);
+    return s is AuthAuthenticated ? s.user.id : null;
+  }
+
   // ── إضافة موظف جديد ────────────────────────────────────────────────────
 
   Future<bool> createEmployee({
@@ -263,6 +291,26 @@ class EmployeeNotifier extends _$EmployeeNotifier {
           notes: Value(notes.trim()),
         ),
       );
+
+      // 🔑 **تعديل الراتب هو الحدث الوحيد الذي لم يكن له أثر في القاعدة
+      //   كلّها** (طلب المالك 2026-09-03): الرقم يُستبدَل ولا يُحفَظ سابقه،
+      //   فسؤال «متى صار راتبه ثلاثة ملايين؟» كان بلا جواب.
+      //
+      // ⚠️ ولا يُسجَّل إلا حين **يتغيّر فعلاً**: حفظُ النموذج بلا تغيير
+      //   يملأ السجل بأحداثٍ لم تقع فيُفقده معناه.
+      if ((basicSalary - employee.basicSalary).abs() > 0.001) {
+        final money = NumberFormat('#,##0');
+        await _db.employeesDao.logEvent(
+          employeeId: employee.id,
+          kind: EmployeeEventKind.salaryChanged,
+          description: 'تعديل الراتب من ${money.format(employee.basicSalary)} '
+              'إلى ${money.format(basicSalary)}',
+          oldValue: employee.basicSalary,
+          newValue: basicSalary,
+          userId: _userId,
+        );
+      }
+
       state = const AsyncData('تم تحديث بيانات الموظف ✓');
       return true;
     } catch (e, st) {
@@ -283,6 +331,12 @@ class EmployeeNotifier extends _$EmployeeNotifier {
     state = const AsyncLoading();
     try {
       await _db.employeesDao.setEmployeeStatus(id, status);
+      await _db.employeesDao.logEvent(
+        employeeId: id,
+        kind: EmployeeEventKind.statusChanged,
+        description: 'الحالة صارت «${EmployeeStatus.label(status)}»',
+        userId: _userId,
+      );
       state = AsyncData('الحالة الآن: ${EmployeeStatus.label(status)} ✓');
       return true;
     } on StateError catch (e, st) {
@@ -716,6 +770,18 @@ class AdvanceNotifier extends _$AdvanceNotifier {
         );
         return vid;
       });
+
+      // السلفة حدثٌ في حياة الموظف — يظهر في سجل حركاته لا في التدقيق وحده
+      await _db.employeesDao.logEvent(
+        employeeId: employeeId,
+        kind: EmployeeEventKind.advanceTaken,
+        eventDate: advanceDate,
+        description: 'سلفة ${NumberFormat('#,##0').format(amount)} '
+            '${currency == 'USD' ? '\$' : 'د.ع'}'
+            '${reason.trim().isEmpty ? '' : ' — ${reason.trim()}'}',
+        newValue: amount,
+        userId: _userId,
+      );
 
       // تحديث مبلغ السلف القائمة في الواجهة + توثيق العملية
       ref.invalidate(pendingAdvancesAmountProvider(employeeId));

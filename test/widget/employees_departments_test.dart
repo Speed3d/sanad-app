@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sales_management/core/constants/employee_status.dart';
 import 'package:sales_management/data/database/app_database.dart';
+import 'package:sales_management/data/database/tables/employee_leaves_table.dart';
 import 'package:sales_management/presentation/features/employees/employees_screen.dart';
 import 'package:sales_management/presentation/providers/database_provider.dart';
 
@@ -80,7 +81,22 @@ void main() {
   testWidgets('⭐⭐ شارة الحالة تظهر لغير «حالي» وحده', (tester) async {
     await addEmployee('عامل حالي');
     await addEmployee('عامل سابق', status: EmployeeStatus.terminated);
-    await addEmployee('عامل مجاز', status: EmployeeStatus.leave);
+
+    // ⚠️ **الحالة تُشتقّ من الجدول لا تُضبط بيد** (Schema v10 — قرار المالك
+    //   2026-09-03): زرعُ `status = leave` وحده صار عديم الأثر، لأن
+    //   `refreshAllLeaveStatuses` تُعيده «حالياً» ما لم تُسنده إجازةٌ
+    //   حقيقية تشمل اليوم. وهذا **جوهر الإصلاح** لا أثرٌ جانبي له:
+    //   المعنى صار في مكانٍ واحد.
+    final onLeave = await addEmployee('عامل مجاز');
+    final today = DateTime.now();
+    await db.employeesDao.insertLeave(EmployeeLeavesCompanion.insert(
+      employeeId: onLeave,
+      fromDate: DateTime(today.year, today.month, today.day)
+          .subtract(const Duration(days: 1)),
+      toDate: DateTime(today.year, today.month, today.day)
+          .add(const Duration(days: 3)),
+      kind: const Value(LeaveKind.unpaid),
+    ));
 
     await tester.pumpWidget(wrap(const EmployeesScreen()));
     await settle(tester);

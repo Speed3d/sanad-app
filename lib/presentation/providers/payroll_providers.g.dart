@@ -2007,7 +2007,7 @@ final orphanPayrollVouchersProvider =
 // ignore: unused_element
 typedef OrphanPayrollVouchersRef
     = AutoDisposeFutureProviderRef<List<OrphanPayrollVoucher>>;
-String _$payrollNotifierHash() => r'c5f1061a6aed663129db2bc53a5654328afe0a62';
+String _$payrollNotifierHash() => r'1097b34a871591c7c5ccf797c4854523962a26e0';
 
 /// Notifier عمليات كشوف الرواتب
 ///

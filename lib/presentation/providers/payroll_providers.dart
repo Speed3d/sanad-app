@@ -382,9 +382,21 @@ class PayrollNotifier extends _$PayrollNotifier {
   // ── الاستيراد ──────────────────────────────────────────────────────────
 
   /// استيراد سطور محسومة المطابقة إلى كشف
+  /// تعارضات الخدمة قبل الاستيراد — **قراءةٌ لا تكتب شيئاً**
+  ///
+  /// تُسأل قبل `importRows` ليقرّر المالك: يعتمد الملف كما هو أم يُطبَّق
+  /// حساب البرنامج. راجع `PayrollServiceConflict`.
+  Future<List<PayrollServiceConflict>> previewServiceConflicts({
+    required int periodId,
+    required List<ResolvedPayrollRow> rows,
+  }) {
+    return _repo.previewServiceConflicts(periodId: periodId, rows: rows);
+  }
+
   Future<PayrollImportResult?> importRows({
     required int periodId,
     required List<ResolvedPayrollRow> rows,
+    bool applyComputedDays = false,
   }) async {
     if (!_allows(AppPermission.preparePayroll, 'استيراد كشوف الرواتب')) {
       return null;
@@ -395,6 +407,7 @@ class PayrollNotifier extends _$PayrollNotifier {
         periodId: periodId,
         rows: rows,
         userId: _user?.id,
+        applyComputedDays: applyComputedDays,
       );
 
       // الاستيراد حدث يستحقّ أثراً: من أدخل رواتب أي شهر ومتى وكم سطراً

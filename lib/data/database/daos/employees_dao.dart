@@ -24,9 +24,11 @@ import '../../../core/services/payroll_calculator.dart';
 import '../app_database.dart';
 import '../tables/departments_table.dart';
 import '../tables/employee_leaves_table.dart';
+import '../tables/employee_events_table.dart';
 import '../tables/employees_table.dart';
 
 part 'employees_dao.g.dart';
+part 'employees_dao_service.dart';
 
 // ── نموذج ملخص سلفة الموظف ────────────────────────────────────────────────
 
@@ -73,9 +75,9 @@ typedef AdvanceRepaymentDetail = ({
 });
 
 @DriftAccessor(
-    tables: [Departments, Employees, EmployeeLeaves, CashAdvances, CashAdvanceRepayments, SalaryPayments])
+    tables: [Departments, Employees, EmployeeLeaves, EmployeeEvents, CashAdvances, CashAdvanceRepayments, SalaryPayments])
 class EmployeesDao extends DatabaseAccessor<AppDatabase>
-    with _$EmployeesDaoMixin {
+    with _$EmployeesDaoMixin, EmployeeServiceDaoMixin {
   EmployeesDao(super.db);
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -142,6 +144,10 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
       rows.map((r) => r.readTable(employees)).toList();
 
   /// موظف واحد بالمعرّف
+  ///
+  /// `@override` لأن `EmployeeServiceDaoMixin` تُعلنها مجرَّدة — فاشتقاق
+  /// حالة الإجازة يحتاجها وهي تعيش هنا.
+  @override
   Future<Employee?> getEmployeeById(int id) {
     return (select(employees)..where((e) => e.id.equals(id)))
         .getSingleOrNull();
@@ -962,145 +968,4 @@ class EmployeesDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════
-  // الإجازات وإنهاء الخدمة (Schema v9 — طلب المالك 2026-09-02)
-  // ══════════════════════════════════════════════════════════════════════
-
-  /// إجازات موظف — الأحدث أولاً
-  Stream<List<EmployeeLeave>> watchLeaves(int employeeId) {
-    return (select(employeeLeaves)
-          ..where((l) =>
-              l.employeeId.equals(employeeId) & l.isDeleted.equals(false))
-          ..orderBy([(l) => OrderingTerm.desc(l.fromDate)]))
-        .watch();
-  }
-
-  /// تسجيل إجازة — يُعيد معرّفها
-  Future<int> insertLeave(EmployeeLeavesCompanion leave) =>
-      into(employeeLeaves).insert(leave);
-
-  /// حذف ناعم لإجازة
-  ///
-  /// ناعمٌ لا صلب (القانون ٨): الإجازة **غيّرت راتباً مضى**، وبقاء أثرها
-  /// هو ما يفسّر الفرق بين كشفٍ طُبع أمس وكشفٍ يُطبع اليوم.
-  Future<void> softDeleteLeave(int id) async {
-    await (update(employeeLeaves)..where((l) => l.id.equals(id)))
-        .write(const EmployeeLeavesCompanion(isDeleted: Value(true)));
-  }
-
-  /// أيام الإجازة **بلا راتب** لموظف داخل شهرٍ بعينه
-  ///
-  /// ═══ لماذا يُحسب التقاطع هنا لا يُخزَّن رقماً؟ ═══
-  ///   لأن الإجازة **واقعة بمدىً**، وعددُ أيامها في شهرٍ ما نتيجةٌ تُشتقّ.
-  ///   إجازةٌ من ٢٨ تموز إلى ٥ آب هي أربعة أيام في تموز وخمسة في آب —
-  ///   ورقمٌ مخزَّن «٩ أيام» لا يعرف أيّهما، فيُحمَّل كلّه على شهر.
-  ///
-  ///   وهو المبدأ الحاكم للمشروع كلّه: **الأرصدة لا تُخزَّن، تُحسَب من
-  ///   الواقعة.** الإجازة هنا كالسند هناك.
-  ///
-  /// ⚠️ **والحساب على أيام الشهر التقويمي ثم يُقصّ بأيام العمل**: موظفٌ في
-  ///   شهرٍ من ٣١ يوماً وأيام عمله ٣٠ لا يجوز أن تُنقِص إجازتُه ٣١ يوماً
-  ///   فيصير استحقاقه سالباً.
-  Future<int> unpaidLeaveDaysInMonth({
-    required int employeeId,
-    required int year,
-    required int month,
-    required int workingDays,
-  }) async {
-    final firstOfMonth = DateTime(year, month, 1);
-    final lastOfMonth =
-        DateTime(year, month, PayrollCalculator.daysInMonth(year, month));
-
-    final rows = await (select(employeeLeaves)
-          ..where((l) =>
-              l.employeeId.equals(employeeId) &
-              l.isDeleted.equals(false) &
-              l.kind.equals(LeaveKind.unpaid) &
-              l.fromDate.isSmallerOrEqualValue(lastOfMonth) &
-              l.toDate.isBiggerOrEqualValue(firstOfMonth)))
-        .get();
-
-    var days = 0;
-    for (final l in rows) {
-      final from = l.fromDate.isBefore(firstOfMonth) ? firstOfMonth : l.fromDate;
-      final to = l.toDate.isAfter(lastOfMonth) ? lastOfMonth : l.toDate;
-      // الطرفان **شاملان** — قرار المالك نفسه في إنهاء الخدمة (٤→٢٤ = ٢١)
-      days += to.difference(DateTime(from.year, from.month, from.day)).inDays + 1;
-    }
-    return days > workingDays ? workingDays : days;
-  }
-
-  /// إنهاء خدمة موظف — التاريخ والسند والملاحظات والحالة في كتابة واحدة
-  ///
-  /// ⚠️ **الحالة والتاريخ يُكتَبان معاً دائماً**: `status = terminated` بلا
-  ///   تاريخ تجعل الراتب يُحسب شهراً كاملاً لمن خرج في اليوم الخامس، و
-  ///   تاريخٌ بلا حالة يجعله يظهر في فلتر «الحاليون». عمودان لمعنىً واحد
-  ///   يفترقان بأول كتابة تنسى أحدهما — نمط ع-٤٠.
-  Future<void> terminateEmployee({
-    required int employeeId,
-    required DateTime terminationDate,
-    String reference = '',
-    String notes = '',
-  }) async {
-    await (update(employees)..where((e) => e.id.equals(employeeId))).write(
-      EmployeesCompanion(
-        status: const Value(EmployeeStatus.terminated),
-        terminationDate: Value(terminationDate),
-        terminationReference: Value(reference),
-        terminationNotes: Value(notes),
-      ),
-    );
-  }
-
-  /// إعادة موظف إلى الخدمة — تمحو التاريخ والسند معاً
-  ///
-  /// وإلا بقي تاريخُ إنهاءٍ قديم يقصّ راتبه في كل شهر بعد عودته.
-  Future<void> reinstateEmployee(int employeeId) async {
-    await (update(employees)..where((e) => e.id.equals(employeeId))).write(
-      const EmployeesCompanion(
-        status: Value(EmployeeStatus.active),
-        terminationDate: Value(null),
-        terminationReference: Value(''),
-        terminationNotes: Value(''),
-      ),
-    );
-  }
-
-  /// سياق خدمة الموظف اللازم لحساب راتب شهرٍ بعينه (Schema v9)
-  ///
-  /// 🔴 **ما كان معطوباً (طلب المالك 2026-09-02):**
-  ///   ١. التناسب كان يعتمد على `hireDate` **من ملف الإكسل** وحده. فإن خلا
-  ///      الملف من العمود — وهو الغالب — لم يقع تناسبٌ أصلاً، ومن عُيِّن في
-  ///      اليوم العشرين أخذ راتب شهرٍ كامل.
-  ///   ٢. و`terminationDate` **لا عمود له في القاعدة إطلاقاً**، فالدالة التي
-  ///      تحسبه — مكتوبةً ومحروسةً بالاختبارات منذ اليوم الأول — لم تُستدعَ
-  ///      بقيمةٍ قطّ. نمط ع-٠٦ في أنقى صوره.
-  ///
-  /// **وسجلّ الموظف هو مصدر الحقيقة** (قرار المالك): البرنامج يعرف تاريخ
-  /// التعيين، والملف الشهري قد يخلو منه أو يحمل خطأً مطبعياً. والمستدعي
-  /// يستعمل تاريخ الملف **فقط** حين يعود [hireDate] فارغاً.
-  ///
-  /// 📌 **ولماذا رَكوردٌ واحد لا ثلاث قراءات؟** لأن الثلاثة تصف حالةً واحدة
-  ///   في لحظة واحدة، وتفريقُها يجعل مستدعياً لاحقاً يقرأ اثنتين وينسى
-  ///   الثالثة — وهو النمط الذي أنتج ع-٥٠ (الدولار يسقط في المحطّة الوسطى).
-  Future<({DateTime? hireDate, DateTime? terminationDate, int unpaidLeaveDays})>
-      payrollServiceContext({
-    required int employeeId,
-    required int year,
-    required int month,
-    required int workingDays,
-  }) async {
-    final row = await getEmployeeById(employeeId);
-    final leave = await unpaidLeaveDaysInMonth(
-      employeeId: employeeId,
-      year: year,
-      month: month,
-      workingDays: workingDays,
-    );
-    return (
-      hireDate: row?.hireDate,
-      terminationDate: row?.terminationDate,
-      unpaidLeaveDays: leave,
-    );
-  }
 }

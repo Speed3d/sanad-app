@@ -381,7 +381,7 @@ void main() {
       final table = buildPayrollSheetTable(
           sheet([row(), row(seq: 2, name: 'سارة حسن')]));
 
-      expect(table.columns, hasLength(14));
+      expect(table.columns, hasLength(16)); // +عمودا الإجازة (Schema v10)
       expect(table.columns.first, '#');
       expect(table.rows, hasLength(2));
       expect(table.rows[1][1], 'سارة حسن');
@@ -392,8 +392,9 @@ void main() {
     test('⭐⭐⭐ الصفر يُكتَب صفراً لا «—» — وإلا انكسر جمع العمود', () {
       final table = buildPayrollSheetTable(sheet([row()]));
 
-      // أعمدة: خصم الغياب ٧ · مكافأة ٨ · خصم ٩ · خصم سلفة ١٠
-      for (final c in [7, 8, 9, 10]) {
+      // أعمدة: إجازة م ٧ · إجازة غ ٨ · خصم الغياب ٩ · مكافأة ١٠ · خصم ١١ ·
+      // خصم سلفة ١٢ — انزاحت بإدراج عمودَي الإجازة
+      for (final c in [7, 8, 9, 10, 11, 12]) {
         expect(table.rows.first[c], '0',
             reason: 'العمود $c كتب «${table.rows.first[c]}» بدل صفر');
       }

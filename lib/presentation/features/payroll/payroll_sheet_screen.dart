@@ -46,6 +46,7 @@ import '../../providers/employee_providers.dart';
 import '../employees/employees_screen.dart';
 
 part 'payroll_sheet_widgets.dart';
+part 'payroll_sheet_dialogs.dart';
 part 'payroll_correction_dialogs.dart';
 
 class PayrollSheetScreen extends ConsumerWidget {

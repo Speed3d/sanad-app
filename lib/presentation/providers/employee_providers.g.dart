@@ -6,7 +6,7 @@ part of 'employee_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$allEmployeesHash() => r'79ccc7b97999e69c12e4f72c51a92cf2276d0aca';
+String _$allEmployeesHash() => r'55918058b9ef28e85f5cfac9dca3fc391964d580';
 
 /// Stream تفاعلي لجميع الموظفين (غير المحذوفين) مرتب أبجدياً
 ///
@@ -232,6 +232,150 @@ class _EmployeeLeavesProviderElement
 
   @override
   int get employeeId => (origin as EmployeeLeavesProvider).employeeId;
+}
+
+String _$employeeEventsHash() => r'd06b4a487e183331c4dc5b6828df51086596fe55';
+
+/// سجل حركات موظف — Reactive Stream (Schema v10)
+///
+/// Copied from [employeeEvents].
+@ProviderFor(employeeEvents)
+const employeeEventsProvider = EmployeeEventsFamily();
+
+/// سجل حركات موظف — Reactive Stream (Schema v10)
+///
+/// Copied from [employeeEvents].
+class EmployeeEventsFamily extends Family<AsyncValue<List<EmployeeEvent>>> {
+  /// سجل حركات موظف — Reactive Stream (Schema v10)
+  ///
+  /// Copied from [employeeEvents].
+  const EmployeeEventsFamily();
+
+  /// سجل حركات موظف — Reactive Stream (Schema v10)
+  ///
+  /// Copied from [employeeEvents].
+  EmployeeEventsProvider call(
+    int employeeId,
+  ) {
+    return EmployeeEventsProvider(
+      employeeId,
+    );
+  }
+
+  @override
+  EmployeeEventsProvider getProviderOverride(
+    covariant EmployeeEventsProvider provider,
+  ) {
+    return call(
+      provider.employeeId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'employeeEventsProvider';
+}
+
+/// سجل حركات موظف — Reactive Stream (Schema v10)
+///
+/// Copied from [employeeEvents].
+class EmployeeEventsProvider
+    extends AutoDisposeStreamProvider<List<EmployeeEvent>> {
+  /// سجل حركات موظف — Reactive Stream (Schema v10)
+  ///
+  /// Copied from [employeeEvents].
+  EmployeeEventsProvider(
+    int employeeId,
+  ) : this._internal(
+          (ref) => employeeEvents(
+            ref as EmployeeEventsRef,
+            employeeId,
+          ),
+          from: employeeEventsProvider,
+          name: r'employeeEventsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$employeeEventsHash,
+          dependencies: EmployeeEventsFamily._dependencies,
+          allTransitiveDependencies:
+              EmployeeEventsFamily._allTransitiveDependencies,
+          employeeId: employeeId,
+        );
+
+  EmployeeEventsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.employeeId,
+  }) : super.internal();
+
+  final int employeeId;
+
+  @override
+  Override overrideWith(
+    Stream<List<EmployeeEvent>> Function(EmployeeEventsRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: EmployeeEventsProvider._internal(
+        (ref) => create(ref as EmployeeEventsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        employeeId: employeeId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<List<EmployeeEvent>> createElement() {
+    return _EmployeeEventsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is EmployeeEventsProvider && other.employeeId == employeeId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, employeeId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin EmployeeEventsRef on AutoDisposeStreamProviderRef<List<EmployeeEvent>> {
+  /// The parameter `employeeId` of this provider.
+  int get employeeId;
+}
+
+class _EmployeeEventsProviderElement
+    extends AutoDisposeStreamProviderElement<List<EmployeeEvent>>
+    with EmployeeEventsRef {
+  _EmployeeEventsProviderElement(super.provider);
+
+  @override
+  int get employeeId => (origin as EmployeeEventsProvider).employeeId;
 }
 
 String _$advancesByEmployeeHash() =>
@@ -985,7 +1129,7 @@ class _PendingAdvancesAmountProviderElement
   int get employeeId => (origin as PendingAdvancesAmountProvider).employeeId;
 }
 
-String _$employeeNotifierHash() => r'3d14d7ac0ac28b798c71d7f577cb8e3f347137e8';
+String _$employeeNotifierHash() => r'66b6f8467f40d834a1de15864a120fee8c3c8c48';
 
 /// Notifier لإدارة عمليات الموظفين (إضافة / تعديل / حذف / تفعيل)
 ///
@@ -1025,7 +1169,7 @@ final salaryNotifierProvider =
 );
 
 typedef _$SalaryNotifier = AutoDisposeNotifier<AsyncValue<String?>>;
-String _$advanceNotifierHash() => r'53640e2ba2cd0267a90be00effa2edd4106569c5';
+String _$advanceNotifierHash() => r'502fa5a60c11073950563678b1c6e9181aa19b71';
 
 /// Notifier لإدارة السلف وأقساط السداد
 ///

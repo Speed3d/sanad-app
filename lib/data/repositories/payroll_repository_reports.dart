@@ -83,6 +83,8 @@ mixin PayrollReportsMixin {
       eligibleDays: e.eligibleDays,
       workingDays: workingDays,
       absenceDays: e.absenceDays,
+      leaveDaysPaid: e.leaveDaysPaid,
+      leaveDaysUnpaid: e.leaveDaysUnpaid,
       absenceDeduction: e.absenceDeduction,
       bonus: e.additions,
       deduction: e.deductions,

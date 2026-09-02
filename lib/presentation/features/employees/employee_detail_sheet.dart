@@ -38,7 +38,7 @@ class _EmployeeDetailSheetState
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -404,11 +404,12 @@ class _EmployeeDetailSheetState
                       ),
                     ),
                     const PopupMenuDivider(),
-                    // ⚠️ **الحالات الثلاث معروضة كلها لا مبدّلٌ ثنائي**:
-                    //   المبدّل يفترض حالتين، والواقع ثلاث — و«التالي» في
-                    //   دورةٍ ثلاثية لا يُخمَّن. والحالة الحالية معطَّلة
-                    //   ومعلَّمة فيُعرف موضعُه قبل أن يختار.
-                    for (final s in EmployeeStatus.all)
+                    // ⚠️ **و«في إجازة» ليست في القائمة** (قرار المالك
+                    //   2026-09-03): صارت تُشتقّ من جدول الإجازات لا تُضبط
+                    //   بيد. وإبقاء الضبط اليدوي مع الاشتقاق يعني كاتبين
+                    //   لمعنىً واحد يتنازعانه — وهو ما جعل الفلتر يكذب.
+                    //   من أراد إجازةً يسجّلها بتاريخيها من تبويب الإجازات.
+                    for (final s in EmployeeStatus.manuallySettable)
                       PopupMenuItem(
                         value: s,
                         enabled: s != emp.status,
@@ -499,6 +500,11 @@ class _EmployeeDetailSheetState
                 text: 'الإجازات',
                 icon: Icon(Icons.beach_access_outlined, size: 16),
               ),
+              // طلب المالك (2026-09-03): «سجل حركات في كل صفحة موظف»
+              Tab(
+                text: 'السجل',
+                icon: Icon(Icons.history_rounded, size: 16),
+              ),
             ],
             labelPadding: EdgeInsets.zero,
           ),
@@ -528,6 +534,10 @@ class _EmployeeDetailSheetState
                     employeeId: emp.id,
                     employeeName: emp.fullName,
                   ),
+                ),
+                _EventsTab(
+                  employee: emp,
+                  scrollController: widget.scrollController,
                 ),
               ],
             ),

@@ -168,16 +168,117 @@ class PayrollRepository
   // الاستيراد
   // ═══════════════════════════════════════════════════════════════════════
 
+  /// هل لهذا الموظف سياق خدمةٍ يؤثّر في أيام هذا الشهر؟
+  ///
+  /// إنهاءٌ **داخل الشهر** أو إجازةٌ بلا راتب فيه. وإنهاءٌ قبل الشهر لا يعني
+  /// هنا شيئاً — فصاحبه مستبعَدٌ أصلاً قبل بلوغ هذه النقطة.
+  static bool _hasServiceContext(
+    ({
+      DateTime? hireDate,
+      DateTime? terminationDate,
+      int unpaidLeaveDays,
+      int paidLeaveDays,
+    }) ctx,
+    PayrollPeriod period,
+  ) {
+    if (ctx.unpaidLeaveDays > 0) return true;
+    final t = ctx.terminationDate;
+    if (t == null) return false;
+    final lastOfMonth = DateTime(period.year, period.month,
+        PayrollCalculator.daysInMonth(period.year, period.month));
+    return !t.isAfter(lastOfMonth);
+  }
+
+  /// ما الذي سيسقط لو استُورد الملف كما هو؟ — **يُسأل قبل الكتابة**
+  ///
+  /// 🔑 يُشغَّل على السطور المحسومة المطابقة **قبل** `importRows`، فيُعيد كل
+  ///   سطرٍ يذكر فيه الملف أياماً تخالف ما يحسبه البرنامج من خدمة الموظف.
+  ///   ولا يكتب شيئاً — سؤالٌ لا عملية.
+  ///
+  /// راجع [PayrollServiceConflict] لشرح العطل الذي وُجد لأجله.
+  Future<List<PayrollServiceConflict>> previewServiceConflicts({
+    required int periodId,
+    required List<ResolvedPayrollRow> rows,
+  }) async {
+    final period = await _dao.getPeriodById(periodId);
+    if (period == null) return const [];
+
+    final out = <PayrollServiceConflict>[];
+
+    for (final resolved in rows) {
+      final employeeId = resolved.employeeId;
+      // الموظف الذي سيُنشأ الآن لا خدمةَ سابقة له — فلا تعارض ممكن
+      if (employeeId == null) continue;
+
+      final emp = await _db.employeesDao.getEmployeeById(employeeId);
+      if (emp == null) continue;
+
+      // المستبعَد لانتهاء خدمته قبل الشهر يُقال له في مكانٍ آخر
+      if (!EmployeeStatus.joinsPayrollMonth(
+        status: emp.status,
+        terminationDate: emp.terminationDate,
+        year: period.year,
+        month: period.month,
+      )) {
+        continue;
+      }
+
+      final ctx = await _db.employeesDao.payrollServiceContext(
+        employeeId: employeeId,
+        year: period.year,
+        month: period.month,
+        workingDays: period.workingDays,
+      );
+      if (!_hasServiceContext(ctx, period)) continue;
+
+      final fileDays = resolved.row.eligibleDays;
+      // بلا عمود أيام في الملف لا تعارض أصلاً — حساب البرنامج يقع وحده
+      if (fileDays == null) continue;
+
+      final computed = PayrollCalculator.compute(
+        year: period.year,
+        month: period.month,
+        workingDays: period.workingDays,
+        basicSalary: resolved.row.basicSalary,
+        currency: resolved.row.currency,
+        exchangeRate: resolved.row.exchangeRate ?? period.exchangeRate,
+        hireDate: ctx.hireDate ?? resolved.row.hireDate,
+        terminationDate: ctx.terminationDate,
+        absenceDays: resolved.row.absenceDays,
+        unpaidLeaveDays: ctx.unpaidLeaveDays,
+      ).eligibleDays;
+
+      if (computed == fileDays) continue;
+
+      out.add(PayrollServiceConflict(
+        employeeId: employeeId,
+        employeeName: emp.fullName,
+        fileDays: fileDays,
+        computedDays: computed,
+        terminationDate: ctx.terminationDate,
+        unpaidLeaveDays: ctx.unpaidLeaveDays,
+      ));
+    }
+    return out;
+  }
+
   /// استيراد سطور محسومة المطابقة إلى كشف شهر
   ///
   /// **تراكميّ**: الموظف الموجود في الكشف يُحدَّث سطره، والغائب يُضاف.
   /// ولا يُمَسّ سطرٌ مسدَّد إطلاقاً — المال خرج فعلاً فلا يُعاد حسابه.
   ///
   /// يرمي [StateError] إن كان الكشف مُسدَّداً.
+  /// [applyComputedDays] — يتجاهل عمود الأيام في الملف **للسطور المتعارضة
+  ///   وحدها** فيُطبَّق حساب البرنامج (تناسب الإنهاء والإجازة).
+  ///
+  /// ⚠️ **وللمتعارضة وحدها لا للكشف كلّه**: صفرُ الملف قد يكون قراراً
+  ///   محاسبياً في سطرٍ لا شأن له بالخدمة، وإلغاءُ العمود عن الجميع يُعيد
+  ///   حساب سطورٍ لم يطلب أحد إعادة حسابها.
   Future<PayrollImportResult> importRows({
     required int periodId,
     required List<ResolvedPayrollRow> rows,
     int? userId,
+    bool applyComputedDays = false,
   }) async {
     final period = await _dao.getPeriodById(periodId);
     if (period == null) throw StateError('كشف الرواتب غير موجود.');
@@ -273,7 +374,11 @@ class PayrollRepository
         unpaidLeaveDays: ctx.unpaidLeaveDays,
         bonus: r.bonus,
         deduction: r.deduction,
-        manualEligibleDays: r.eligibleDays,
+        // اختار المالك «طبّق حساب البرنامج» ⇒ يُسقَط عمود الملف لهذا السطر
+        manualEligibleDays:
+            (applyComputedDays && _hasServiceContext(ctx, period))
+                ? null
+                : r.eligibleDays,
       );
 
       // ── 3. الفرق بين المحسوب والمذكور — يُعرَض ولا يمنع ──────────────
@@ -305,6 +410,9 @@ class PayrollRepository
         eligibleDays: Value(amounts.eligibleDays),
         eligibleDaysIsManual: Value(r.eligibleDays != null),
         absenceDays: Value(r.absenceDays),
+        // لقطة الإجازة — تُفسّر الأيام بعد سنة (Schema v10)
+        leaveDaysPaid: Value(ctx.paidLeaveDays),
+        leaveDaysUnpaid: Value(ctx.unpaidLeaveDays),
         absenceDeduction: Value(amounts.absenceDeduction),
         additions: Value(r.bonus),
         deductions: Value(r.deduction),
@@ -443,6 +551,8 @@ class PayrollRepository
         eligibleDaysIsManual:
             Value(entry.eligibleDaysIsManual || eligibleDays != null),
         absenceDays: Value(newAbsenceDays),
+        leaveDaysPaid: Value(ctx.paidLeaveDays),
+        leaveDaysUnpaid: Value(ctx.unpaidLeaveDays),
         absenceDeduction: Value(amounts.absenceDeduction),
         absenceDeductionIsManual: Value(
             entry.absenceDeductionIsManual || absenceDeduction != null),

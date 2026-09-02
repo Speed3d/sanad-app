@@ -26,6 +26,7 @@ import 'package:sales_management/core/constants/employee_status.dart';
 import 'package:sales_management/core/services/payroll_calculator.dart';
 import 'package:sales_management/core/services/payroll_row_parser.dart';
 import 'package:sales_management/data/database/app_database.dart';
+import 'package:sales_management/data/database/tables/employee_events_table.dart';
 import 'package:sales_management/data/database/tables/employee_leaves_table.dart';
 import 'package:sales_management/data/repositories/payroll_repository.dart';
 
@@ -440,6 +441,447 @@ void main() {
 
       expect(visible, hasLength(1));
       expect(counted, 5);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // البند أ — التنبيه والخيار عند تعارض الملف مع خدمة الموظف
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('تعارض الملف مع الخدمة — بلاغ ياسر', () {
+    /// سطرٌ محسوم المطابقة كما يصل من شاشة الاستيراد
+    ResolvedPayrollRow rowFor(int employeeId, String name, {int? fileDays}) =>
+        ResolvedPayrollRow(
+          employeeId: employeeId,
+          row: ParsedPayrollRow(
+            rowNumber: 1,
+            rowLabel: 'صف 1',
+            employeeName: name,
+            basicSalary: 3000000,
+            eligibleDays: fileDays,
+          ),
+        );
+
+    test('⭐⭐⭐ حالة ياسر: الملف ٣٠ والبرنامج يومان — يُكشف قبل الكتابة',
+        () async {
+      final id = await newEmployee(
+          name: 'ياسر ناصر خلف', hireDate: DateTime(2022, 6, 1));
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 9, 2),
+        reference: 'الكتاب ١٢٠',
+      );
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 9);
+
+      final conflicts = await repo.previewServiceConflicts(
+        periodId: periodId,
+        rows: [rowFor(id, 'ياسر ناصر خلف', fileDays: 30)],
+      );
+
+      // 🔴 قبل الإصلاح: لا كاشف أصلاً — يمرّ الملف صامتاً ويُلغي اليومين
+      expect(conflicts, hasLength(1));
+      expect(conflicts.first.fileDays, 30);
+      expect(conflicts.first.computedDays, 2);
+      expect(conflicts.first.reason, contains('أُنهيت خدمته'));
+      expect(conflicts.first.employeeName, 'ياسر ناصر خلف');
+    });
+
+    test('⭐⭐⭐ «طبّق حساب البرنامج» يُسقط عمود الملف فيُحتسب يومان',
+        () async {
+      final id = await newEmployee(name: 'ياسر ناصر خلف');
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 9, 2),
+      );
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 9);
+
+      await repo.importRows(
+        periodId: periodId,
+        rows: [rowFor(id, 'ياسر ناصر خلف', fileDays: 30)],
+        applyComputedDays: true,
+      );
+
+      final entry = (await db.payrollDao.getEntries(periodId)).first;
+      expect(entry.eligibleDays, 2);
+    });
+
+    test('⭐⭐⭐ «اعتمد الملف» يُبقي ٣٠ — القرار للمالك لا للبرنامج', () async {
+      final id = await newEmployee(name: 'ياسر ناصر خلف');
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 9, 2),
+      );
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 9);
+
+      await repo.importRows(
+        periodId: periodId,
+        rows: [rowFor(id, 'ياسر ناصر خلف', fileDays: 30)],
+        applyComputedDays: false,
+      );
+
+      final entry = (await db.payrollDao.getEntries(periodId)).first;
+      expect(entry.eligibleDays, 30,
+          reason: 'اعتماد الملف يجب أن يبقى ممكناً — المحاسب قد طرحها أصلاً');
+    });
+
+    test('⭐⭐ الإجازة بلا راتب تُكشف كذلك', () async {
+      final id = await newEmployee();
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 5),
+          toDate: DateTime(2026, 7, 14),
+          kind: const Value(LeaveKind.unpaid),
+        ),
+      );
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 7);
+
+      final conflicts = await repo.previewServiceConflicts(
+        periodId: periodId,
+        rows: [rowFor(id, 'أحمد علي', fileDays: 30)],
+      );
+
+      expect(conflicts, hasLength(1));
+      expect(conflicts.first.computedDays, 20);
+      expect(conflicts.first.reason, contains('إجازة بلا راتب'));
+    });
+
+    test('⭐⭐ ملفٌ بلا عمود أيام لا يُنتج تعارضاً — الحساب يقع وحده', () async {
+      final id = await newEmployee();
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 9, 2),
+      );
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 9);
+
+      final conflicts = await repo.previewServiceConflicts(
+        periodId: periodId,
+        rows: [rowFor(id, 'أحمد علي')],
+      );
+      expect(conflicts, isEmpty);
+    });
+
+    test('⭐⭐ موظفٌ بلا خدمة استثنائية لا يظهر في التعارضات', () async {
+      final id = await newEmployee();
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 7);
+
+      final conflicts = await repo.previewServiceConflicts(
+        periodId: periodId,
+        rows: [rowFor(id, 'أحمد علي', fileDays: 25)],
+      );
+      // ٢٥ في الملف قرارٌ محاسبي لا شأن له بالخدمة — لا يُسأل عنه
+      expect(conflicts, isEmpty);
+    });
+
+    test('⭐⭐⭐ «طبّق البرنامج» لا يمسّ سطراً بلا سياق خدمة', () async {
+      final terminated = await newEmployee(name: 'ياسر');
+      await db.employeesDao.terminateEmployee(
+        employeeId: terminated,
+        terminationDate: DateTime(2026, 9, 2),
+      );
+      final normal = await newEmployee(name: 'أحمد');
+      final periodId = await repo.createOrGetPeriod(year: 2026, month: 9);
+
+      await repo.importRows(
+        periodId: periodId,
+        rows: [
+          rowFor(terminated, 'ياسر', fileDays: 30),
+          ResolvedPayrollRow(
+            employeeId: normal,
+            row: const ParsedPayrollRow(
+              rowNumber: 2,
+              rowLabel: 'صف 2',
+              employeeName: 'أحمد',
+              basicSalary: 600000,
+              eligibleDays: 25,
+            ),
+          ),
+        ],
+        applyComputedDays: true,
+      );
+
+      final entries = await db.payrollDao.getEntries(periodId);
+      final y = entries.firstWhere((e) => e.snapshotName == 'ياسر');
+      final a = entries.firstWhere((e) => e.snapshotName == 'أحمد');
+
+      expect(y.eligibleDays, 2, reason: 'المتعارض يُعاد حسابه');
+      // ⚠️ **وهذا جوهر القرار**: ٢٥ في سطر أحمد قرارٌ محاسبي لا علاقة له
+      //   بالخدمة، وإلغاءُ العمود عن الجميع يُعيد حساب ما لم يُسأل عنه
+      expect(a.eligibleDays, 25, reason: 'غير المتعارض يبقى كما ذكر الملف');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // البند ج — «في إجازة» مصدرٌ واحد
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('حالة «في إجازة» تُشتقّ من الجدول', () {
+    Future<String> statusOf(int id) async =>
+        (await db.employeesDao.getEmployeeById(id))!.status;
+
+    Future<int> leaveCovering(int id, {required bool today}) {
+      final now = DateTime.now();
+      final from = today
+          ? DateTime(now.year, now.month, now.day).subtract(const Duration(days: 2))
+          : DateTime(2020, 1, 1);
+      final to = today
+          ? DateTime(now.year, now.month, now.day).add(const Duration(days: 2))
+          : DateTime(2020, 1, 10);
+      return db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: from,
+          toDate: to,
+          kind: const Value(LeaveKind.unpaid),
+        ),
+      );
+    }
+
+    test('⭐⭐⭐ تسجيل إجازة تشمل اليوم يجعله «في إجازة»', () async {
+      final id = await newEmployee();
+      expect(await statusOf(id), EmployeeStatus.active, reason: 'الشرط المسبق');
+
+      await leaveCovering(id, today: true);
+
+      // 🔴 بلاغ المالك: «أسجّل إجازة ثم أضغط فلتر «في إجازة» فلا يظهر اسمه»
+      //   — لأن الجدول والحالة كانا مصدرين منفصلين.
+      expect(await statusOf(id), EmployeeStatus.leave);
+    });
+
+    test('⭐⭐⭐ إجازةٌ انقضت لا تجعله «في إجازة»', () async {
+      final id = await newEmployee();
+      await leaveCovering(id, today: false);
+      expect(await statusOf(id), EmployeeStatus.active);
+    });
+
+    test('⭐⭐⭐ انقضاء الإجازة يُعيده «حالياً» عند إعادة الاشتقاق', () async {
+      final id = await newEmployee();
+      final leaveId = await leaveCovering(id, today: true);
+      expect(await statusOf(id), EmployeeStatus.leave);
+
+      // الحذف يُعيد الاشتقاق — كما يفعل انقضاء المدّة عند فتح الشاشة
+      await db.employeesDao.softDeleteLeave(leaveId);
+      expect(await statusOf(id), EmployeeStatus.active);
+    });
+
+    test('⭐⭐⭐ منتهي الخدمة لا تُمَسّ حالته بإجازة — الإنهاء أقوى', () async {
+      final id = await newEmployee();
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 5, 1),
+      );
+
+      await leaveCovering(id, today: true);
+
+      // ⚠️ إعادته «حالياً» أو «في إجازة» تُدخِله كشوف الرواتب من جديد —
+      //   عطلٌ مالي لا تجميلي
+      expect(await statusOf(id), EmployeeStatus.terminated);
+    });
+
+    test('⭐⭐ إعادة الاشتقاق الشاملة تُصحّح من تخلّفت حالته', () async {
+      final id = await newEmployee();
+      await leaveCovering(id, today: true);
+      // نُفسِد الحالة يدوياً كما لو تخلّفت
+      await db.employeesDao.setEmployeeStatus(id, EmployeeStatus.active);
+      expect(await statusOf(id), EmployeeStatus.active);
+
+      await db.employeesDao.refreshAllLeaveStatuses();
+      expect(await statusOf(id), EmployeeStatus.leave);
+    });
+
+    test('⭐⭐ «في إجازة» ليست من الحالات التي تُضبط بيد', () {
+      // مصدرٌ واحد للمعنى: من أراد إجازةً يسجّلها بتاريخيها
+      expect(EmployeeStatus.manuallySettable, isNot(contains(EmployeeStatus.leave)));
+      expect(EmployeeStatus.all, contains(EmployeeStatus.leave));
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // البند ب — لقطة الإجازة على سطر الراتب
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('لقطة الإجازة تُفسّر الأيام', () {
+    test('⭐⭐⭐ الإجازة بلا راتب تُكتَب على السطر لا تُحسب وتُنسى', () async {
+      final id = await newEmployee();
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 5),
+          toDate: DateTime(2026, 7, 14),
+          kind: const Value(LeaveKind.unpaid),
+        ),
+      );
+
+      final entry = await importInto(
+          employeeId: id, name: 'أحمد علي', year: 2026, month: 7);
+
+      expect(entry.eligibleDays, 20);
+      // 🔴 قبل الإصلاح: الكشف يعرض ٢٠ يوماً بلا سبب مكتوب فيبدو خطأً
+      expect(entry.leaveDaysUnpaid, 10);
+      expect(entry.leaveDaysPaid, 0);
+    });
+
+    test('⭐⭐⭐ الإجازة براتب تُكتَب وإن لم تُغيّر رقماً', () async {
+      final id = await newEmployee();
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 3),
+          toDate: DateTime(2026, 7, 7),
+          kind: const Value(LeaveKind.paid),
+        ),
+      );
+
+      final entry = await importInto(
+          employeeId: id, name: 'أحمد علي', year: 2026, month: 7);
+
+      // الراتب كامل — وهذا صحيح
+      expect(entry.eligibleDays, 30);
+      expect(entry.netAmount, 600000);
+      // 🔴 وقبل الإصلاح كانت تختفي تماماً: لا أثر لها في أي رقم ولا حقل
+      expect(entry.leaveDaysPaid, 5);
+    });
+
+    test('⭐⭐ اللقطة تُحدَّث مع إعادة الحساب', () async {
+      final id = await newEmployee();
+      final entry = await importInto(
+          employeeId: id, name: 'أحمد علي', year: 2026, month: 7);
+      expect(entry.leaveDaysUnpaid, 0);
+
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 5),
+          toDate: DateTime(2026, 7, 9),
+          kind: const Value(LeaveKind.unpaid),
+        ),
+      );
+      await repo.updateEntry(entryId: entry.id);
+
+      final after = await db.payrollDao.getEntryById(entry.id);
+      expect(after!.leaveDaysUnpaid, 5);
+      expect(after.eligibleDays, 25);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // البند د — سجل حركات الموظف
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('سجل الحركات', () {
+    Future<List<EmployeeEvent>> eventsOf(int id) =>
+        db.employeesDao.watchEvents(id).first;
+
+    test('⭐⭐⭐ تعديل الراتب يُسجَّل بقيمتيه — وكان بلا أثر في القاعدة كلها',
+        () async {
+      final id = await newEmployee(salary: 2500000);
+
+      await db.employeesDao.logEvent(
+        employeeId: id,
+        kind: EmployeeEventKind.salaryChanged,
+        description: 'تعديل الراتب من 2,500,000 إلى 3,000,000',
+        oldValue: 2500000,
+        newValue: 3000000,
+      );
+
+      final events = await eventsOf(id);
+      final salary =
+          events.firstWhere((e) => e.kind == EmployeeEventKind.salaryChanged);
+      // 🔑 القيمتان مفصولتان عن النصّ: التقرير قد يريد الفرق رقماً
+      expect(salary.oldValue, 2500000);
+      expect(salary.newValue, 3000000);
+      expect(salary.description, contains('3,000,000'));
+    });
+
+    test('⭐⭐⭐ الإجازة تُسجَّل حدثاً بتاريخ وقوعها لا تسجيلها', () async {
+      final id = await newEmployee();
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 5),
+          toDate: DateTime(2026, 7, 9),
+          kind: const Value(LeaveKind.unpaid),
+          reference: const Value('الكتاب ٧٧'),
+        ),
+      );
+
+      final events = await eventsOf(id);
+      final e = events.firstWhere((x) => x.kind == EmployeeEventKind.leaveAdded);
+      // إجازةٌ تُسجَّل اليوم عن الشهر الماضي حدثُها الشهر الماضي
+      expect(e.eventDate, DateTime(2026, 7, 5));
+      expect(e.description, contains('بلا راتب'));
+      expect(e.description, contains('5 أيام'));
+      expect(e.reference, 'الكتاب ٧٧');
+    });
+
+    test('⭐⭐⭐ إنهاء الخدمة يُسجَّل بسنده وتاريخه', () async {
+      final id = await newEmployee();
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 9, 2),
+        reference: 'الأمر الإداري ١٢٠',
+        notes: 'بطلبه',
+      );
+
+      final e = (await eventsOf(id))
+          .firstWhere((x) => x.kind == EmployeeEventKind.terminated);
+      expect(e.eventDate, DateTime(2026, 9, 2));
+      expect(e.reference, 'الأمر الإداري ١٢٠');
+      expect(e.notes, 'بطلبه');
+    });
+
+    test('⭐⭐ العودة إلى الخدمة تُسجَّل كذلك — والسجل يروي الرحلة كاملة',
+        () async {
+      final id = await newEmployee();
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 9, 2),
+      );
+      await db.employeesDao.reinstateEmployee(id);
+
+      final kinds = (await eventsOf(id)).map((e) => e.kind).toList();
+      expect(kinds, contains(EmployeeEventKind.terminated));
+      expect(kinds, contains(EmployeeEventKind.reinstated));
+    });
+
+    test('⭐⭐ الأحدث أولاً — والسجل يُقرأ من الأعلى', () async {
+      final id = await newEmployee();
+      await db.employeesDao.logEvent(
+        employeeId: id,
+        kind: EmployeeEventKind.statusChanged,
+        eventDate: DateTime(2026, 1, 1),
+        description: 'قديم',
+      );
+      await db.employeesDao.logEvent(
+        employeeId: id,
+        kind: EmployeeEventKind.statusChanged,
+        eventDate: DateTime(2026, 12, 1),
+        description: 'حديث',
+      );
+
+      final events = await eventsOf(id);
+      expect(events.first.description, 'حديث');
+    });
+
+    test('⭐⭐⭐ فشل تسجيل حدثٍ لا يُفشل العملية التي نجحت', () async {
+      // موظفٌ لا وجود له ⇒ المفتاح الأجنبي يرفض الحدث
+      await db.employeesDao.logEvent(
+        employeeId: 999999,
+        kind: EmployeeEventKind.salaryChanged,
+        description: 'حدثٌ ليتيم',
+      );
+      // ⚠️ لا استثناء يخرج: السجل يخدم القراءة، والعملية المالية أولى منه
+      expect(await eventsOf(999999), isEmpty);
+    });
+
+    test('⭐⭐ سجل موظفٍ لا يختلط بسجل غيره', () async {
+      final a = await newEmployee(name: 'أ');
+      final b = await newEmployee(name: 'ب');
+      await db.employeesDao.logEvent(
+          employeeId: a, kind: EmployeeEventKind.hired, description: 'أ');
+
+      expect(await eventsOf(a), hasLength(1));
+      expect(await eventsOf(b), isEmpty);
     });
   });
 }

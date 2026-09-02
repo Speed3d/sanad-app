@@ -41,6 +41,7 @@ import 'tables/attachments_table.dart';
 import 'tables/payroll_periods_table.dart';
 import 'tables/departments_table.dart';
 import 'tables/employee_leaves_table.dart';
+import 'tables/employee_events_table.dart';
 // ⚠️ **مستورَدة هنا صراحةً وإن لم يستعملها هذا الملف**: `app_database.g.dart`
 //   جزءٌ من هذه المكتبة، ويولّد `const Constant(EmployeeStatus.active)` قيمةً
 //   افتراضية لعمود الحالة. والجزء لا يرى إلا واردات مكتبته — وبدون هذا
@@ -95,6 +96,7 @@ part 'app_database.g.dart';
     Departments,
     Employees,
     EmployeeLeaves,
+    EmployeeEvents,
     CashAdvances,
     CashAdvanceRepayments,
     PayrollPeriods,
@@ -149,7 +151,7 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -440,6 +442,30 @@ class AppDatabase extends _$AppDatabase {
         //   تاريخٍ مفترَض (اليوم مثلاً) يُعيد حساب رواتب شهورٍ مضت على أساس
         //   واقعةٍ لم تقع فيها. والتاريخ الفارغ يعني «انتهت خدمته ولا نعرف
         //   متى» — وهو الصدق، ويُدخِله المالك حين يعرفه.
+      }
+
+      // ── الإصدار العاشر: لقطة الإجازة على سطر الراتب ──────────────────
+      if (from < 10) {
+        // ⚠️ عمودان بقيمة افتراضية صفر — فالسطور القديمة تقرأ «لا إجازة»
+        //   وهو الصدق: لم يكن للإجازة وجودٌ حين حُسبت.
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.leaveDaysPaid);
+        await _addColumnIfMissing(
+            m, salaryPayments, salaryPayments.leaveDaysUnpaid);
+
+        // 📌 جدول `employee_events` يُنشئه `createAll` أعلاه.
+        //
+        // ⚠️ **ولا نُلفّق أحداثاً للماضي**: الموظفون القائمون لا سجلّ لهم
+        //   قبل اليوم، واختراعُ «عُيِّن في…» من `hire_date` يبدو سجلّاً وهو
+        //   استنتاج. إلا حدثَ التعيين نفسه — فتاريخه **مسجَّل فعلاً** في
+        //   `hire_date`، فنقلُه ليس تلفيقاً بل عرضٌ لما نعرفه.
+        await customStatement(
+          "INSERT INTO employee_events "
+          "  (employee_id, kind, event_date, description, created_at) "
+          "SELECT id, 'hired', hire_date, 'التعيين', CURRENT_TIMESTAMP "
+          "FROM employees "
+          "WHERE hire_date IS NOT NULL AND is_deleted = 0",
+        );
       }
 
       // ── 3. إعادة إنشاء الفهارس ─────────────────────────────────────────

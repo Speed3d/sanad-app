@@ -468,6 +468,8 @@ ReportTableData buildPayrollSheetTable(PayrollSheetPrintData data) {
       'الأساسي',
       'الأيام',
       'غياب',
+      'إجازة (م)',
+      'إجازة (غ)',
       'خصم الغياب',
       'مكافأة',
       'خصم',
@@ -486,6 +488,9 @@ ReportTableData buildPayrollSheetTable(PayrollSheetPrintData data) {
           _money.format(r.basicSalary),
           '${r.eligibleDays}',
           '${r.absenceDays}',
+          // عمودان منفصلان لا خليّة واحدة: في Excel تُجمع وتُفرَز
+          '${r.leaveDaysPaid}',
+          '${r.leaveDaysUnpaid}',
           _money.format(r.absenceDeduction),
           _money.format(r.bonus),
           _money.format(r.deduction),
@@ -508,8 +513,9 @@ ReportTableData buildPayrollSheetTable(PayrollSheetPrintData data) {
     ],
     landscape: true,
     // كل عمود مالٍ أو عددِ أيام — فيُجمَع ويُفرَز في Excel
-    numericColumns: const {4, 5, 6, 7, 8, 9, 10, 11, 12},
+    numericColumns: const {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
     footerNote: [
+      'إجازة (م) = براتب · إجازة (غ) = بلا راتب وتُنقِص الأيام المستحقّة.',
       if (hasUsd)
         'رواتب الدولار محوَّلة في عمود «بالدينار» بسعر صرف الشهر المجمَّد '
             'لا بسعر اليوم.',

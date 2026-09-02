@@ -191,3 +191,58 @@ class PaySingleSalaryResult {
     required this.joinedExistingEntry,
   });
 }
+
+/// تعارضٌ بين ما يذكره ملف المحاسب وما يعرفه البرنامج عن خدمة الموظف
+///
+/// 🔴 **العطل الذي وُجد لأجله (بلاغ المالك 2026-09-03):** «أنهيتُ خدمة ياسر
+///   في ٢٠٢٦/٠٩/٠٢، واستوردتُ ملف أيلول، فلم يظهر أي تنبيه ولم تُحتسب له
+///   يومان.»
+///
+///   والسبب أن عمود «الأيام» في الملف يمرّ إلى `manualEligibleDays`،
+///   وهو **مسارٌ يُلغي الباقي كلّه**: لا تناسبَ إنهاءٍ ولا إجازةً ولا غياباً.
+///   والقرار سليم في أصله (الملف يقول «هذا ما يستحقّه نهائياً»، وطرحُ
+///   الإجازة بعده هو ع-٢٦ حرفياً: خصمٌ مرّتين) — **والخطأ أنه يقع بلا أن
+///   يقول**. فالمالك أدخل إنهاء خدمةٍ وإجازتين، وتجاهلها البرنامج صامتاً.
+///
+/// 📌 وهو نمطٌ متكرّر في هذا المشروع: ليست القاعدةُ خاطئةً بل **صمتُها**.
+///   ع-٣٣ نفسه كان استبعاداً صامتاً لسطر راتب.
+class PayrollServiceConflict {
+  final int employeeId;
+  final String employeeName;
+
+  /// ما ذكره الملف — وهو ما يقع اليوم بلا سؤال
+  final int fileDays;
+
+  /// ما يحسبه البرنامج من تاريخ التعيين والإنهاء والإجازة
+  final int computedDays;
+
+  /// تاريخ إنهاء الخدمة إن كان هو سبب التعارض
+  final DateTime? terminationDate;
+
+  /// أيام الإجازة بلا راتب في هذا الشهر إن كانت سبباً
+  final int unpaidLeaveDays;
+
+  const PayrollServiceConflict({
+    required this.employeeId,
+    required this.employeeName,
+    required this.fileDays,
+    required this.computedDays,
+    this.terminationDate,
+    this.unpaidLeaveDays = 0,
+  });
+
+  /// سببٌ مقروء يُعرَض للمالك — **لا رقمان بلا تفسير**
+  ///
+  /// ورقةُ تنبيهٍ تقول «٣٠ ← ٢» بلا سبب تُربك أكثر مما تُفيد: المالك يحتاج
+  /// أن يعرف **لماذا** ليقرّر أيّهما الصحيح.
+  String get reason {
+    final parts = <String>[
+      if (terminationDate != null)
+        'أُنهيت خدمته في '
+            '${terminationDate!.year}/${terminationDate!.month.toString().padLeft(2, '0')}'
+            '/${terminationDate!.day.toString().padLeft(2, '0')}',
+      if (unpaidLeaveDays > 0) 'إجازة بلا راتب $unpaidLeaveDays يوماً',
+    ];
+    return parts.join(' · ');
+  }
+}
