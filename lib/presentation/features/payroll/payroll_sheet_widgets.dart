@@ -730,6 +730,10 @@ Future<void> _openEditDialog(
   var daysTouched = false;
   var absenceDedTouched = false;
 
+  /// طلب المالك فتحَ حوار الإجازة بدل الحفظ — يُعالَج **بعد** إغلاق هذا
+  /// الحوار لا فوقه: حوارٌ فوق حوار يُربك، والفصل يجعل كل عمليةٍ مستقلّة.
+  var wantsLeave = false;
+
   final saved = await showDialog<bool>(
     context: context,
     builder: (ctx) {
@@ -856,6 +860,19 @@ Future<void> _openEditDialog(
           ),
         ),
         actions: [
+          // ⚠️ **بابٌ ثانٍ إلى المخزن نفسه لا حقلٌ ثانٍ** (قرار المالك
+          //   2026-09-02): البطاقة والكشف كلاهما يكتب في `employee_leaves`،
+          //   ولا حقلَ إجازةٍ على سطر الراتب. فالعطلان ع-٣٧ و ع-٤٠ وُلدا من
+          //   معنىً واحد يعيش في مكانين.
+          TextButton.icon(
+            onPressed: () {
+              wantsLeave = true;
+              Navigator.pop(ctx, false);
+            },
+            icon: const Icon(Icons.beach_access_outlined, size: 16),
+            label: const Text('تسجيل إجازة'),
+          ),
+          const Spacer(),
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('إلغاء'),
@@ -868,6 +885,34 @@ Future<void> _openEditDialog(
       );
     },
   );
+
+  // ── مسار الإجازة ───────────────────────────────────────────────────────
+  if (wantsLeave) {
+    if (!context.mounted) return;
+    final period =
+        await ref.read(payrollRepositoryProvider).getPeriod(entry.payrollPeriodId!);
+    if (!context.mounted) return;
+
+    final added = await showEmployeeLeaveDialog(
+      context,
+      ref,
+      employeeId: entry.employeeId,
+      employeeName: entry.snapshotName,
+      // يفتح على أول شهر الكشف — فالإجازة التي تُسجَّل من هنا شهرُها معروف
+      initialFrom: period == null
+          ? null
+          : DateTime(period.year, period.month, 1),
+    );
+
+    // 🔑 **وإعادة الحساب فوراً** — وإلا سجّل المالك إجازةً ولم يرَ أثرها
+    //   فظنّ الميزة معطَّلة (نمط ع-٠٦).
+    if (added && context.mounted) {
+      await ref
+          .read(payrollNotifierProvider.notifier)
+          .updateEntry(entryId: entry.id);
+    }
+    return;
+  }
 
   if (saved != true) return;
 

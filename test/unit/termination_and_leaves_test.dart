@@ -372,4 +372,74 @@ void main() {
       expect(a.unpaidLeaveDays, 10, reason: 'لا يُخصم ما لم يكن مستحقّاً');
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // التعديل — المسار الثاني الذي كان ينسى ما يعرفه الاستيراد
+  // ═══════════════════════════════════════════════════════════════════════
+
+  group('تعديل السطر يحترم الخدمة والإجازة', () {
+    test('⭐⭐⭐ تعديل مكافأة لا يُعيد الشهر كاملاً لمن أُنهيت خدمته', () async {
+      final id = await newEmployee(hireDate: DateTime(2026, 7, 4));
+      await db.employeesDao.terminateEmployee(
+        employeeId: id,
+        terminationDate: DateTime(2026, 7, 24),
+      );
+      final entry = await importInto(
+          employeeId: id, name: 'أحمد علي', year: 2026, month: 7);
+      expect(entry.eligibleDays, 21, reason: 'الشرط المسبق');
+
+      // المالك يعدّل المكافأة وحدها — لا علاقة لها بالأيام
+      await repo.updateEntry(entryId: entry.id, bonus: 50000);
+
+      final after = await db.payrollDao.getEntryById(entry.id);
+      // 🔴 قبل الإصلاح: ٣٠ — `updateEntry` كانت تُعيد الحساب بلا تاريخ
+      //   الإنهاء، فيقفز راتب الشهر الأخير من ٢١ يوماً إلى ٣٠ بضغطة زرّ.
+      expect(after!.eligibleDays, 21);
+      expect(after.additions, 50000);
+    });
+
+    test('⭐⭐⭐ تسجيل إجازة ثم إعادة الحساب تُنقِص الأيام فوراً', () async {
+      final id = await newEmployee();
+      final entry = await importInto(
+          employeeId: id, name: 'أحمد علي', year: 2026, month: 7);
+      expect(entry.eligibleDays, 30, reason: 'الشرط المسبق');
+
+      // هذا ما يفعله زرّ «تسجيل إجازة» في سطر الكشف
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 5),
+          toDate: DateTime(2026, 7, 14),
+          kind: const Value(LeaveKind.unpaid),
+        ),
+      );
+      await repo.updateEntry(entryId: entry.id);
+
+      final after = await db.payrollDao.getEntryById(entry.id);
+      // 🔑 بلا إعادة الحساب يسجّل المالك إجازةً ولا يرى أثرها فيظنّ
+      //   الميزة معطَّلة — وهو نمط ع-٠٦ من جديد
+      expect(after!.eligibleDays, 20);
+      expect(after.netAmount, 400000);
+    });
+
+    test('⭐⭐ والبابان يكتبان في المخزن نفسه — لا حقلَ إجازةٍ ثانٍ', () async {
+      final id = await newEmployee();
+      await db.employeesDao.insertLeave(
+        EmployeeLeavesCompanion.insert(
+          employeeId: id,
+          fromDate: DateTime(2026, 7, 5),
+          toDate: DateTime(2026, 7, 9),
+          kind: const Value(LeaveKind.unpaid),
+        ),
+      );
+
+      // ما يراه تبويب البطاقة هو نفسه ما يقرؤه حساب الكشف
+      final visible = await db.employeesDao.watchLeaves(id).first;
+      final counted = await db.employeesDao.unpaidLeaveDaysInMonth(
+          employeeId: id, year: 2026, month: 7, workingDays: 30);
+
+      expect(visible, hasLength(1));
+      expect(counted, 5);
+    });
+  });
 }

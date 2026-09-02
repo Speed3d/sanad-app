@@ -40,6 +40,10 @@ import '../../widgets/common/app_components.dart';
 import '../../widgets/common/password_confirm_dialog.dart';
 import 'payroll_print_actions.dart';
 import '../../providers/employee_providers.dart';
+// `showEmployeeLeaveDialog` — الباب الثاني لتسجيل إجازة (قرار المالك
+// 2026-09-02). حوارٌ واحد يخدم البابين: نسخةٌ ثانية منه تعني أن تصحيح
+// حقلٍ أو رسالة يصل أحدهما وينسى الآخر.
+import '../employees/employees_screen.dart';
 
 part 'payroll_sheet_widgets.dart';
 part 'payroll_correction_dialogs.dart';
