@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# حزم التوزيع الجاهزة — تُبنى ولا تُحفَظ في المستودع (٤٥ ميغا لكل نسخة)
+/dist/
