@@ -1,6 +1,6 @@
 # 🗺️ خريطة الكود — ما يوجد وما يُستعمَل وما هو ميت
 
-> **آخر تحديث: 2026-09-01** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
+> **آخر تحديث: 2026-10-12** · العودة إلى [ذاكرة المشروع](../CLAUDE.md)
 
 **الغرض من هذا الملف:** قبل أن تكتب أي كود جديد، اقرأ هنا. أكثر من ثلث
 الأدوات المساعدة في هذا المشروع كُتبت ثم **لم تُستعمَل قط** — لأن أحداً لم يكن
@@ -143,7 +143,7 @@ lib/
 
 ## ٤. `presentation/` — الواجهة
 
-### الشاشات العشرون
+### الشاشات الثلاث والعشرون
 
 | الشاشة | المسار | ملاحظة |
 |---|---|---|
@@ -321,7 +321,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
-## ٦. الاختبارات (`test/`) — ٥٧ ملفاً · ٧٥٤ اختباراً
+## ٦. الاختبارات (`test/`) — ٦٨ ملفاً · ٨٧٧ اختباراً
 
 | المجموعة | الملفات |
 |---|---|
@@ -342,8 +342,16 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
 | **النسخ الاحتياطي** | `backup_service` ← **الدورة الكاملة على قرص حقيقي**: صدّر ⇒ صفّر ⇒ استعد ⇒ الصفوف والملفات عادت. وقاعدته **ملفّية** لا في الذاكرة، وإلا لم تُختبَر الاستعادة أصلاً |
 | **تصفير المصنع** | `factory_reset` ← يمرّ على **العشرين جدولاً** فيمسك أي جدول ينساه المحو، ويحرس ترتيب الحذف والحُرّاس الثلاثة |
-| **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** ← يفحصان **المصدر** لا السلوك |
-| **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` |
+| **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** · **`dialog_actions_guard`** (لا `Spacer` في `actions` — ع-٦٢) · `pdf_arabic_font` ← كلها تفحص **المصدر** أو **داخل الناتج**، لا السلوك |
+| **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` · `display_format` |
+| **دفعات ملاحظات المالك** | `batch_a_guards` (الخزينة المعطَّلة · حذف السند · أثر التدقيق) · `batch_b_employees` · `batch_c_reports` |
+| **الصلاحيات** | `fiscal_permissions` ← صلاحيات الفترات السبع (المرحلة ١٦أ) |
+| **البحث والفلاتر** | `voucher_search_filter` · `report_export` ← يحرس أن الصفر يُصدَّر **رقماً** لا شرطة |
+| **المقاولون والشركاء** | `contractor_partner_treasury` (الإنشاء الذرّي · تحويل نوع الخزينة) · `contractor_partner_delete` (**تماثل بابَي الحذف** — ع-٥٧) |
+| **تصحيح الرواتب** | `payroll_correction` · `payroll_direct_pay` · `payroll_employee_report` · `employee_advance` |
+| **Schema v8** | `schema_v8` · `schema_v8_upgrade` ← **يُعيد بناء جدول الموظفين** على بيانات مزروعة |
+| **دورة حياة الخدمة** | `termination_and_leaves` ← **يختبر المسار كلّه** من سجلّ الموظف إلى سطر الراتب المخزَّن، لا الحاسبة وحدها · و`schema_v10_upgrade` لمسار v9←v10 |
+| **الودجت (`test/widget/`)** | `payroll_screens` · `employees_departments` (السحب والإفلات · الشرائح) · `dashboard_currency` (مبدّل العملة) · `contractor_delete_crash` (**يُعيد إنتاج انهيار `ref` الميت**) |
 
 ⚠️ **حدّ بنيوي:** `flutter test` يعمل على الـ VM بـ `NativeDatabase` — فهو
 **عاجز بنيوياً** عن كشف أخطاء الويب. لا يعوّضه إلا تشغيل فعلي على المنصة.
