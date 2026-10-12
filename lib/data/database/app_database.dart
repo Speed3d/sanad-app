@@ -24,6 +24,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'database_location.dart';
+
 import 'tables/users_table.dart';
 import 'tables/app_settings_table.dart';
 import 'tables/fiscal_periods_table.dart';
@@ -139,9 +141,16 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   // ── المُنشئ ─────────────────────────────────────────────────────────────
 
-  /// مُنشئ الإنتاج — يستخدم driftDatabase الذي يحدد المسار تلقائياً
-  /// (Documents على Mobile، IndexedDB/OPFS على Web)
+  /// مُنشئ الويب والموضع الافتراضي — driftDatabase يختار المسار بنفسه
+  /// (Documents على سطح المكتب، IndexedDB/OPFS على الويب)
   AppDatabase() : super(_openConnection());
+
+  /// مُنشئ سطح المكتب — القاعدة في [path] كما حدّده [DatabaseLocation]
+  ///
+  /// ⚠️ **لا تمرّر مساراً مبنيّاً بيدك** — اسأل `DatabaseLocation.resolve()`.
+  ///   المسار كان يُبنى في خمسة مواضع مستقلّة حتى 2026-10-12، فمن يغيّر
+  ///   واحداً تصير الاستعادة تكتب في ملفٍ لا يُقرأ وتُبلّغ بالنجاح.
+  AppDatabase.atPath(String path) : super(_openConnection(path: path));
 
   /// مُنشئ الاختبار — يستخدم قاعدة بيانات في الذاكرة (In-Memory)
   AppDatabase.forTesting(super.executor);
@@ -151,7 +160,11 @@ class AppDatabase extends _$AppDatabase {
   /// رقم إصدار قاعدة البيانات الحالية
   /// يجب زيادته بمقدار 1 عند أي تغيير في الـ Schema
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => currentSchemaVersion;
+
+  /// الإصدار نفسه ثابتاً — يُقرأ **قبل** فتح أي قاعدة: فحصُ قاعدةٍ مرشّحة
+  /// («أحدث من البرنامج؟») يقع في شاشة خطأ الإقلاع حيث لا AppDatabase بعد.
+  static const int currentSchemaVersion = 10;
 
   // ── الـ Migration ─────────────────────────────────────────────────────────
 
@@ -1083,10 +1096,15 @@ class AppDatabase extends _$AppDatabase {
 ///     - web/sqlite3.wasm     (من حزمة sqlite3 — مطابق للإصدار)
 ///     - web/drift_worker.js  (من حزمة drift — مطابق للإصدار)
 ///   بدونهما تَرمي driftDatabase() ArgumentError ويتجمد التطبيق على Splash.
-QueryExecutor _openConnection() {
+QueryExecutor _openConnection({String? path}) {
   return driftDatabase(
-    // اسم ملف / مخزن قاعدة البيانات
-    name: 'sales_management_db',
+    // اسم مخزن القاعدة — على الويب اسم مخزن OPFS، فلا يتغيّر أبداً وإلا
+    // فتح المتصفح مخزناً فارغاً جديداً
+    name: DatabaseLocation.databaseName,
+    // المسار الصريح على سطح المكتب — `null` يعني افتراضيّ drift (Documents)
+    native: path == null
+        ? null
+        : DriftNativeOptions(databasePath: () async => path),
     // إعدادات الويب — إلزامية عند التجميع للويب
     web: DriftWebOptions(
       sqlite3Wasm: Uri.parse('sqlite3.wasm'),

@@ -29,6 +29,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/database_location_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_provider.dart';
@@ -294,10 +295,21 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
   // ── مساعدات مشتركة ────────────────────────────────────────────────────────
 
-  /// مسار ملف قاعدة البيانات — موضع واحد بدل تكراره في ثلاث دوال
+  /// مسار ملف القاعدة الحيّة — من [activeDatabasePathProvider] وحده
+  ///
+  /// ⚠️ كان تعليق هذه الدالة يقول «موضع واحد بدل تكراره في ثلاث دوال»،
+  ///   بينما `_exportBackup` و`_importBackup` تبنيان المسار بنفسيهما من
+  ///   Documents (كُشف 2026-10-12). فلمّا صار موضع القاعدة قابلاً للتغيير،
+  ///   صار ذلك التكرار يعني **استعادةً تكتب في ملفٍ لا يقرؤه البرنامج
+  ///   وتُبلّغ بالنجاح**. الثلاث تمرّ بهذه الدالة الآن، وحارس المصدر يمنع
+  ///   اسم الملف خارج DatabaseLocation.
   Future<String> _dbFilePath() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/sales_management_db.sqlite';
+    final path = ref.read(activeDatabasePathProvider);
+    if (path == null) {
+      // الويب وحده بلا مسار — والنسخ الاحتياطي معطَّل عليه أصلاً (kIsWeb)
+      throw StateError('لا ملف قاعدة بيانات على هذه المنصّة.');
+    }
+    return path;
   }
 
   /// تحقّقات كلمة مرور التصدير الثلاثة — كانت مكرّرة حرفياً في دالتين
@@ -343,8 +355,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
     try {
       // 1. مسار قاعدة البيانات
-      final dir = await getApplicationDocumentsDirectory();
-      final dbPath = '${dir.path}/sales_management_db.sqlite';
+      final dbPath = await _dbFilePath();
       final dbFile = io.File(dbPath);
       if (!dbFile.existsSync()) {
         _setStatus('لم يُعثَر على ملف قاعدة البيانات', error: true);
@@ -365,7 +376,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       final fileName =
           'smbak_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
           '_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}.smbak';
-      final savePath = '${dir.path}/$fileName';
+      // ⚠️ مجلد **حفظ النسخة** — المستندات كما كان دائماً، وهو غير مجلد
+      //   القاعدة. كان المتغيّر `dir` نفسه يحمل المعنيين في هذه الدالة،
+      //   فلمّا صار موضع القاعدة قابلاً للتغيير انكشف أنهما شيئان (ع-٤٠:
+      //   اسمٌ واحد بمعنيين). أمسكه المحلّل لحظة فصلهما (2026-10-12).
+      final saveDir = await getApplicationDocumentsDirectory();
+      final savePath = '${saveDir.path}/$fileName';
       await io.File(savePath).writeAsBytes(encrypted, flush: true);
 
       // توثيق إنشاء النسخة في سجل التدقيق
@@ -439,11 +455,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
 
       // 3. أغلق قاعدة البيانات واستبدل الملف
+      // المسار يُقرأ **قبل** الإغلاق — لا لأن الإغلاق يمسّه، بل ليكون واضحاً
+      // أن الملف المدهوس هو نفسه الذي كان مفتوحاً للتوّ
+      final dbPath = await _dbFilePath();
       final db = ref.read(appDatabaseProvider);
       await db.close();
 
-      final dir = await getApplicationDocumentsDirectory();
-      final dbPath = '${dir.path}/sales_management_db.sqlite';
       await io.File(dbPath).writeAsBytes(decrypted, flush: true);
 
       // ⚠️ حذف ملفَّي WAL القديمَين (إصلاح تدقيق 2026-08-06):

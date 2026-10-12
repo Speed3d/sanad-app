@@ -21,6 +21,7 @@
 //     Cross-Origin-Embedder-Policy: require-corp
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -29,6 +30,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'data/database/database_location.dart';
+import 'presentation/features/database_location/database_location_problem_app.dart';
+import 'presentation/providers/database_location_provider.dart';
 import 'presentation/providers/settings_provider.dart';
 
 /// نقطة الدخول الرئيسية
@@ -44,10 +48,56 @@ void main() async {
     DeviceOrientation.landscapeRight,
   ]);
 
+  await startSanad();
+}
+
+/// الإقلاع: أين القاعدة؟ ثم البرنامج — أو شاشة تقول لماذا لا
+///
+/// يُستدعى من [main]، **ومن شاشة خطأ الموضع** بعد أن يحلّ المالك المشكلة
+/// (`runApp` الثانية تستبدل الشجرة كلّها).
+///
+/// ⚠️ موضع القاعدة يُحسَم **قبل** `runApp` لا داخل مزوّد: لو فُتحت القاعدة
+///   أولاً ثم اكتُشف أن الموضع غائب، لكان drift قد أنشأ قاعدةً فارغة جديدة
+///   في المسار المفقود (إن وُجد المجلد) — وهو التراجع الصامت بعينه.
+Future<void> startSanad() async {
+  // الويب: لا ملف ولا مؤشّر — drift يختار مخزن OPFS بنفسه
+  if (kIsWeb) {
+    runApp(const ProviderScope(child: SalesManagementApp()));
+    return;
+  }
+
+  final location = await DatabaseLocation.forPlatform();
+  final resolved = location.resolve();
+
+  if (!resolved.isUsable) {
+    runApp(DatabaseLocationProblemApp(
+      location: location,
+      resolved: resolved,
+      onResolved: startSanad,
+    ));
+    return;
+  }
+
+  // نسخةٌ متخلّفة في المستندات بينما القاعدة في مجلدٍ آخر — تُقاعَد قبل
+  // أن تُفتح يوماً بصمت إن ضاع المؤشّر. راجع retireStaleDefaultCopy.
+  try {
+    final retired = await location.retireStaleDefaultCopy(resolved);
+    for (final path in retired) {
+      debugPrint('[الموضع] أُعيدت تسمية نسخة قديمة متخلّفة: $path');
+    }
+  } catch (e) {
+    debugPrint('[الموضع] ⚠️ تعذّرت إعادة تسمية نسخة متخلّفة: $e');
+  }
+  debugPrint('[الموضع] القاعدة: ${resolved.databasePath}');
+
   // تشغيل التطبيق مغلَّفاً بـ ProviderScope (الـ DI Container لـ Riverpod)
   runApp(
-    const ProviderScope(
-      child: SalesManagementApp(),
+    ProviderScope(
+      overrides: [
+        databaseLocationProvider.overrideWithValue(location),
+        activeDatabasePathProvider.overrideWith((ref) => resolved.databasePath),
+      ],
+      child: const SalesManagementApp(),
     ),
   );
 }

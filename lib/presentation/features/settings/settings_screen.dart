@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'tabs/attachments_tab.dart';
 import 'tabs/company_tab.dart';
+import 'tabs/database_tab.dart';
 import 'tabs/appearance_tab.dart';
 // import 'tabs/language_tab.dart'; // مُعطَّل مؤقتاً — انظر ملاحظة قسم اللغة أدناه
 import 'tabs/currency_tab.dart';
@@ -94,6 +95,12 @@ final List<_SettingsSection> _sections = [
     subtitle: 'مجلد حفظ الفواتير والوصولات',
     icon: Icons.attach_file,
     builder: () => const AttachmentsTab(),
+  ),
+  _SettingsSection(
+    title: 'قاعدة البيانات',
+    subtitle: 'موضعها على القرص — نقلها أو فتح قاعدة أخرى',
+    icon: Icons.storage_outlined,
+    builder: () => const DatabaseTab(),
   ),
   _SettingsSection(
     title: 'النسخ الاحتياطي',

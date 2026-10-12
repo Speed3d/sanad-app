@@ -139,6 +139,19 @@ abstract final class AuditActions {
   /// رفع للسحابة
   static const String cloudUpload = 'CLOUD_UPLOAD';
 
+  /// نقل قاعدة البيانات إلى مجلد آخر
+  ///
+  /// ⚠️ **لا يكتبه AuditLogger** بل `DatabaseLocation.move` مباشرةً في
+  ///   **النسخة المنقولة** بعد التحقّق منها — فإن فشل النقل لم يبقَ في القاعدة
+  ///   القديمة سطرٌ يزعم نقلاً لم يقع. الثابت هنا للقاموس وحده.
+  static const String databaseMove = 'DATABASE_MOVE';
+
+  /// ترك هذه القاعدة إلى قاعدة موجودة في مجلد آخر
+  ///
+  /// يُكتَب في القاعدة **المتروكة** قبل إغلاقها: فإن عاد إليها المالك يوماً
+  /// رأى متى تُركت وإلى أين.
+  static const String databaseAttach = 'DATABASE_ATTACH';
+
   // ── عمليات الاستيراد والتصدير ────────────────────────────────────────────
 
   /// استيراد ملف Excel
@@ -820,6 +833,22 @@ class AuditLogger {
   /// [userId]   — معرّف المستخدم
   /// [username] — اسم المستخدم
   /// [filePath] — مسار ملف النسخة المستعادة
+  /// تسجيل ترك هذه القاعدة إلى قاعدةٍ في [targetDirectory]
+  Future<void> logDatabaseAttach({
+    required int userId,
+    required String username,
+    required String fromDirectory,
+    required String targetDirectory,
+  }) async {
+    await _safeLog(() => _dao.logSimpleAction(
+          userId: userId,
+          username: username,
+          table: AuditTables.system,
+          action: AuditActions.databaseAttach,
+          meta: _toMeta({'from': fromDirectory, 'to': targetDirectory}),
+        ));
+  }
+
   Future<void> logBackupRestored({
     required int userId,
     required String username,

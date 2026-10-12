@@ -51,8 +51,18 @@
 ;    فيُنسَخ ملف قاعدةٍ يكتب فيها البرنامج لحظتها.
 #define AppWindowTitle "Sanad"
 
-; اسم ملف القاعدة كما تفتحه driftDatabase(name: 'sales_management_db').
+; اسم ملف القاعدة — مرآةٌ لـ DatabaseLocation.databaseFileName في
+; lib/data/database/database_location.dart. ⚠️ إن تغيّر هناك فغيّره هنا.
 #define DbFileName    "sales_management_db.sqlite"
+
+; ملف المؤشّر — مرآةٌ لـ DatabaseLocation.pointerFileName. يحفظ مجلد القاعدة
+; إن نقلها المالك (2026-10-12). غيابه = المستندات.
+; قابلٌ للتجاوز بـ /DPointerFile=... لاختبار المثبِّت على مؤشّرٍ في مجلد مؤقّت
+; دون لمس مؤشّر المالك الحقيقي (لو لُمس وفُتح البرنامج لحظتها لأعاد تسمية
+; قاعدته الأصلية). لا تمرّره في بناء التسليم.
+#ifndef PointerFile
+  #define PointerFile   "{localappdata}\Sanad\db_location.txt"
+#endif
 
 #define BuildDir      "..\build\windows\x64\runner\Release"
 ; ⚠️ مكتبات VC++ تُقرأ من مجلد تجهيز يملؤه build_installer.ps1 — **لا من
@@ -130,7 +140,9 @@ Source: "..\docs\07-FIELD-TEST.md"; DestDir: "{app}"; DestName: "دليل-الا
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
-Name: "{group}\مجلد النسخ الاحتياطية التلقائية"; Filename: "{userdocs}\Sanad-Backups"
+; ⚠️ لا اختصار لمجلد النسخ الاحتياطية: موضعه يتبع القاعدة، والقاعدة تُنقل
+;    من داخل البرنامج **بعد** التثبيت — فاختصارٌ ثابت يكذب بعد أول نقل.
+;    وتبويب «قاعدة البيانات» في البرنامج فيه زرّ «فتح المجلد».
 Name: "{group}\دليل الاختبار"; Filename: "{app}\دليل-الاختبار.md"
 Name: "{group}\إلغاء تثبيت {#AppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
@@ -185,6 +197,25 @@ begin
 end;
 
 // ─────────────────────────────────────────────────────────────────────────
+// أين القاعدة؟ — المؤشّر إن وُجد، وإلا المستندات
+//
+// ⚠️ مرآةٌ لـ DatabaseLocation.resolve() في البرنامج. LoadStringsFromFile تقرأ
+//    UTF-8 بـ BOM وبدونه — جُرِّب بمسارٍ عربي قبل الاعتماد عليه (2026-10-12).
+// ─────────────────────────────────────────────────────────────────────────
+function DatabaseDir(): String;
+var
+  Lines: TArrayOfString;
+  P: String;
+begin
+  Result := ExpandConstant('{userdocs}');
+  P := ExpandConstant('{#PointerFile}');
+  if FileExists(P) and LoadStringsFromFile(P, Lines) and (GetArrayLength(Lines) > 0) then
+    if Trim(Lines[0]) <> '' then
+      Result := Trim(Lines[0]);
+  Log('DatabaseDir: ' + Result);
+end;
+
+// ─────────────────────────────────────────────────────────────────────────
 // النسخة الاحتياطية التلقائية — قبل أن يلمس المثبِّت أي ملف
 //
 // تنسخ الملفات الثلاثة **معاً**: القاعدة و-wal و-shm. فـ-wal يحمل أحدث ما
@@ -196,19 +227,31 @@ end;
 // ─────────────────────────────────────────────────────────────────────────
 function BackupDatabase(): String;
 var
-  Docs, Src, DestDir, Stamp, Sfx: String;
+  Dir, Src, DestDir, Stamp, Sfx: String;
   I: Integer;
 begin
   Result := '';
-  Docs := ExpandConstant('{userdocs}');
-  Src := Docs + '\{#DbFileName}';
+  // النسخة **بجوار القاعدة** لا في المستندات: من نقل قاعدته إلى D:\ ليحميها
+  // من إعادة تثبيت ويندوز لا تُحفَظ نسخها على C:\ فتضيع معه
+  Dir := DatabaseDir();
+  Src := Dir + '\{#DbFileName}';
 
-  // تثبيت أول على هذا الحساب — لا شيء يُنسَخ
   if not FileExists(Src) then
+  begin
+    // مؤشّرٌ يشير إلى قاعدة غائبة (قرصٌ مفصول) — البرنامج سيقول ذلك عند
+    // فتحه ولا يفتح غيرها. والتثبيت لا يلمس القاعدة فلا سبب لإيقافه، لكن
+    // الصمت هنا يُخفي ما يجب أن يُعرف قبل التشغيل.
+    if FileExists(ExpandConstant('{#PointerFile}')) then
+      SuppressibleMsgBox('تنبيه: لم يُعثَر على قاعدة البيانات في المجلد المحفوظ:' + #13#10 +
+                Dir + #13#10#13#10 +
+                'لم تُؤخَذ نسخة احتياطية. إن كان قرصاً خارجياً فأوصله قبل تشغيل البرنامج.',
+                mbInformation, MB_OK, IDOK);
+    // وإلا فتثبيتٌ أول على هذا الحساب — لا شيء يُنسَخ
     Exit;
+  end;
 
   Stamp := GetDateTimeString('yyyy-mm-dd_hh-nn-ss', '-', '-');
-  DestDir := Docs + '\Sanad-Backups\قبل-تثبيت-{#AppVersion}_' + Stamp;
+  DestDir := Dir + '\Sanad-Backups\قبل-تثبيت-{#AppVersion}_' + Stamp;
 
   if not ForceDirectories(DestDir) then
   begin
@@ -260,9 +303,9 @@ begin
   if (CurUninstallStep = usPostUninstall) and not UninstallSilent() then
     MsgBox('أُزيل البرنامج.' + #13#10#13#10 +
            'بياناتك لم تُمَسّ وما زالت في:' + #13#10 +
-           ExpandConstant('{userdocs}') + '\{#DbFileName}' + #13#10#13#10 +
+           DatabaseDir() + '\{#DbFileName}' + #13#10#13#10 +
            'والنسخ الاحتياطية التلقائية في:' + #13#10 +
-           ExpandConstant('{userdocs}') + '\Sanad-Backups' + #13#10#13#10 +
+           DatabaseDir() + '\Sanad-Backups' + #13#10#13#10 +
            'إعادة تثبيت سند تُعيدها كما كانت.',
            mbInformation, MB_OK);
 end;

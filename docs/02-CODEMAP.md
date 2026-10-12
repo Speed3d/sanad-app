@@ -321,7 +321,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
-## ٦. الاختبارات (`test/`) — ٦٨ ملفاً · ٨٧٧ اختباراً
+## ٦. الاختبارات (`test/`) — ٧٠ ملفاً · ٩١١ اختباراً
 
 | المجموعة | الملفات |
 |---|---|
@@ -342,6 +342,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **هوية الشركة** | `company_identity` ← يحرس أيضاً أن `PdfService` لا تعرف قاعدة البيانات |
 | **النسخ الاحتياطي** | `backup_service` ← **الدورة الكاملة على قرص حقيقي**: صدّر ⇒ صفّر ⇒ استعد ⇒ الصفوف والملفات عادت. وقاعدته **ملفّية** لا في الذاكرة، وإلا لم تُختبَر الاستعادة أصلاً |
 | **تصفير المصنع** | `factory_reset` ← يمرّ على **العشرين جدولاً** فيمسك أي جدول ينساه المحو، ويحرس ترتيب الحذف والحُرّاس الثلاثة |
+| **موضع القاعدة** | `database_location` (٣١: المؤشّر · لا تراجع صامت · النقل الناجح والفاشل · الفحص لا يكتب · **حارس مصدر** لاسم الملف) · `widget/database_location_problem` (اتجاه المسار **مقيساً من الرسم** · الأزرار في الداكن) |
 | **حرّاس الأنماط** | `dialog_controller_lifecycle` · **`tech_debt_guard`** · **`dialog_actions_guard`** (لا `Spacer` في `actions` — ع-٦٢) · `pdf_arabic_font` ← كلها تفحص **المصدر** أو **داخل الناتج**، لا السلوك |
 | **الأدوات** | `input_validators` · `currency_formatter` · `extensions` · `services` · `display_format` |
 | **دفعات ملاحظات المالك** | `batch_a_guards` (الخزينة المعطَّلة · حذف السند · أثر التدقيق) · `batch_b_employees` · `batch_c_reports` |
@@ -358,6 +359,26 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
+## ٦أ. موضع قاعدة البيانات (2026-10-12)
+
+| الملف | الدور |
+|---|---|
+| `data/database/database_location.dart` | **المصدر الوحيد لمسار القاعدة** — المؤشّر · `resolve` بلا تراجع صامت · فحص المجلدات · `move` · `attach` · `inspect` · تقاعد النسخ · `bidiPath`. **اسم الملف لا يظهر خارجه** (حارس مصدر) |
+| `data/database/probe_database.dart` | قاعدة فارغة لـ`ATTACH` — **تفحص ولا تكتب**. لا تستبدلها بـ`AppDatabase`: يكتب جداول سند في الملف المفحوص (مُثبَت باختبار) |
+| `presentation/providers/database_location_provider.dart` | `databaseLocationProvider` · `activeDatabasePathProvider` — **يُحقَنان في `main`**، والثاني يراقبه `appDatabaseProvider` فتغييره يُعيد فتح القاعدة |
+| `presentation/features/database_location/` | الحوارات المشتركة · شاشة «لم يُعثَر على القاعدة» (تُعرض **بدل البرنامج** قبل فتح أي قاعدة) |
+| `presentation/features/settings/tabs/database_tab.dart` | تبويب «قاعدة البيانات» — نقل · فتح قاعدة موجودة · الإعادة للمستندات (`super_admin` + كلمة المرور) |
+| `core/utils/app_relauncher.dart` | إعادة تشغيل البرنامج بعد «فتح قاعدة موجودة» — البيانات كلها تتغيّر فلا يكفي إبطال المزوّدات |
+
+**ملف المؤشّر:** `%LOCALAPPDATA%\Sanad\db_location.txt` — سطرٌ واحد UTF-8. غيابه =
+المستندات. **والمثبِّت يقرؤه** (`DatabaseDir()` في `sanad.iss`).
+
+⚠️ **`AppDatabase.atPath(path)`** هو مُنشئ سطح المكتب، و`AppDatabase()` للويب
+وحده. والمسار يُسأل عنه `DatabaseLocation` لا يُبنى باليد.
+⚠️ **`AppDatabase.currentSchemaVersion`** ثابتٌ يُقرأ قبل فتح أي قاعدة.
+
+---
+
 ## ٦ب. `installer/` — مثبِّت ويندوز (2026-10-12)
 
 | الملف | الغرض |
@@ -369,7 +390,10 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 ANSI فتتشوّه.
 ⚠️ **ثوابت مرآة يجب أن تتبع مصدرها**: `AppWindowTitle` = عنوان النافذة في
 `windows/runner/main.cpp` · `DbFileName` = اسم `driftDatabase` في
-`app_database.dart`. تغيير المصدر بلا المرآة يُعمي الحارس أو النسخة الاحتياطية.
+`app_database.dart` · `PointerFile` = `DatabaseLocation.pointerFileName`. تغيير
+المصدر بلا المرآة يُعمي الحارس أو النسخة الاحتياطية.
+📌 `PointerFile` قابلٌ للتجاوز بـ`/DPointerFile=…` **لاختبار المثبِّت فقط** —
+فلا يُلمس مؤشّر المالك الحقيقي.
 
 الناتج في `dist/` — مُستثنى من git.
 

@@ -16,6 +16,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/database/app_database.dart';
+import 'database_location_provider.dart';
 
 part 'database_provider.g.dart';
 
@@ -25,8 +26,11 @@ part 'database_provider.g.dart';
 /// جميع الـ DAOs تُستدعى عبر هذا الـ Provider.
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
-  // إنشاء قاعدة البيانات — drift_flutter يختار المسار المناسب
-  final db = AppDatabase();
+  // المسار من DatabaseLocation (حُقن في main) — و`null` على الويب حيث
+  // يختار drift مخزن OPFS بنفسه. **يُراقَب لا يُقرأ**: تغييره بعد نقل
+  // القاعدة يُعيد بناء هذا المزوّد فيُغلق القديمة ويفتح الجديدة.
+  final path = ref.watch(activeDatabasePathProvider);
+  final db = path == null ? AppDatabase() : AppDatabase.atPath(path);
 
   // تنظيف: عند تدمير الـ Provider (عند إنهاء التطبيق) نُغلق الاتصال
   ref.onDispose(db.close);

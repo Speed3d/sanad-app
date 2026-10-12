@@ -10,6 +10,8 @@
 // مصممة بأسلوب مالي فاخر (Fintech Luxury Theme) متناسق مع شاشات اللوحة والخزائن والسندات.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:io';
+
 import '../../../core/utils/input_validators.dart';
 import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +21,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/database_location_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../../core/utils/app_relauncher.dart';
+import '../../../data/database/app_database.dart';
+import '../database_location/database_location_dialogs.dart';
 import '../../providers/repository_providers.dart';
 
 /// شاشة الإعداد الأول الفاخرة لوحة التحكم
@@ -45,6 +51,70 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
   final _confirmPasswordCtrl = TextEditingController();
 
   bool _isLoading = false;
+
+  // ── «لديّ قاعدة بيانات سابقة» ───────────────────────────────────────────
+  //
+  // ⚠️ **هذا الباب هو ما يحقّق الغاية من نقل القاعدة** (قرار المالك
+  //   2026-10-12): المؤشّر الذي يحفظ موضعها يعيش في AppData، وإعادة تثبيت
+  //   ويندوز تمحوه. فيفتح البرنامج بعدها هنا — على قاعدة فارغة — ولا يعرف
+  //   أن البيانات على D:\. بدون هذا الزرّ تكون «النجاة من إعادة التثبيت»
+  //   وعداً بلا طريق (د-٨: ميزة مكتوبة نصفها أسوأ من غائبة).
+  //
+  //   ولا كلمة مرور هنا: لا مستخدم بعد. والقاعدة المفتوحة تقود إلى شاشة
+  //   الدخول بحساباتها هي — فلا تُكشف بياناتها لمن لا يملكها.
+  Future<void> _openExisting() async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final location = container.read(databaseLocationProvider);
+    final current = container.read(activeDatabasePathProvider);
+    if (location == null) return;
+
+    final dir = await pickDatabaseFolder('اختر المجلد الذي فيه قاعدة سند');
+    if (dir == null || !mounted) return;
+
+    final check = await location.checkAttachSource(dir);
+    if (!mounted) return;
+    if (!await presentFolderCheck(context, check, title: 'تنبيه')) return;
+    if (!mounted) return;
+
+    try {
+      final candidate = await location.inspect(
+        location.databasePathIn(dir),
+        appSchemaVersion: AppDatabase.currentSchemaVersion,
+      );
+      if (!mounted) return;
+      final ok = await confirmAttach(
+        context,
+        candidate,
+        appSchemaVersion: AppDatabase.currentSchemaVersion,
+        aboutCurrent: 'القاعدة الفارغة التي أُنشئت الآن لا تُحذف — يُعاد '
+            'تسميتها فقط.',
+      );
+      if (!ok || !mounted) return;
+
+      setState(() => _isLoading = true);
+      await location.attach(
+        directory: dir,
+        appSchemaVersion: AppDatabase.currentSchemaVersion,
+        currentDirectory: current == null ? null : File(current).parent.path,
+        closeLiveDatabase: () async {
+          final db = container.read(appDatabaseProvider);
+          await db.checkpointWal();
+          await db.close();
+        },
+      );
+      await relaunchApp();
+    } on StateError catch (e) {
+      container.invalidate(appDatabaseProvider);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      await showLocationMessage(
+        context,
+        title: 'تعذّر فتح القاعدة',
+        body: e.message,
+        isError: true,
+      );
+    }
+  }
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   String? _errorMessage;
@@ -331,6 +401,23 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                     ),
                   ),
                 ),
+
+                // ── 4. قاعدة سابقة (بعد إعادة تثبيت ويندوز) ────────────────
+                if (ref.watch(databaseLocationProvider) != null) ...[
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: context.colors.gold,
+                      ),
+                      onPressed: _isLoading ? null : _openExisting,
+                      icon: const Icon(Icons.folder_open),
+                      label: const Text(
+                        'لديّ قاعدة بيانات سابقة — افتحها بدل البدء من جديد',
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

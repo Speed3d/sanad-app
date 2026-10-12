@@ -6,7 +6,7 @@ part of 'database_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appDatabaseHash() => r'59cce38d45eeaba199eddd097d8e149d66f9f3e1';
+String _$appDatabaseHash() => r'ddf99572666fb18c71ef3cb37c68c860e51adee3';
 
 /// Provider لـ AppDatabase — حياته طوال عمر التطبيق
 ///

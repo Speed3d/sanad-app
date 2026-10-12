@@ -142,6 +142,14 @@ enum AppPermission {
   /// السجلّ. وإن كان الحذف مقيَّداً بالفترات الخالية (فلا أثر مالي يضيع)،
   /// يبقى تصحيحاً لخطأ إداري لا عملية يومية.
   deleteFiscalPeriod,
+
+  /// **نقل قاعدة البيانات** إلى مجلد آخر، أو **فتح قاعدة موجودة** بدلها
+  ///
+  /// ⚠️ لـ super_admin وحده رغم أن النقل لا يمحو شيئاً: «فتح قاعدة موجودة»
+  ///   يستبدل البيانات **كلها** المعروضة — كالاستعادة تماماً، وهي لـ
+  ///   super_admin. والنقل والفتح باب واحد في الواجهة فصلاحيتهما واحدة.
+  ///   ومحروسة كذلك بكلمة المرور في الواجهة (2026-10-12).
+  changeDatabaseLocation,
 }
 
 /// مستوى الصلاحية المطلوب — تدرّج تصاعدي
@@ -182,6 +190,7 @@ _Level _requiredLevel(AppPermission p) {
     case AppPermission.deleteUser:
     case AppPermission.deleteFiscalPeriod:
     case AppPermission.purgeFiscalPeriod:
+    case AppPermission.changeDatabaseLocation:
       return _Level.superAdmin;
   }
 }
