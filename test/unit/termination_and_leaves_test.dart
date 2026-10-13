@@ -347,6 +347,8 @@ void main() {
     test('⭐⭐ الإجازة تُبلَّغ في النتيجة فيعرضها الكشف مستقلّةً عن الغياب',
         () {
       final a = PayrollCalculator.compute(
+        hireDate: null,
+        terminationDate: null,
         year: 2026,
         month: 7,
         workingDays: 30,
@@ -361,6 +363,7 @@ void main() {
 
     test('⭐⭐ إجازة تتجاوز استحقاق شهر الإنهاء تُقصّ به لا بأيام العمل', () {
       final a = PayrollCalculator.compute(
+        hireDate: null,
         year: 2026,
         month: 7,
         workingDays: 30,

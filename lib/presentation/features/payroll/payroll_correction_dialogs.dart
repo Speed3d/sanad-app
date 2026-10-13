@@ -164,6 +164,13 @@ Future<void> _openCorrectionDialog(
   PayrollPeriod period,
   SalaryPayment entry,
 ) async {
+  // سياق الخدمة يُقرأ **قبل** فتح الحوار: المعاينة تُحسب مع كل ضغطة مفتاح
+  // فلا تنتظر قاعدة البيانات، ويجب أن ترى ما سيراه الحفظ تماماً
+  final svc = await ref
+      .read(payrollRepositoryProvider)
+      .serviceContextForEntry(entry, period);
+  if (!context.mounted) return;
+
   var basic = entry.basicSalary;
   var absenceDays = entry.absenceDays;
   var bonus = entry.additions;
@@ -179,20 +186,18 @@ Future<void> _openCorrectionDialog(
       final colors = ctx.colors;
       return StatefulBuilder(
         builder: (ctx, setState) {
-          // 🔑 المعاينة تمرّ بـ`PayrollCalculator` نفسها التي ستحسب فعلاً —
-          //   حسابٌ ثانٍ في الحوار يعني رقماً يَعِد بما لا يقع.
-          final preview = PayrollCalculator.compute(
-            year: period.year,
-            month: period.month,
-            workingDays: period.workingDays,
-            basicSalary: basic,
-            currency: entry.snapshotCurrency,
-            exchangeRate: entry.exchangeRate ?? period.exchangeRate,
-            hireDate: entry.snapshotHireDate,
-            absenceDays: absenceDays,
-            bonus: bonus,
-            deduction: deduction,
-            advanceRepayment: entry.advanceRepaymentAmount,
+          // 🔑 المعاينة تمرّ **بدالة الحفظ نفسها** لا بحسابٍ خاصّ بالحوار.
+          //   كان الحوار يستدعي الحاسبة بنفسه فنسي تاريخ الإنهاء والإجازة
+          //   والأيام اليدوية — فيعِد برقمٍ ويُحفَظ غيره (بلاغ المالك
+          //   2026-10-14). والقيم هنا هي ما يُرسَل عند «تصحيح» حرفياً.
+          final preview = PayrollCorrectionsMixin.correctionAmounts(
+            entry: entry,
+            period: period,
+            ctx: svc,
+            newBasicSalary: basic,
+            newAbsenceDays: absenceDays,
+            newBonus: bonus,
+            newDeduction: deduction,
           );
           final delta = preview.netSalaryIqd - entry.netAmountIqd;
           final isLower = delta < -0.001;

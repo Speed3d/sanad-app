@@ -90,6 +90,20 @@ class PayrollAmounts {
   });
 }
 
+/// سياق خدمة الموظف في شهر — ما تحتاجه الحاسبة من سجلّه
+///
+/// **نوعٌ واحد** يمرّ من `EmployeesDao.payrollServiceContext` إلى كل مسار
+/// يحسب راتباً. وحين كان كل مسارٍ يجمع حقوله بنفسه نسي أحدها تاريخ الإنهاء
+/// (بلاغ المالك 2026-10-14).
+///
+/// ⚠️ أيام الإجازة هنا **مقصوصةٌ بحدود الخدمة** — راجع `leaveDaysInMonth`.
+typedef PayrollServiceContext = ({
+  DateTime? hireDate,
+  DateTime? terminationDate,
+  int unpaidLeaveDays,
+  int paidLeaveDays,
+});
+
 /// حاسبة الرواتب — منطق مجال نقيّ
 abstract final class PayrollCalculator {
   // ── ثوابت ────────────────────────────────────────────────────────────────
@@ -395,6 +409,17 @@ abstract final class PayrollCalculator {
   /// [unpaidLeaveDays] — أيام الإجازة بلا راتب في هذا الشهر (Schema v9)
   /// [manualEligibleDays] — أيام العمل كما ذكرها الملف (أو عدّلها المالك)
   /// [manualAbsenceDeduction] — مبلغ خصم الغياب حين يختاره المالك بيده
+  ///
+  /// 🔴 **[hireDate] و[terminationDate] و[unpaidLeaveDays] إلزامية** — وإن
+  ///   جاز أن تكون `null`/صفراً (بلاغ المالك 2026-10-14):
+  ///   كانت اختيارية، فنسيها **تصحيح الراتب المسدَّد** فحسب الشهر كاملاً:
+  ///   ٢٨ يوماً لمن أُنهيت خدمته صارت ٣٠ بمجرّد إضافة مكافأة. ونسيتها معه
+  ///   **معاينة حوار التصحيح** و**مقارنة المدفوع بالملف**. ثلاثة مسارات —
+  ///   وهي ع-٣٧ للمرّة الثالثة: منطقٌ مالي في مسارات عدّة أحدها ينسى.
+  ///
+  ///   والإصلاح ليس تذكّرها في المسارات الثلاثة، بل **منع نسيانها**: كل
+  ///   مستدعٍ الآن يكتبها صراحةً، ومن لا يعرفها يكتب `null` بيده — فيظهر
+  ///   الإغفال في المراجعة بدل أن يختبئ في قيمة افتراضية.
   static PayrollAmounts compute({
     required int year,
     required int month,
@@ -402,13 +427,13 @@ abstract final class PayrollCalculator {
     required double basicSalary,
     required String currency,
     double? exchangeRate,
-    DateTime? hireDate,
-    DateTime? terminationDate,
+    required DateTime? hireDate,
+    required DateTime? terminationDate,
     int absenceDays = 0,
     double bonus = 0.0,
     double deduction = 0.0,
     double advanceRepayment = 0.0,
-    int unpaidLeaveDays = 0,
+    required int unpaidLeaveDays,
     int? manualEligibleDays,
     double? manualAbsenceDeduction,
   }) {

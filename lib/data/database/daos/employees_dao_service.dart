@@ -168,8 +168,15 @@ mixin EmployeeServiceDaoMixin on DatabaseAccessor<AppDatabase> {
   ///   يفترقان بأول كتابة تنسى أحدهما** — وهو المحذور المكتوب في CLAUDE.md
   ///   بعينه (نمط ع-٤٠).
   ///
-  /// **القرار: الجدول هو المصدر، والحالة تُشتقّ منه.** فمن له إجازةٌ تشمل
-  /// **اليوم** حالته «في إجازة»، وبانقضائها يعود «حالي».
+  /// **القرار: الجدول هو المصدر، والحالة تُشتقّ منه.**
+  ///
+  /// 🔄 **ومعنى «في إجازة» = له إجازة (أيّ نوع) في الشهر الحالي** — قرار
+  ///   المالك 2026-10-14. كان «إجازةٌ تشمل **اليوم**»، فسجّل المالك إجازةً
+  ///   براتب في أيام الشهر الماضية فلم يظهر الموظف في التبويب، بينما ظهر
+  ///   زميله الذي تشمل إجازتُه اليوم — فبدا الفرق بين النوعين عطلاً، وهو
+  ///   فرقٌ في التواريخ. والمالك يقرأ التبويب **بعين كشف الشهر**: من أخذ
+  ///   إجازةً هذا الشهر، لا من غاب صباح اليوم.
+  ///   وبمرور الشهر تنقضي الحالة وحدها: الاشتقاق عند القراءة يعيدها «حالي».
   ///
   /// ⚠️ **ومنتهي الخدمة لا تُمَسّ حالته إطلاقاً**: إنهاء الخدمة أقوى من
   ///   الإجازة، وإعادتُه «حالياً» لانقضاء إجازةٍ قديمة تُدخِله كشوف الرواتب
@@ -178,15 +185,19 @@ mixin EmployeeServiceDaoMixin on DatabaseAccessor<AppDatabase> {
     final emp = await getEmployeeById(employeeId);
     if (emp == null || emp.status == EmployeeStatus.terminated) return;
 
-    final today = DateTime.now();
-    final t = DateTime(today.year, today.month, today.day);
+    final now = DateTime.now();
+    final firstOfMonth = DateTime(now.year, now.month, 1);
+    // نهاية الشهر **شاملةً يومه الأخير كلّه** — `to_date` قد يُخزَّن بوقتٍ
+    // من اليوم، والمقارنة بمنتصف ليله الأول تُسقطه
+    final endOfMonth = DateTime(now.year, now.month + 1, 1)
+        .subtract(const Duration(microseconds: 1));
 
     final active = await (select(employeeLeaves)
           ..where((l) =>
               l.employeeId.equals(employeeId) &
               l.isDeleted.equals(false) &
-              l.fromDate.isSmallerOrEqualValue(t) &
-              l.toDate.isBiggerOrEqualValue(t))
+              l.fromDate.isSmallerOrEqualValue(endOfMonth) &
+              l.toDate.isBiggerOrEqualValue(firstOfMonth))
           ..limit(1))
         .getSingleOrNull();
 
@@ -232,29 +243,59 @@ mixin EmployeeServiceDaoMixin on DatabaseAccessor<AppDatabase> {
     required int year,
     required int month,
     required int workingDays,
-  }) =>
-      leaveDaysInMonth(
-        employeeId: employeeId,
-        year: year,
-        month: month,
-        workingDays: workingDays,
-        kind: LeaveKind.unpaid,
-      );
+  }) async {
+    final row = await getEmployeeById(employeeId);
+    return leaveDaysInMonth(
+      employeeId: employeeId,
+      year: year,
+      month: month,
+      workingDays: workingDays,
+      kind: LeaveKind.unpaid,
+      serviceStart: row?.hireDate,
+      serviceEnd: row?.terminationDate,
+    );
+  }
 
   /// أيام إجازةٍ من نوعٍ بعينه داخل شهر — **حسبةٌ واحدة للنوعين**
   ///
   /// ⚠️ نسخةٌ ثانية من حساب التقاطع لأجل «الإجازة براتب» كانت ستفترق عن
   ///   أختها بأول تصحيح — وهو ع-٣٧ حرفياً. النوع معاملٌ لا فرعٌ مكرّر.
+  ///
+  /// 🔴 **[serviceStart] و[serviceEnd] إلزاميان — والإجازة تُقصّ بهما**
+  ///   (بلاغ المالك 2026-10-14):
+  ///   كانت الإجازة تُعدّ على الشهر كلّه ولو وقعت **بعد إنهاء الخدمة**. فمن
+  ///   عمل من ١ إلى ١٢ وأُنهيت خدمته وله إجازةٌ بلا راتب مسجَّلة من ٢٠ إلى
+  ///   ٣٠، طُرحت أيامها الأحد عشر من أيام عمله الاثني عشر فاستحقّ **يوماً
+  ///   واحداً**. وفي الإجازة براتب ظهر عمودها «١٣ يوماً» لخدمةٍ من ١٢ يوماً،
+  ///   فبدا إنهاء الخدمة متجاهَلاً.
+  ///
+  ///   **القاعدة:** الإجازة حقٌّ أثناء الخدمة. ما يقع منها قبل التعيين أو بعد
+  ///   الإنهاء ليس إجازةً من هذا العمل — لا يُنقِص راتباً ولا يُعرَض.
+  ///   وإلزاميّان لأن مستدعياً ينساهما يُعيد العطل بصمت (ع-٣٧).
   Future<int> leaveDaysInMonth({
     required int employeeId,
     required int year,
     required int month,
     required int workingDays,
     required String kind,
+    required DateTime? serviceStart,
+    required DateTime? serviceEnd,
   }) async {
-    final firstOfMonth = DateTime(year, month, 1);
-    final lastOfMonth =
+    var firstOfMonth = DateTime(year, month, 1);
+    var lastOfMonth =
         DateTime(year, month, PayrollCalculator.daysInMonth(year, month));
+
+    // نافذة العدّ = الشهر ∩ مدّة الخدمة
+    if (serviceStart != null) {
+      final s = DateTime(serviceStart.year, serviceStart.month, serviceStart.day);
+      if (s.isAfter(firstOfMonth)) firstOfMonth = s;
+    }
+    if (serviceEnd != null) {
+      final e = DateTime(serviceEnd.year, serviceEnd.month, serviceEnd.day);
+      if (e.isBefore(lastOfMonth)) lastOfMonth = e;
+    }
+    // لا خدمة في هذا الشهر أصلاً ⇒ لا إجازة فيه
+    if (lastOfMonth.isBefore(firstOfMonth)) return 0;
 
     final rows = await (select(employeeLeaves)
           ..where((l) =>
@@ -341,13 +382,7 @@ mixin EmployeeServiceDaoMixin on DatabaseAccessor<AppDatabase> {
   /// 📌 **ولماذا رَكوردٌ واحد لا ثلاث قراءات؟** لأن الثلاثة تصف حالةً واحدة
   ///   في لحظة واحدة، وتفريقُها يجعل مستدعياً لاحقاً يقرأ اثنتين وينسى
   ///   الثالثة — وهو النمط الذي أنتج ع-٥٠ (الدولار يسقط في المحطّة الوسطى).
-  Future<
-      ({
-        DateTime? hireDate,
-        DateTime? terminationDate,
-        int unpaidLeaveDays,
-        int paidLeaveDays,
-      })> payrollServiceContext({
+  Future<PayrollServiceContext> payrollServiceContext({
     required int employeeId,
     required int year,
     required int month,
@@ -360,6 +395,8 @@ mixin EmployeeServiceDaoMixin on DatabaseAccessor<AppDatabase> {
       month: month,
       workingDays: workingDays,
       kind: LeaveKind.unpaid,
+      serviceStart: row?.hireDate,
+      serviceEnd: row?.terminationDate,
     );
     // 📌 **والمدفوعة تُقرأ وإن لم تُغيّر رقماً**: هي لقطةٌ تُكتَب على السطر
     //   لتفسّره لاحقاً — «حضر ٣٠ يوماً منها ٥ إجازة مدفوعة».
@@ -369,6 +406,8 @@ mixin EmployeeServiceDaoMixin on DatabaseAccessor<AppDatabase> {
       month: month,
       workingDays: workingDays,
       kind: LeaveKind.paid,
+      serviceStart: row?.hireDate,
+      serviceEnd: row?.terminationDate,
     );
     return (
       hireDate: row?.hireDate,

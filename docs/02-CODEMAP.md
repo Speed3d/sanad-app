@@ -321,7 +321,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 
 ---
 
-## ٦. الاختبارات (`test/`) — ٧٠ ملفاً · ٩١١ اختباراً
+## ٦. الاختبارات (`test/`) — ٧١ ملفاً · ٩٢٢ اختباراً
 
 | المجموعة | الملفات |
 |---|---|
@@ -351,6 +351,7 @@ await (update(vouchers)..where(...)).replace(companion); // ❌ يُعيد ال�
 | **المقاولون والشركاء** | `contractor_partner_treasury` (الإنشاء الذرّي · تحويل نوع الخزينة) · `contractor_partner_delete` (**تماثل بابَي الحذف** — ع-٥٧) |
 | **تصحيح الرواتب** | `payroll_correction` · `payroll_direct_pay` · `payroll_employee_report` · `employee_advance` |
 | **Schema v8** | `schema_v8` · `schema_v8_upgrade` ← **يُعيد بناء جدول الموظفين** على بيانات مزروعة |
+| **الخدمة في كل مسار** | `service_context_paths` ← بلاغات الجولة الميدانية: التصحيح بعد التسديد · قصّ الإجازة بالخدمة · مقارنة المدفوع · تعريف «في إجازة». **مكتوبٌ بواجهاتٍ قديمة عمداً ففشل على الكود القديم** |
 | **دورة حياة الخدمة** | `termination_and_leaves` ← **يختبر المسار كلّه** من سجلّ الموظف إلى سطر الراتب المخزَّن، لا الحاسبة وحدها · و`schema_v10_upgrade` لمسار v9←v10 |
 | **الودجت (`test/widget/`)** | `payroll_screens` · `employees_departments` (السحب والإفلات · الشرائح) · `dashboard_currency` (مبدّل العملة) · `contractor_delete_crash` (**يُعيد إنتاج انهيار `ref` الميت**) |
 

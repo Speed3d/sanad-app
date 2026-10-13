@@ -9,7 +9,7 @@ description: نظام إدارة المبيعات والخزينة — Flutter W
 publish_to: 'none' # لا يُنشر على pub.dev — مشروع خاص
 
 # الإصدار: Major.Minor.Patch+BuildNumber
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   # الحد الأدنى من إصدار Dart المطلوب

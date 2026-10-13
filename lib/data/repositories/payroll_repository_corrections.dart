@@ -112,26 +112,18 @@ mixin PayrollCorrectionsMixin {
 
     final period = await _ensureEntryPeriodActive(entry);
 
-    // ── الحساب — يمرّ بـ`PayrollCalculator` كأي مبلغ في النظام ────────
-    final manualDays = newEligibleDays ??
-        (entry.eligibleDaysIsManual ? entry.eligibleDays : null);
-    final manualAbsence = newAbsenceDeduction ??
-        (entry.absenceDeductionIsManual ? entry.absenceDeduction : null);
-
-    final amounts = PayrollCalculator.compute(
-      year: period.year,
-      month: period.month,
-      workingDays: period.workingDays,
-      basicSalary: newBasicSalary ?? entry.basicSalary,
-      currency: entry.snapshotCurrency,
-      exchangeRate: entry.exchangeRate ?? period.exchangeRate,
-      hireDate: entry.snapshotHireDate,
-      absenceDays: newAbsenceDays ?? entry.absenceDays,
-      bonus: newBonus ?? entry.additions,
-      deduction: newDeduction ?? entry.deductions,
-      advanceRepayment: entry.advanceRepaymentAmount,
-      manualEligibleDays: newAbsenceDays != null ? null : manualDays,
-      manualAbsenceDeduction: manualAbsence,
+    // ── الحساب — بالدالة نفسها التي تعرض المعاينة في الحوار ──────────
+    final ctx = await serviceContextForEntry(entry, period);
+    final amounts = correctionAmounts(
+      entry: entry,
+      period: period,
+      ctx: ctx,
+      newBasicSalary: newBasicSalary,
+      newEligibleDays: newEligibleDays,
+      newAbsenceDays: newAbsenceDays,
+      newAbsenceDeduction: newAbsenceDeduction,
+      newBonus: newBonus,
+      newDeduction: newDeduction,
     );
 
     PayrollCalculator.ensurePayable(entry.snapshotName, amounts.netSalary);
@@ -183,6 +175,9 @@ mixin PayrollCorrectionsMixin {
         eligibleDaysIsManual:
             Value(entry.eligibleDaysIsManual || newEligibleDays != null),
         absenceDays: Value(newAbsenceDays ?? entry.absenceDays),
+        // لقطة الإجازة تُحدَّث مع الحساب — هي «على أي أساس حُسب السطر»
+        leaveDaysPaid: Value(ctx.paidLeaveDays),
+        leaveDaysUnpaid: Value(ctx.unpaidLeaveDays),
         absenceDeduction: Value(amounts.absenceDeduction),
         absenceDeductionIsManual: Value(
             entry.absenceDeductionIsManual || newAbsenceDeduction != null),
@@ -208,6 +203,70 @@ mixin PayrollCorrectionsMixin {
       newAmountIqd: amounts.netSalaryIqd,
       voucherDelta: voucherDelta,
       debtRecorded: debtAdvance != null ? delta.abs() : 0,
+    );
+  }
+
+  /// سياق خدمة صاحب السطر في شهر كشفه — للحفظ **وللمعاينة** في الحوار
+  Future<PayrollServiceContext> serviceContextForEntry(
+    SalaryPayment entry,
+    PayrollPeriod period,
+  ) =>
+      _db.employeesDao.payrollServiceContext(
+        employeeId: entry.employeeId,
+        year: period.year,
+        month: period.month,
+        workingDays: period.workingDays,
+      );
+
+  /// حساب التصحيح — **المصدر الوحيد** للرقم المعروض في الحوار والمحفوظ
+  ///
+  /// 🔴 **لماذا دالةٌ مشتركة؟** (بلاغ المالك 2026-10-14) كان الحوار يحسب
+  ///   معاينته بنفسه، والحفظ يحسب بنفسه — **ونسي الاثنان تاريخ الإنهاء
+  ///   والإجازة**، ونسيت المعاينةُ وحدها الأيامَ اليدوية أيضاً. فمكافأةٌ
+  ///   على راتبٍ مسدَّد لموظفٍ أُنهيت خدمته في ٢٨ أعادت أيامه إلى ٣٠،
+  ///   والحوار يعِد برقمٍ والحفظ يكتب غيره. رقمان من مصدرين يفترقان حتماً.
+  ///
+  /// ⚠️ **«تغيّر الغياب» لا «مُرِّر الغياب»:** الحوار يمرّر أيام الغياب في
+  ///   **كل** تصحيح ولو لم تُمسّ، وكان وجودها وحده يُسقط الأيام اليدوية
+  ///   (أيام «اعتمد الملف» مثلاً) فيُعاد حسابها. الأيام اليدوية تسقط فقط
+  ///   حين **يتغيّر** الغياب فعلاً — فعندها صارت الأيام المذكورة قديمة.
+  static PayrollAmounts correctionAmounts({
+    required SalaryPayment entry,
+    required PayrollPeriod period,
+    required PayrollServiceContext ctx,
+    double? newBasicSalary,
+    int? newEligibleDays,
+    int? newAbsenceDays,
+    double? newAbsenceDeduction,
+    double? newBonus,
+    double? newDeduction,
+  }) {
+    final absenceChanged =
+        newAbsenceDays != null && newAbsenceDays != entry.absenceDays;
+    final manualDays = newEligibleDays ??
+        (entry.eligibleDaysIsManual && !absenceChanged
+            ? entry.eligibleDays
+            : null);
+    final manualAbsence = newAbsenceDeduction ??
+        (entry.absenceDeductionIsManual ? entry.absenceDeduction : null);
+
+    return PayrollCalculator.compute(
+      year: period.year,
+      month: period.month,
+      workingDays: period.workingDays,
+      basicSalary: newBasicSalary ?? entry.basicSalary,
+      currency: entry.snapshotCurrency,
+      exchangeRate: entry.exchangeRate ?? period.exchangeRate,
+      // اللقطة لا السجلّ: تاريخ التعيين المجمَّد هو ما بُني عليه الكشف
+      hireDate: entry.snapshotHireDate,
+      terminationDate: ctx.terminationDate,
+      unpaidLeaveDays: ctx.unpaidLeaveDays,
+      absenceDays: newAbsenceDays ?? entry.absenceDays,
+      bonus: newBonus ?? entry.additions,
+      deduction: newDeduction ?? entry.deductions,
+      advanceRepayment: entry.advanceRepaymentAmount,
+      manualEligibleDays: manualDays,
+      manualAbsenceDeduction: manualAbsence,
     );
   }
 

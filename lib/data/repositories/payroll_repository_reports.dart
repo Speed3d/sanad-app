@@ -188,8 +188,13 @@ mixin PayrollReportsMixin {
   ///
   ///   **تنبيهٌ يذكر رقماً بلا سببه يُدرّب العين على تخطّي ما حوله.**
   ///
-  /// تمرّ بـ`PayrollCalculator.compute` نفسها التي يستعملها الاستيراد — فلا
-  /// حساب ثانٍ يمكن أن يختلف عن الأول.
+  /// تمرّ بـ`PayrollCalculator.compute` نفسها التي يستعملها الاستيراد.
+  ///
+  /// ⚠️ **وكان هذا التعليق يقول «فلا حساب ثانٍ يمكن أن يختلف»** — وكان
+  ///   يختلف: الدالة نفسها، لكن **بلا تاريخ الإنهاء والإجازة** وبتاريخ تعيين
+  ///   الملف لا السجلّ (كُشف 2026-10-14). الدالة الواحدة لا تكفي إن اختلف ما
+  ///   يُمرَّر إليها؛ ولهذا صارت معاملات الخدمة إلزامية فيها (ع-٤٠: تعليقٌ
+  ///   يعِد بما لا يقع).
   Future<List<PaidVsFileComparison>> comparePaidWithFile({
     required int year,
     required int month,
@@ -210,6 +215,16 @@ mixin PayrollReportsMixin {
       if (paid == null) continue;
 
       final r = item.row;
+      // ⚠️ سياق الخدمة **كما يقرؤه الاستيراد** (بلاغ المالك 2026-10-14):
+      //   بلاه كانت المقارنة تحسب شهراً كاملاً لمن أُنهيت خدمته، وتأخذ تاريخ
+      //   التعيين من الملف لا من سجلّه — فتُظهر «فرقاً» بين ما صُرف وما يقوله
+      //   الملف لم يقع، لأنها لم تحسب كما حسب الاستيراد.
+      final ctx = await _db.employeesDao.payrollServiceContext(
+        employeeId: item.employeeId,
+        year: period.year,
+        month: period.month,
+        workingDays: period.workingDays,
+      );
       final amounts = PayrollCalculator.compute(
         year: period.year,
         month: period.month,
@@ -217,7 +232,9 @@ mixin PayrollReportsMixin {
         basicSalary: r.basicSalary,
         currency: r.currency,
         exchangeRate: r.exchangeRate ?? period.exchangeRate,
-        hireDate: r.hireDate,
+        hireDate: ctx.hireDate ?? r.hireDate,
+        terminationDate: ctx.terminationDate,
+        unpaidLeaveDays: ctx.unpaidLeaveDays,
         absenceDays: r.absenceDays,
         bonus: r.bonus,
         deduction: r.deduction,

@@ -382,6 +382,8 @@ void main() {
   group('الحساب الكامل لسطر', () {
     test('موظف بالدينار — شهر كامل', () {
       final r = PayrollCalculator.compute(
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 2,
         workingDays: 30,
@@ -396,6 +398,8 @@ void main() {
 
     test('موظف بالدولار — الصافي بعملته والمقابل بالدينار', () {
       final r = PayrollCalculator.compute(
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 2,
         workingDays: 30,
@@ -412,6 +416,8 @@ void main() {
       // الأيام تصل من ملف الإكسل الذي دقّقه المالك. إعادة حسابها فوقه
       // تعني أن ما راجعه بيده لا أثر له.
       final r = PayrollCalculator.compute(
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 2,
         workingDays: 30,
@@ -426,6 +432,8 @@ void main() {
 
     test('⭐ خصم الغياب اليدوي يُصان من إعادة الحساب', () {
       final r = PayrollCalculator.compute(
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 2,
         workingDays: 30,
@@ -442,6 +450,8 @@ void main() {
 
     test('⭐ الغياب بلا تعديل يدوي يُطبَّق **بالأيام** لا بمبلغ', () {
       final r = PayrollCalculator.compute(
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 2,
         workingDays: 30,
@@ -466,6 +476,9 @@ void main() {
 
     test('⭐⭐ مثال المالك: أساسي ٣ مليون · داوم ٢٥ · غاب ٥ ⇒ ٢٬٥٠٠٬٠٠٠', () {
       final r = PayrollCalculator.compute(
+        hireDate: null,
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 5,
         workingDays: 30,
@@ -482,6 +495,9 @@ void main() {
     test('⭐ المسارات الثلاثة تُعطي الرقم نفسه', () {
       double net({int? days, int absence = 0, double? manualDeduction}) {
         return PayrollCalculator.compute(
+          hireDate: null,
+          terminationDate: null,
+          unpaidLeaveDays: 0,
           year: 2025,
           month: 5,
           workingDays: 30,
@@ -501,6 +517,9 @@ void main() {
 
     test('⭐ المبلغ اليدوي يُلغي خصم الأيام — لا يُجمع معه', () {
       final r = PayrollCalculator.compute(
+        hireDate: null,
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 5,
         workingDays: 30,
@@ -516,6 +535,9 @@ void main() {
 
     test('غياب أكثر من أيام الاستحقاق لا يجعل الصافي سالباً بالأيام', () {
       final r = PayrollCalculator.compute(
+        hireDate: null,
+        terminationDate: null,
+        unpaidLeaveDays: 0,
         year: 2025,
         month: 5,
         workingDays: 30,
@@ -530,6 +552,8 @@ void main() {
     test('⭐ سطر بالدولار بلا سعر صرف يرمي عند الحساب لا عند التسديد', () {
       expect(
         () => PayrollCalculator.compute(
+          terminationDate: null,
+          unpaidLeaveDays: 0,
           year: 2025,
           month: 2,
           workingDays: 30,
@@ -548,6 +572,9 @@ void main() {
       var total = 0.0;
       for (final s in salaries) {
         final r = PayrollCalculator.compute(
+          hireDate: null,
+          terminationDate: null,
+          unpaidLeaveDays: 0,
           year: 2025,
           month: 3,
           workingDays: 30,
