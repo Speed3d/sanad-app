@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../../data/database/daos/advances_dao.dart'
@@ -343,7 +344,7 @@ class _PostAdvanceDialogState extends State<PostAdvanceDialog> {
           onPressed:
               (_hasDeficit && !widget.canPostWithDeficit) ? null : _confirm,
           style: _hasDeficit
-              ? FilledButton.styleFrom(backgroundColor: Colors.orange.shade800)
+              ? FilledButton.styleFrom(backgroundColor: Colors.orange.shade800, foregroundColor: Colors.orange.shade800.readableText)
               : null,
           icon: const Icon(Icons.check, size: 18),
           label: Text(_hasDeficit ? 'اعتماد مع عجز' : 'اعتماد'),

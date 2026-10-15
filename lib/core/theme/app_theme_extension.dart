@@ -168,3 +168,32 @@ extension AppPaletteX on BuildContext {
   AppPalette get colors =>
       Theme.of(this).extension<AppPalette>() ?? AppPalette.light;
 }
+
+/// لون نصٍّ مقروء فوق خلفيةٍ ملوّنة — ع-٦٧ (بلاغ المالك 2026-10-15)
+///
+/// ⚠️ لماذا: أزرارٌ كثيرة تضع خلفيتها بيدها (أحمر للحذف، أخضر للتأكيد…)
+///   وتترك لون النصّ للثيم — والثيم يعطي `onPrimary` الذي صُمّم للذهبي لا
+///   للأحمر. فظهر في الداكن نصٌّ داكن على أحمر. والثيم لا يرى خلفيةً وضعها
+///   الزرّ بيده، فالقرار هنا: **الأبيض ما دام مقروءاً، وإلا الكحلي**.
+///
+///   و«مقروء» = تباين ٣:١ على الأقل (حدّ WCAG لنصّ الأزرار العريض). ولماذا
+///   لا «الأعلى تبايناً» ببساطة؟ لأن الأحمر المعتاد يعطي الكحليَّ تبايناً
+///   أعلى قليلاً، فيتغيّر الوضع الفاتح الذي قال المالك إنه سليم. بالحدّ يبقى
+///   الفاتح كما هو، ويأخذ الكحليَّ الباهتُ وحده: أحمر الداكن (`#F87171`)
+///   والذهبي والبرتقالي الفاتح.
+///
+/// القاعدة: كلّ `styleFrom` يضع `backgroundColor` يضع معه
+/// `foregroundColor: bg.readableText` — يحرسه `dark_contrast_guard_test`.
+extension ReadableTextOn on Color {
+  Color get readableText =>
+      contrastRatio(this, Colors.white) >= 3.0 ? Colors.white : AppColors.navy;
+}
+
+/// نسبة التباين وفق WCAG بين لونين — من ١ (لا تباين) إلى ٢١.
+double contrastRatio(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  final hi = la > lb ? la : lb;
+  final lo = la > lb ? lb : la;
+  return (hi + 0.05) / (lo + 0.05);
+}

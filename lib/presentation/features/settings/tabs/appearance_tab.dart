@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_settings_keys.dart';
@@ -335,6 +336,7 @@ class _ColorPreview extends StatelessWidget {
             onPressed: () {},
             style: FilledButton.styleFrom(
               backgroundColor: Color(selectedColorValue),
+              foregroundColor: Color(selectedColorValue).readableText,
               minimumSize: const Size(80, 36),
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),

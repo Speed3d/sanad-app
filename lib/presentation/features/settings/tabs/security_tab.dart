@@ -448,53 +448,61 @@ class _BalancePolicyCard extends ConsumerWidget {
     final raw = ref.watch(enforceBalanceCheckProvider).valueOrNull;
     final enforce = raw == null || raw == 'true';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
+    // `Material` لا `Container(decoration: color)` (بلاغ المالك 2026-10-15):
+    // `SwitchListTile` يرسم موجة ضغطه على أقرب `Material`، والزخرفة الملوّنة
+    // كانت تحجبها — فيطبع الإطار «ink splashes may be invisible» عند فتح
+    // التبويب، ولا يرى المستخدم أثراً لضغطته. الشكل نفسه بلا فرق مرئي.
+    // يحرسه `settings_tabs_render_test`.
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.account_balance_wallet_outlined,
-                  size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'سياسة الرصيد المدين',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.account_balance_wallet_outlined,
+                    size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'سياسة الرصيد المدين',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: enforce,
+              title: Text(
+                enforce ? 'منع الصرف فوق الرصيد' : 'السماح بالرصيد المدين',
+                style: theme.textTheme.bodyLarge,
+              ),
+              subtitle: Text(
+                enforce
+                    ? 'لا يمكن صرف مبلغ يتجاوز رصيد الخزينة المتاح.'
+                    : 'يُسمح بأن يصبح رصيد الخزينة سالباً (مديناً).',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: enforce,
-            title: Text(
-              enforce ? 'منع الصرف فوق الرصيد' : 'السماح بالرصيد المدين',
-              style: theme.textTheme.bodyLarge,
+              onChanged: (v) async {
+                // نُخزّن 'true'/'false' نصاً في الإعدادات
+                await ref
+                    .read(settingsRepositoryProvider)
+                    .setString(AppSettingsKeys.enforceBalanceCheck, v.toString());
+              },
             ),
-            subtitle: Text(
-              enforce
-                  ? 'لا يمكن صرف مبلغ يتجاوز رصيد الخزينة المتاح.'
-                  : 'يُسمح بأن يصبح رصيد الخزينة سالباً (مديناً).',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            onChanged: (v) async {
-              // نُخزّن 'true'/'false' نصاً في الإعدادات
-              await ref
-                  .read(settingsRepositoryProvider)
-                  .setString(AppSettingsKeys.enforceBalanceCheck, v.toString());
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

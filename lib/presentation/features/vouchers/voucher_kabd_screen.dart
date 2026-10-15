@@ -15,6 +15,7 @@
 
 import 'voucher_form_widgets.dart';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -244,6 +245,7 @@ final confirmed = await showDialog<bool>(
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.error.readableText,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('حذف'),

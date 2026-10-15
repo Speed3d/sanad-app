@@ -50,6 +50,9 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
 
+  /// يشترك فيه الشريط والتمرير — `thumbVisibility` يحتاج متحكّماً صريحاً.
+  final _scrollCtrl = ScrollController();
+
   bool _isLoading = false;
 
   // ── «لديّ قاعدة بيانات سابقة» ───────────────────────────────────────────
@@ -115,6 +118,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
       );
     }
   }
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   String? _errorMessage;
@@ -127,6 +131,7 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
     _fullNameCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -201,224 +206,244 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // ⚠️ التمرير يلفّ **النافذة كلها** لا عمود الـ٦٨٠ بكسل (بلاغ المالك
+    //   2026-10-15): كان `SingleChildScrollView` داخل `ConstrainedBox`، فعجلة
+    //   الفأرة لا تعمل إلا فوق العمود الأوسط، وشريط التمرير مختبئٌ عند حافّته
+    //   لا حافّة النافذة. فإذا صُغّرت النافذة بدت الأزرار السفلية مقطوعة لا
+    //   سبيل إليها إلا بتكبيرها. يحرسه `first_run_scroll_test`.
     return Scaffold(
       backgroundColor: context.colors.bg,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── 1. بطاقة الترحب والرويس القيادي ───────────────────────────
-                Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0F172A),
-                        Color(0xFF18233A),
+      body: Scrollbar(
+        controller: _scrollCtrl,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _scrollCtrl,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── 1. بطاقة الترحب والرويس القيادي ───────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF0F172A),
+                          Color(0xFF18233A),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
                       ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      // الهالة الذهبية
-                      Positioned(
-                        top: -50,
-                        left: -30,
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                const Color(0xFFE0BC66).withValues(alpha: 0.22),
-                                Colors.transparent,
-                              ],
+                    child: Stack(
+                      children: [
+                        // الهالة الذهبية
+                        Positioned(
+                          top: -50,
+                          left: -30,
+                          child: Container(
+                            width: 200,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  const Color(0xFFE0BC66)
+                                      .withValues(alpha: 0.22),
+                                  Colors.transparent,
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      Column(
-                        children: [
-                          Container(
-                            width: 68,
-                            height: 68,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE0BC66).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFFE0BC66),
-                                width: 1.2,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.waving_hand_rounded,
-                              size: 34,
-                              color: Color(0xFFE0BC66),
-                            ),
-                          ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
-
-                          const SizedBox(height: 16),
-
-                          const Text(
-                            'أهلاً بك في نظام سند',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              fontFamily: 'Cairo',
-                            ),
-                            textAlign: TextAlign.center,
-                          ).animate().fadeIn(delay: 200.ms),
-
-                          const SizedBox(height: 6),
-
-                          Text(
-                            'دعنا نقوم بإعداد نظام إدارة المبيعات والخزينة الخاص بك خطوة بخطوة',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontFamily: 'Cairo',
-                            ),
-                            textAlign: TextAlign.center,
-                          ).animate().fadeIn(delay: 350.ms),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // ── 2. رسالة الخطأ ────────────────────────────────────────────
-                if (_errorMessage != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.shade400),
-                    ),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: Colors.red.shade400,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-
-                // ── 3. بطاقة الـ Stepper الفاخرة ──────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: context.colors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: context.colors.border,
-                    ),
-                  ),
-                  child: Theme(
-                    data: theme.copyWith(
-                      colorScheme: theme.colorScheme.copyWith(
-                        primary: context.colors.gold,
-                      ),
-                    ),
-                    child: Stepper(
-                      currentStep: _currentStep,
-                      onStepTapped: (step) {
-                        if (step < _currentStep) setState(() => _currentStep = step);
-                      },
-                      onStepContinue: _isLoading ? null : _onStepContinue,
-                      onStepCancel: _isLoading ? null : _onStepCancel,
-                      controlsBuilder: (context, details) => Padding(
-                        padding: const EdgeInsets.only(top: 24),
-                        child: Row(
+                        Column(
                           children: [
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : details.onStepContinue,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colors.gold,
-                                foregroundColor: context.colors.onGold,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: _isLoading && _currentStep == 2
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Text(
-                                      _currentStep == 2 ? 'إنهاء الإعداد' : 'التالي',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontFamily: 'Cairo',
-                                      ),
-                                    ),
-                            ),
-                            if (_currentStep > 0) ...[
-                              const SizedBox(width: 12),
-                              TextButton(
-                                onPressed: _isLoading ? null : details.onStepCancel,
-                                child: Text(
-                                  'السابق',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: context.colors.subtext,
-                                  ),
+                            Container(
+                              width: 68,
+                              height: 68,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0BC66)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFFE0BC66),
+                                  width: 1.2,
                                 ),
                               ),
-                            ],
+                              child: const Icon(
+                                Icons.waving_hand_rounded,
+                                size: 34,
+                                color: Color(0xFFE0BC66),
+                              ),
+                            ).animate().scale(
+                                duration: 600.ms, curve: Curves.elasticOut),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'أهلاً بك في نظام سند',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                fontFamily: 'Cairo',
+                              ),
+                              textAlign: TextAlign.center,
+                            ).animate().fadeIn(delay: 200.ms),
+                            const SizedBox(height: 6),
+                            Text(
+                              'دعنا نقوم بإعداد نظام إدارة المبيعات والخزينة الخاص بك خطوة بخطوة',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontFamily: 'Cairo',
+                              ),
+                              textAlign: TextAlign.center,
+                            ).animate().fadeIn(delay: 350.ms),
                           ],
                         ),
-                      ),
-                      steps: [
-                        _buildStep1(isDark),
-                        _buildStep2(isDark),
-                        _buildStep3(isDark),
                       ],
                     ),
                   ),
-                ),
 
-                // ── 4. قاعدة سابقة (بعد إعادة تثبيت ويندوز) ────────────────
-                if (ref.watch(databaseLocationProvider) != null) ...[
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.colors.gold,
+                  const SizedBox(height: 24),
+
+                  // ── 2. رسالة الخطأ ────────────────────────────────────────────
+                  if (_errorMessage != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red.shade400),
                       ),
-                      onPressed: _isLoading ? null : _openExisting,
-                      icon: const Icon(Icons.folder_open),
-                      label: const Text(
-                        'لديّ قاعدة بيانات سابقة — افتحها بدل البدء من جديد',
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: Colors.red.shade400,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                  // ── 3. بطاقة الـ Stepper الفاخرة ──────────────────────────────
+                  Container(
+                    decoration: BoxDecoration(
+                      color: context.colors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: context.colors.border,
+                      ),
+                    ),
+                    child: Theme(
+                      data: theme.copyWith(
+                        colorScheme: theme.colorScheme.copyWith(
+                          primary: context.colors.gold,
+                        ),
+                      ),
+                      child: Stepper(
+                        // الـ`Stepper` العمودي `ListView` بداخله — والتمرير
+                        // للصفحة وحدها، فلا تمريرَ متداخلاً يبتلع العجلة.
+                        physics: const NeverScrollableScrollPhysics(),
+                        currentStep: _currentStep,
+                        onStepTapped: (step) {
+                          if (step < _currentStep) {
+                            setState(() => _currentStep = step);
+                          }
+                        },
+                        onStepContinue: _isLoading ? null : _onStepContinue,
+                        onStepCancel: _isLoading ? null : _onStepCancel,
+                        controlsBuilder: (context, details) => Padding(
+                          padding: const EdgeInsets.only(top: 24),
+                          child: Row(
+                            children: [
+                              ElevatedButton(
+                                onPressed:
+                                    _isLoading ? null : details.onStepContinue,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: context.colors.gold,
+                                  foregroundColor: context.colors.onGold,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: _isLoading && _currentStep == 2
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : Text(
+                                        _currentStep == 2
+                                            ? 'إنهاء الإعداد'
+                                            : 'التالي',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontFamily: 'Cairo',
+                                        ),
+                                      ),
+                              ),
+                              if (_currentStep > 0) ...[
+                                const SizedBox(width: 12),
+                                TextButton(
+                                  onPressed:
+                                      _isLoading ? null : details.onStepCancel,
+                                  child: Text(
+                                    'السابق',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.colors.subtext,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        steps: [
+                          _buildStep1(isDark),
+                          _buildStep2(isDark),
+                          _buildStep3(isDark),
+                        ],
                       ),
                     ),
                   ),
+
+                  // ── 4. قاعدة سابقة (بعد إعادة تثبيت ويندوز) ────────────────
+                  if (ref.watch(databaseLocationProvider) != null) ...[
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: context.colors.gold,
+                        ),
+                        onPressed: _isLoading ? null : _openExisting,
+                        icon: const Icon(Icons.folder_open),
+                        label: const Text(
+                          'لديّ قاعدة بيانات سابقة — افتحها بدل البدء من جديد',
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -461,7 +486,8 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 labelText: 'اسم الشركة *',
                 prefixIcon: const Icon(Icons.business_outlined, size: 20),
                 hintText: 'مثال: شركة النور للتجارة المقاولات العامة',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'اسم الشركة مطلوب';
@@ -470,11 +496,11 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               },
             ),
             const SizedBox(height: 14),
-
             TextFormField(
               controller: _exchangeRateCtrl,
               textDirection: TextDirection.ltr,
-              keyboardType: const TextInputType.numberWithOptions(decimal: false),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: false),
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: TextStyle(
                 fontSize: 13.5,
@@ -485,16 +511,18 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 prefixIcon: const Icon(Icons.currency_exchange, size: 20),
                 hintText: '1310',
                 suffixText: 'IQD',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               validator: (v) {
                 final rate = double.tryParse(v ?? '');
-                if (rate == null || rate <= 0) return 'سعر الصرف يجب أن يكون أكبر من صفر';
+                if (rate == null || rate <= 0) {
+                  return 'سعر الصرف يجب أن يكون أكبر من صفر';
+                }
                 return null;
               },
             ),
             const SizedBox(height: 14),
-
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -535,7 +563,8 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle_rounded,
+                      color: Colors.green, size: 20),
                 ],
               ),
             ),
@@ -580,7 +609,8 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 labelText: 'الاسم الكامل *',
                 prefixIcon: const Icon(Icons.badge_outlined, size: 20),
                 hintText: 'مثال: محمد أحمد علي',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'الاسم الكامل مطلوب';
@@ -588,7 +618,6 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
               },
             ),
             const SizedBox(height: 14),
-
             TextFormField(
               controller: _usernameCtrl,
               textDirection: TextDirection.ltr,
@@ -600,13 +629,13 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 labelText: 'اسم المستخدم *',
                 prefixIcon: const Icon(Icons.person_outline, size: 20),
                 hintText: 'مثال: admin',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               // مدقّق مشترك — نفس القواعد بالضبط (المرحلة د)
               validator: InputValidators.username,
             ),
             const SizedBox(height: 14),
-
             TextFormField(
               controller: _passwordCtrl,
               textDirection: TextDirection.ltr,
@@ -620,17 +649,20 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 prefixIcon: const Icon(Icons.lock_outline, size: 20),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
                     size: 20,
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               validator: InputValidators.password(minLength: 6),
             ),
             const SizedBox(height: 14),
-
             TextFormField(
               controller: _confirmPasswordCtrl,
               textDirection: TextDirection.ltr,
@@ -644,15 +676,20 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
                 prefixIcon: const Icon(Icons.lock_outline, size: 20),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    _obscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
                     size: 20,
                   ),
-                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              // دالةٌ لا قيمة — تُقرأ كلمة المرور لحظة الضغط (بلاغ 2026-10-15).
               validator:
-                  InputValidators.confirmPassword(_passwordCtrl.text),
+                  InputValidators.confirmPassword(() => _passwordCtrl.text),
             ),
           ],
         ),
@@ -686,7 +723,9 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
           _SummaryTile(
             icon: Icons.business_outlined,
             label: 'اسم الشركة',
-            value: _companyNameCtrl.text.trim().isEmpty ? '—' : _companyNameCtrl.text.trim(),
+            value: _companyNameCtrl.text.trim().isEmpty
+                ? '—'
+                : _companyNameCtrl.text.trim(),
             isDark: isDark,
           ),
           _SummaryTile(
@@ -698,13 +737,17 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
           _SummaryTile(
             icon: Icons.badge_outlined,
             label: 'اسم المدير الكامل',
-            value: _fullNameCtrl.text.trim().isEmpty ? '—' : _fullNameCtrl.text.trim(),
+            value: _fullNameCtrl.text.trim().isEmpty
+                ? '—'
+                : _fullNameCtrl.text.trim(),
             isDark: isDark,
           ),
           _SummaryTile(
             icon: Icons.person_outline,
             label: 'اسم المستخدم',
-            value: _usernameCtrl.text.trim().isEmpty ? '—' : _usernameCtrl.text.trim(),
+            value: _usernameCtrl.text.trim().isEmpty
+                ? '—'
+                : _usernameCtrl.text.trim(),
             isDark: isDark,
           ),
           _SummaryTile(
@@ -714,14 +757,17 @@ class _FirstRunScreenState extends ConsumerState<FirstRunScreen> {
             isDark: isDark,
           ),
           const SizedBox(height: 14),
-
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFE0BC66).withValues(alpha: 0.12) : AppColors.navy.withValues(alpha: 0.08),
+              color: isDark
+                  ? const Color(0xFFE0BC66).withValues(alpha: 0.12)
+                  : AppColors.navy.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark ? const Color(0xFFE0BC66).withValues(alpha: 0.3) : AppColors.navy.withValues(alpha: 0.2),
+                color: isDark
+                    ? const Color(0xFFE0BC66).withValues(alpha: 0.3)
+                    : AppColors.navy.withValues(alpha: 0.2),
               ),
             ),
             child: Row(

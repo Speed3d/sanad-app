@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
@@ -549,7 +550,7 @@ class _ArchiveDialog extends StatelessWidget {
           child: const Text('إلغاء'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+          style: FilledButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.orange.readableText),
           onPressed: () {
             Navigator.pop(context);
             onConfirm();

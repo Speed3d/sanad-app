@@ -206,7 +206,8 @@ Future<void> _confirmUnpaySalary(
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+                foregroundColor: Theme.of(ctx).colorScheme.error.readableText),
             onPressed: reason.trim().isEmpty
                 ? null
                 : () async {

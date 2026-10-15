@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/models/partner_model.dart';
@@ -915,7 +916,7 @@ class _ConfirmDeleteDialog extends StatelessWidget {
           child: const Text('إلغاء'),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          style: FilledButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.red.readableText),
           onPressed: () {
             Navigator.pop(context);
             onConfirm();

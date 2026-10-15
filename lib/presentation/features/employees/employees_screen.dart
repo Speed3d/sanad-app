@@ -436,17 +436,9 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreateDialog,
-        backgroundColor: context.colors.gold,
-        foregroundColor: context.colors.onGold,
-        icon: const Icon(Icons.person_add_rounded, size: 20),
-        label: const Text(
-          'إضافة موظف جديد',
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
-            fontFamily: 'Cairo',
-          ),
-        ),
+        // الألوان والخطّ والشكل من الثيم وحده — كبقية أزرار الإضافة.
+        icon: const Icon(Icons.person_add_rounded),
+        label: const Text('إضافة موظف جديد'),
       ),
     );
   }

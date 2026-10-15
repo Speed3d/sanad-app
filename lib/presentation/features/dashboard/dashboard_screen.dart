@@ -713,28 +713,42 @@ class _QuickActionsGrid extends StatelessWidget {
       ),
       _ActionTileData(
         label: 'استيراد إكسل',
-        icon: Icons.work_outline_rounded,
+        icon: Icons.upload_file_rounded,
         chipBg: context.colors.surface2,
         color: context.colors.gold,
         route: AppRoutes.excelImport,
       ),
       _ActionTileData(
         label: 'النسخ الاحتياطي',
-        icon: Icons.schedule_rounded,
+        icon: Icons.backup_outlined,
         chipBg: context.colors.surface2,
         color: context.colors.gold,
         route: AppRoutes.backup,
       ),
     ];
 
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.3,
-      children: actions.map((a) => _ActionTileItem(data: a)).toList(),
+    // ⚠️ ارتفاعٌ ثابت لا نسبة (طلب المالك 2026-10-15): كانت الشبكة ثلاثة
+    //   أعمدة بنسبة 1.3، فيكبر ارتفاع البطاقة مع عرض النافذة — على شاشة
+    //   سطح مكتب صارت كل بطاقة ~٣٥٠×٢٧٠ بكسل لأيقونةٍ وكلمة. الآن بطاقاتٌ
+    //   أفقية بارتفاع ٦٤ ثابت، وعدد الأعمدة يتبع العرض: صفٌّ واحد من ستّ
+    //   على الشاشة العريضة، وصفّان من ثلاث، وثلاثة من اثنتين في الضيّق.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final columns = w >= 960 ? 6 : (w >= 560 ? 3 : 2);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: actions.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: _ActionTileItem.height,
+          ),
+          itemBuilder: (_, i) => _ActionTileItem(data: actions[i]),
+        );
+      },
     );
   }
 }
@@ -759,43 +773,58 @@ class _ActionTileItem extends StatelessWidget {
   final _ActionTileData data;
   const _ActionTileItem({required this.data});
 
+  /// ارتفاع البطاقة الثابت — تقرؤه الشبكة أعلاه.
+  static const double height = 64;
+
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(14);
 
-    return InkWell(
-      onTap: () => context.go(data.route),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: context.colors.border,
+    // `Material` + `InkWell` لا `InkWell` حول `Container`: الزخرفة كانت
+    // تُرسم فوق موجة الضغط فتُخفيها، فلا أثر مرئياً للمرور ولا للضغط.
+    return Material(
+      color: context.colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: context.colors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.go(data.route),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              // المقاس والزوايا نفسها كأيقونة «إحصائيات سريعة» فوقها.
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: data.chipBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(data.icon, size: 20, color: data.color),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  data.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: context.colors.text,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_left_rounded,
+                size: 18,
+                color: context.colors.subtext,
+              ),
+            ],
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: data.chipBg,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(data.icon, size: 22, color: data.color),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              data.label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: context.colors.text,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

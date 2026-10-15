@@ -122,4 +122,36 @@ void main() {
       await disposeTree(tester);
     });
   });
+
+  // ── بطاقات «إجراءات سريعة» (طلب المالك 2026-10-15) ────────────────────
+  //   كانت شبكةً بنسبة 1.3 فيكبر ارتفاعها مع العرض: ~٢٧٠ بكسل لأيقونةٍ
+  //   وكلمة على شاشة سطح المكتب.
+  group('لوحة التحكم — إجراءات سريعة', () {
+    // ⚠️ ٥٦٠ أضيق ما يُختبَر: تحته يتجاوز شريطٌ في `DashboardChartsSection`
+    //   (قائمٌ قبل هذا التعديل — بندٌ مستقلّ).
+    for (final width in [1400.0, 700.0, 560.0]) {
+      testWidgets('⭐⭐ ارتفاع البطاقة ثابت ٦٤ بعرض $width ولا تجاوز',
+          (tester) async {
+        tester.view.physicalSize = Size(width, 2400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await tester.pumpWidget(wrap(const DashboardScreen()));
+        await settle(tester);
+
+        final tile = find.ancestor(
+          of: find.text('سند صرف'),
+          matching: find.byType(InkWell),
+        ).first;
+        expect(tester.getSize(tile).height, 64);
+        // الستّ في صفٍّ واحد على الشاشة العريضة.
+        if (width >= 1400) {
+          expect(tester.getCenter(find.text('سند صرف')).dy,
+              tester.getCenter(find.text('النسخ الاحتياطي')).dy);
+        }
+        expect(tester.takeException(), isNull);
+        await disposeTree(tester);
+      });
+    }
+  });
 }

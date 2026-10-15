@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
@@ -489,6 +490,9 @@ class VoucherActionButtons extends StatelessWidget {
               backgroundColor: isEdit
                   ? theme.colorScheme.secondary
                   : theme.colorScheme.error,
+              foregroundColor: (isEdit
+                  ? theme.colorScheme.secondary
+                  : theme.colorScheme.error).readableText,
             ),
           ),
         ),

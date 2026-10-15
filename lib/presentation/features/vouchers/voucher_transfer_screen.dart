@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -507,6 +508,7 @@ class _VoucherTransferScreenState extends ConsumerState<VoucherTransferScreen> {
                     child: FilledButton.icon(
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.indigo.readableText,
                       ),
                       onPressed: isWorking ? null : _onSave,
                       icon: isWorking

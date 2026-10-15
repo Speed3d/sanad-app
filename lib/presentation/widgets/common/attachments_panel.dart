@@ -12,6 +12,7 @@
 import '../../../core/extensions/date_extensions.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/attachment_service.dart';
@@ -317,7 +318,7 @@ class _AttachmentTileState extends ConsumerState<_AttachmentTile> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.red.readableText),
             child: const Text('حذف'),
           ),
         ],

@@ -158,6 +158,7 @@ class _EmployeeDetailSheetState
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.error.readableText,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('حذف'),
@@ -602,6 +603,7 @@ class _AdvancesTab extends ConsumerWidget {
                   label: const Text('منح سلفة جديدة'),
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.tertiary,
+                    foregroundColor: theme.colorScheme.tertiary.readableText,
                   ),
                 ),
               ),
@@ -667,6 +669,7 @@ class _SalariesTab extends ConsumerWidget {
                   label: const Text('صرف راتب'),
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.primary.readableText,
                   ),
                 ),
               ),
@@ -906,7 +909,8 @@ class _AdvanceCard extends ConsumerWidget {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error),
+                  backgroundColor: Theme.of(ctx).colorScheme.error,
+                  foregroundColor: Theme.of(ctx).colorScheme.error.readableText),
               onPressed: reason.trim().isEmpty
                   ? null
                   : () => Navigator.pop(ctx, true),

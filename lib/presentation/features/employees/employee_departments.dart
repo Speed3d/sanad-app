@@ -306,7 +306,7 @@ class _DepartmentsDialogState extends ConsumerState<_DepartmentsDialog> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.red.readableText),
             child: const Text('حذف'),
           ),
         ],

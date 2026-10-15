@@ -733,6 +733,7 @@ class _GrantAdvanceDialogState extends State<_GrantAdvanceDialog> {
           onPressed: _saving ? null : _save,
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.tertiary,
+            foregroundColor: Theme.of(context).colorScheme.tertiary.readableText,
           ),
           child: _saving
               ? const SizedBox(
@@ -968,6 +969,7 @@ class _RepayAdvanceDialogState extends State<_RepayAdvanceDialog> {
           onPressed: _saving ? null : _save,
           style: FilledButton.styleFrom(
             backgroundColor: Colors.green.shade700,
+            foregroundColor: Colors.green.shade700.readableText,
           ),
           child: _saving
               ? const SizedBox(

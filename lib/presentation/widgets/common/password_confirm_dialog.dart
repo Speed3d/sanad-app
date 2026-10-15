@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/models/auth_state.dart';
@@ -188,7 +189,8 @@ class _PasswordConfirmDialogState
         ),
         FilledButton(
           style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error),
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.error.readableText),
           onPressed: _busy ? null : _verify,
           child: _busy
               ? const SizedBox(

@@ -123,13 +123,22 @@ abstract final class InputValidators {
 
   /// التحقق من تطابق كلمتي المرور
   ///
-  /// [originalPassword] — كلمة المرور الأصلية للمقارنة
-  static String? Function(String?) confirmPassword(String originalPassword) {
+  /// [readPassword] — **دالةٌ تقرأ** كلمة المرور الأصلية لحظة التحقّق.
+  ///
+  /// ⚠️ لماذا دالة لا `String` (بلاغ المالك 2026-10-15): المدقّق يُبنى
+  ///   داخل `build`، فتمريرُ `_passwordCtrl.text` قيمةً يُغلق عليه **كما
+  ///   كان عند آخر بناء** — والكتابة في الحقل لا تُعيد البناء. فرُفضت كلمتا
+  ///   مرور متطابقتان في الضغطة الأولى من الإعداد الأول وقُبلتا في الثانية.
+  ///   بالدالة يصير ذلك النمط **خطأ ترجمة** لا عطلاً صامتاً.
+  ///   يحرسه `confirm_password_stale_test`.
+  static String? Function(String?) confirmPassword(
+    String Function() readPassword,
+  ) {
     return (value) {
       if (value == null || value.isEmpty) {
         return 'تأكيد كلمة المرور مطلوب';
       }
-      if (value != originalPassword) {
+      if (value != readPassword()) {
         return 'كلمتا المرور غير متطابقتين';
       }
       return null;

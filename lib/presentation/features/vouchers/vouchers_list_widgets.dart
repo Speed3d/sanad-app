@@ -841,6 +841,7 @@ class _VoucherDetailsSheet extends StatelessWidget {
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: theme.colorScheme.error,
+                      foregroundColor: theme.colorScheme.error.readableText,
                     ),
                     onPressed: onDelete,
                     icon: const Icon(Icons.delete_outline, size: 18),

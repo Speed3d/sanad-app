@@ -64,7 +64,7 @@ void main() {
       });
 
       test('اختبار مطابقة كلمتي المرور (confirmPassword)', () {
-        final confirmVal = InputValidators.confirmPassword('pass123');
+        final confirmVal = InputValidators.confirmPassword(() => 'pass123');
         expect(confirmVal('pass456'), contains('غير متطابقتين'));
         expect(confirmVal('pass123'), isNull);
       });

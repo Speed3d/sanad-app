@@ -60,10 +60,19 @@ abstract final class AppTheme {
   static ThemeData _buildTheme(Brightness brightness, Color seedColor) {
     final isDark = brightness == Brightness.dark;
 
+    // ⚠️ ع-٦٧ (بلاغ المالك 2026-10-15): `primary` كان **الكحلي في الوضعين**،
+    //   وخلفية الوضع الداكن كحليّة أيضاً — فكلّ ما يأخذ لونه من `primary`
+    //   صار كحلياً على كحلي: `FilledButton` (١٥٣ موضعاً) و`OutlinedButton`
+    //   و`TextButton` وأيقونات العناوين ونصوصها في الإعدادات والسنوات
+    //   المالية والرواتب. لا يُصلَح زرّاً زرّاً — المصدر واحد، فالإصلاح هنا.
+    //   في الداكن: `primary` ذهبيّ و`onPrimary` كحلي — كـ`ElevatedButton`
+    //   تماماً. والفاتح **لم يُمَسّ** (المالك: «في النهاري كل شيء جيد»).
+    //   يحرسه `dark_contrast_guard_test`.
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: brightness,
-      primary: AppColors.navy,
+      primary: isDark ? AppColors.goldDark : AppColors.navy,
+      onPrimary: isDark ? AppColors.navy : null,
       secondary: isDark ? AppColors.goldDark : AppColors.goldLight,
       surface: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
       error: isDark ? AppColors.redDark : AppColors.redLight,
@@ -144,11 +153,27 @@ abstract final class AppTheme {
       ),
 
       // ── FloatingActionButton ───────────────────────────────────────────────
+      // لماذا ليس CircleBorder (بلاغ المالك 2026-10-15): كل أزرار الإضافة في
+      // البرنامج من نوع `FloatingActionButton.extended` (أيقونة + نصّ)، والشكل
+      // الدائري يُفرَض على زرٍّ عريض فيصير قرصاً بيضاوياً لا يشبه أيّ زرّ آخر
+      // في التطبيق. فالشكل هنا هو نفسه شكل `ElevatedButton` أعلاه — مستطيلٌ
+      // بزوايا ١٢ — والظلّ أخفّ ليجلس الزرّ مع البطاقات لا فوقها.
+      // المصدر واحد: الثيم. لا تُمرَّر `shape` في الشاشات — يحرسه
+      // `fab_shape_guard_test`.
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: isDark ? AppColors.goldDark : AppColors.goldLight,
         foregroundColor: const Color(0xFF1A1204),
-        elevation: 6,
-        shape: const CircleBorder(),
+        elevation: 2,
+        focusElevation: 3,
+        hoverElevation: 3,
+        highlightElevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        extendedPadding: const EdgeInsets.symmetric(horizontal: 24),
+        extendedTextStyle: arabicTextTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
       ),
 
       // ── Card ───────────────────────────────────────────────────────────────

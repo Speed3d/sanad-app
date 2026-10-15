@@ -495,7 +495,7 @@ Future<void> _openUnpayDialog(
               child: const Text('تراجع'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: colors.danger),
+              style: FilledButton.styleFrom(backgroundColor: colors.danger, foregroundColor: colors.danger.readableText),
               onPressed: reason.trim().isEmpty
                   ? null
                   : () async {
@@ -723,7 +723,7 @@ Future<void> _showPaidDeleteDialog(
                 child: const Text('تراجع'),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: colors.danger),
+                style: FilledButton.styleFrom(backgroundColor: colors.danger, foregroundColor: colors.danger.readableText),
                 onPressed: isReverse && reason.trim().isEmpty
                     ? null
                     : () async {
@@ -845,7 +845,7 @@ Future<void> _confirmUnpayPeriod(
               child: const Text('تراجع'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: colors.danger),
+              style: FilledButton.styleFrom(backgroundColor: colors.danger, foregroundColor: colors.danger.readableText),
               onPressed:
                   reason.trim().isEmpty ? null : () => Navigator.pop(ctx, true),
               child: const Text('إلغاء التسديد'),

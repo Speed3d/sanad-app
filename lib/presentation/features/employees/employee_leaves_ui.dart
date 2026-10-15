@@ -164,6 +164,7 @@ class _LeavesTab extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.error.readableText,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('حذف'),

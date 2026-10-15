@@ -561,7 +561,7 @@ class _VouchersListScreenState extends ConsumerState<VouchersListScreen>
             child: const Text('تراجع'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.red.readableText),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('نعم، احذف التحويل'),
           ),
